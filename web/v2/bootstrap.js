@@ -10,7 +10,7 @@ import { createSpriteRenderer } from "./sprite-renderer.js";
  */
 
 const CONTENT_ROOT = "/v2/content";
-const DEFAULT_PRESET = "demo-office";
+const DEFAULT_PRESET = "refined-demo";
 const PRESET_STORAGE_KEY = "agent-office:selected-preset";
 
 function savedPreset() {

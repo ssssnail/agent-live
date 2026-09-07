@@ -3,7 +3,7 @@ export function createOfficeRenderer(content) {
 	const layout = content.layout;
 	const propTypes = content.props.types;
 	const C = { ...content.style.tokens.canvas, ...(content.atmosphere.styleOverrides?.canvas ?? {}) };
-	const renderMode = content.style.tokens.render?.detail ?? "classic";
+	const renderMode = content.preset.render?.detail ?? content.style.tokens.render?.detail ?? "classic";
 	const rich = renderMode === "rich";
 	const ambientEffects = new Set(content.atmosphere.ambientEffects ?? []);
 	const W = layout.canvas.width;

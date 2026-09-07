@@ -9,7 +9,7 @@ export function createSpriteRenderer(content) {
 		pips: { ...base.pips, ...(override.pips ?? {}) },
 		particles: { ...base.particles, ...(override.particles ?? {}) },
 	};
-	const rich = V.detail === "rich";
+	const rich = content.preset.render?.detail === "rich" || V.detail === "rich";
 	const px = (c, x, y, w, h, color) => {
 		c.fillStyle = color;
 		c.fillRect(x | 0, y | 0, w | 0, h | 0);

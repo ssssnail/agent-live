@@ -8,7 +8,8 @@ const MAIN = "main";
 const DEFAULT_PORT = Number(process.env.PI_OFFICE_PORT ?? 7788);
 const VIEWER_PATH = "v2.html";
 const PRESETS = new Map([
-	["demo-office", "原版 Demo（基准）"],
+	["refined-demo", "Agent Office Demo"],
+	["demo-office", "原版基准（Legacy）"],
 	["lively-office", "有生活的像素办公室"],
 	["night-shift", "雨夜加班办公室"],
 	["cozy-studio", "暖调创意工作室"],

@@ -2,7 +2,8 @@
 	"schemaVersion": 1,
 	"kind": "preset-catalog",
 	"presets": [
-		{ "id": "demo-office", "name": "原版 Demo（基准）" },
+		{ "id": "refined-demo", "name": "Agent Office Demo" },
+		{ "id": "demo-office", "name": "原版基准（Legacy）" },
 		{ "id": "lively-office", "name": "有生活的像素办公室" },
 		{ "id": "night-shift", "name": "雨夜加班办公室" },
 		{ "id": "cozy-studio", "name": "暖调创意工作室" },
