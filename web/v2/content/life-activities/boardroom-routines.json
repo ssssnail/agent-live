@@ -16,9 +16,9 @@
 			"initialDelayMs": [500, 900],
 			"cooldownMs": [9000, 14000],
 			"steps": [
-				{ "target": "boss-speaker", "durationMs": 4800, "pose": "talk", "bubble": "先看今天的重点" },
-				{ "target": "boss-screen", "durationMs": 3200, "pose": "reach", "bubble": "这里需要重点推进", "hot": "whiteboard" },
-				{ "target": "boss-speaker", "durationMs": 3800, "pose": "talk", "bubble": "负责人按节点同步" }
+				{ "target": "boss-seat", "durationMs": 4800, "pose": "talk", "bubble": "先看今天的重点" },
+				{ "target": "boss-seat", "durationMs": 3200, "pose": "talk", "bubble": "这里需要重点推进", "hot": "whiteboard" },
+				{ "target": "boss-seat", "durationMs": 3800, "pose": "talk", "bubble": "负责人按节点同步" }
 			]
 		},
 		{

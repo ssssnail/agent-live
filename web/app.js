@@ -66,6 +66,7 @@
 			x: spawn.x,
 			y: spawn.y,
 			lane: spawn.lane,
+			zone: spawn.zone,
 			dir: spawn.dir,
 			pose: isLead ? "sit" : "stand",
 			walkPhase: 0,
@@ -290,6 +291,7 @@
 			x: spawnPoint.x,
 			y: spawnPoint.y,
 			lane: spawnPoint.lane,
+			zone: spawnPoint.zone,
 			dir: spawnPoint.dir,
 			pose: entry.pose ?? "stand",
 			idlePose: entry.pose ?? "stand",
@@ -483,7 +485,25 @@
 			case "delegate": {
 				cancelLife(actors.get(ev.from));
 				cancelLife(actors.get(ev.to));
-				meetQueue.push({ from: ev.from, to: ev.to, task: ev.task });
+				if (Office.interactions?.handoff === "seated") {
+					const from = actors.get(ev.from);
+					const to = actors.get(ev.to);
+					const director = [...actors.values()].find((actor) =>
+						actor.isNpc && actor.role === Office.interactions.directorNpcRole,
+					);
+					if (director) bubble(director, "say", `${to?.name ?? "这位同事"}来负责这块`);
+					if (from && to) {
+						spawn("paper", from.x + 6, from.y - 14, {
+							life: 0.9,
+							target: { x: to.x - 6, y: to.y - 14 },
+						});
+						spawn("bang", to.x, to.y - 30, { life: 1.1, vy: -8 });
+						bubble(to, "say", head(ev.task, 60));
+					}
+					beep(520, 0.07);
+				} else {
+					meetQueue.push({ from: ev.from, to: ev.to, task: ev.task });
+				}
 				break;
 			}
 			case "usage": {
@@ -580,10 +600,12 @@
 				if (dist <= move) {
 					actor.x = next.x;
 					actor.y = next.y;
-					actor.path.shift();
-					if (!actor.path.length) {
-						actor.dir = actor.dest.dir ?? actor.dir;
-						actor.lane = actor.dest.lane ?? actor.lane;
+						actor.path.shift();
+						if (next.zone) actor.zone = next.zone;
+						if (!actor.path.length) {
+							actor.dir = actor.dest.dir ?? actor.dir;
+							actor.lane = actor.dest.lane ?? actor.lane;
+							actor.zone = actor.dest.zone ?? actor.zone;
 						actor.pose = restPose(actor);
 						if (actor.leaving) {
 							actors.delete(actor.id);

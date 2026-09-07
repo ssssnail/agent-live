@@ -13,6 +13,7 @@ export function createOfficeRenderer(content) {
 	const WALL_H = layout.wallHeight;
 	const LANES = [...layout.navigation.lanes];
 	const VCONN = [...layout.navigation.connectors];
+	const PERIMETER = layout.navigation.perimeter ?? null;
 	const TARGETS = Object.fromEntries(Object.entries(layout.targets).map(([key, value]) => [key, { ...value }]));
 	const SEATS = layout.seats.map((seat) => ({
 		index: seat.index,
@@ -547,11 +548,15 @@ export function createOfficeRenderer(content) {
 
 	function drawBoardroomTable(c, item) {
 		const inset = Math.max(16, Math.round(item.w * 0.25));
+		const cx = item.x + (item.w >> 1);
+		px(c, cx - 6, item.y - 15, 12, 13, C.chairDark);
+		px(c, cx - 4, item.y - 13, 8, 9, C.chair);
+		px(c, cx - 8, item.y - 12, 2, 10, C.metalDark);
+		px(c, cx + 6, item.y - 12, 2, 10, C.metalDark);
 		if (rich) poly(c, [[item.x + inset + 4, item.y + 5], [item.x + item.w - inset + 4, item.y + 5], [item.x + item.w + 5, item.y + item.h + 5], [item.x + 5, item.y + item.h + 5]], C.objectShadow);
 		poly(c, [[item.x + inset, item.y], [item.x + item.w - inset, item.y], [item.x + item.w, item.y + item.h], [item.x, item.y + item.h]], C.woodDark);
 		poly(c, [[item.x + inset + 3, item.y], [item.x + item.w - inset - 3, item.y], [item.x + item.w - 7, item.y + item.h - 6], [item.x + 7, item.y + item.h - 6]], C.deskTop);
 		poly(c, [[item.x + inset + 7, item.y + 4], [item.x + item.w - inset - 7, item.y + 4], [item.x + item.w - 18, item.y + item.h - 13], [item.x + 18, item.y + item.h - 13]], C.deskLite);
-		const cx = item.x + (item.w >> 1);
 		poly(c, [[cx - 4, item.y + 10], [cx + 4, item.y + 10], [cx + 12, item.y + item.h - 20], [cx - 12, item.y + item.h - 20]], C.woodDark);
 		if (rich) {
 			for (let y = item.y + 18; y < item.y + item.h - 18; y += 20) {
@@ -740,6 +745,8 @@ export function createOfficeRenderer(content) {
 	}
 
 	function path(from, target) {
+		if (Math.abs(from.x - target.x) < 0.5 && Math.abs(from.y - target.y) < 0.5) return [];
+		if (PERIMETER) return perimeterPath(from, target);
 		const fromLane = from.lane ?? 1;
 		const toLane = target.lane ?? 1;
 		const points = [];
@@ -754,6 +761,68 @@ export function createOfficeRenderer(content) {
 		}
 		points.push({ x: target.x, y: LANES[toLane] });
 		points.push({ x: target.x, y: target.y });
+		return points;
+	}
+
+	function perimeterPath(from, target) {
+		const { leftX, rightX, topY, bottomY } = PERIMETER;
+		const zoneFor = (point) => point.zone ?? [
+			["left", Math.abs(point.x - leftX)],
+			["right", Math.abs(point.x - rightX)],
+			["top", Math.abs(point.y - topY)],
+			["bottom", Math.abs(point.y - bottomY)],
+		].reduce((best, item) => item[1] < best[1] ? item : best)[0];
+		const portalFor = (point, zone) => {
+			if (zone === "left") return { x: leftX, y: point.y, zone };
+			if (zone === "right") return { x: rightX, y: point.y, zone };
+			if (zone === "bottom") return { x: point.x, y: bottomY, zone };
+			return { x: point.x, y: topY, zone: "top" };
+		};
+		const fromZone = zoneFor(from);
+		const toZone = zoneFor(target);
+		const start = portalFor(from, fromZone);
+		const end = portalFor(target, toZone);
+		const nodes = [
+			start,
+			end,
+			{ x: leftX, y: topY, zone: "top" },
+			{ x: rightX, y: topY, zone: "top" },
+			{ x: rightX, y: bottomY, zone: "bottom" },
+			{ x: leftX, y: bottomY, zone: "bottom" },
+		];
+		const connected = (a, b) =>
+			(a.x === b.x && (a.x === leftX || a.x === rightX)) ||
+			(a.y === b.y && (a.y === topY || a.y === bottomY));
+		const distance = nodes.map(() => Infinity);
+		const previous = nodes.map(() => -1);
+		const visited = new Set();
+		distance[0] = 0;
+		while (visited.size < nodes.length) {
+			let current = -1;
+			for (let i = 0; i < nodes.length; i++) {
+				if (!visited.has(i) && (current < 0 || distance[i] < distance[current])) current = i;
+			}
+			if (current < 0 || distance[current] === Infinity) break;
+			visited.add(current);
+			for (let i = 0; i < nodes.length; i++) {
+				if (visited.has(i) || !connected(nodes[current], nodes[i])) continue;
+				const candidate = distance[current] + Math.abs(nodes[current].x - nodes[i].x) + Math.abs(nodes[current].y - nodes[i].y);
+				if (candidate < distance[i]) {
+					distance[i] = candidate;
+					previous[i] = current;
+				}
+			}
+		}
+		const route = [];
+		for (let index = 1; index >= 0; index = previous[index]) route.unshift(nodes[index]);
+		const points = [];
+		const push = (point) => {
+			const last = points[points.length - 1];
+			if (!last || last.x !== point.x || last.y !== point.y) points.push(point);
+		};
+		push(start);
+		for (const point of route.slice(1)) push(point);
+		push({ ...target, zone: toZone });
 		return points;
 	}
 
@@ -778,6 +847,7 @@ export function createOfficeRenderer(content) {
 		seatAnchor,
 		path,
 		stationKey,
+		interactions: Object.freeze({ ...(layout.interactions ?? {}) }),
 		startDayPreview,
 		getOfficeTime,
 		content,

@@ -12,8 +12,8 @@
 			"name": "老板",
 			"role": "boss",
 			"title": "会议主持",
-			"spawn": "boss-speaker",
-			"pose": "talk",
+			"spawn": "boss-seat",
+			"pose": "sit",
 			"appearance": {
 				"skin": "#d5a47c",
 				"hair": "#2b3039",
