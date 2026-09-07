@@ -15,6 +15,7 @@ export function createOfficeRenderer(content) {
 	const VCONN = [...layout.navigation.connectors];
 	const PERIMETER = layout.navigation.perimeter ?? null;
 	const TARGETS = Object.fromEntries(Object.entries(layout.targets).map(([key, value]) => [key, { ...value }]));
+	const AREAS = [...(layout.areas ?? [])];
 	const SEATS = layout.seats.map((seat) => ({
 		index: seat.index,
 		cx: seat.cx,
@@ -722,6 +723,23 @@ export function createOfficeRenderer(content) {
 		c.restore();
 	}
 
+	function drawAreaLabels(c) {
+		if (!AREAS.length) return;
+		c.save();
+		c.font = 'bold 7px ui-monospace, "PingFang SC", "Microsoft YaHei", sans-serif';
+		c.textAlign = "left";
+		c.textBaseline = "top";
+		for (const area of AREAS) {
+			const width = Math.ceil(c.measureText(area.name).width) + 6;
+			px(c, area.x, area.y, width, 10, C.outline);
+			px(c, area.x + 1, area.y + 1, width - 2, 8, C.wallBase ?? C.woodDark);
+			px(c, area.x + 2, area.y + 2, 1, 6, C.activeAccent);
+			c.fillStyle = C.paper;
+			c.fillText(area.name, area.x + 4, area.y + 1);
+		}
+		c.restore();
+	}
+
 	function drawServiceCart(c, item) {
 		px(c, item.x, item.y, item.w, item.h, C.metal);
 		px(c, item.x, item.y, item.w, 2, C.metalLite);
@@ -777,6 +795,7 @@ export function createOfficeRenderer(content) {
 				drawChair(c, seat, occupiedSeats.has(seat.index));
 			}
 		}
+		drawAreaLabels(c);
 		drawAutomaticLighting(c, officeTime);
 	}
 

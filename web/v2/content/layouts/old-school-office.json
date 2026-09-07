@@ -9,6 +9,15 @@
 	"canvas": { "width": 384, "height": 216 },
 	"wallHeight": 36,
 	"camera": { "mode": "fixed", "fit": "contain", "integerScale": true },
+	"areas": [
+		{ "id": "staff", "name": "综合办公区", "x": 13, "y": 42 },
+		{ "id": "manager", "name": "主任室", "x": 215, "y": 42 },
+		{ "id": "meeting", "name": "小会议室", "x": 303, "y": 100 },
+		{ "id": "records", "name": "档案室", "x": 13, "y": 149 },
+		{ "id": "computer", "name": "机房", "x": 103, "y": 149 },
+		{ "id": "reception", "name": "行政前台", "x": 188, "y": 149 },
+		{ "id": "break", "name": "茶水间", "x": 277, "y": 142 }
+	],
 	"navigation": {
 		"lanes": [46, 94, 148, 204],
 		"connectors": [8, 75, 137, 204, 270, 376]
