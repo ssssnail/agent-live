@@ -29,6 +29,10 @@
 		"av-console": { "size": { "width": 60, "height": 45 }, "capabilities": ["compute", "communicate"], "renderer": "av-console" },
 		"sideboard": { "size": { "width": 55, "height": 18 }, "capabilities": ["coffee"], "renderer": "sideboard" },
 		"vending-machine": { "size": { "width": 17, "height": 28 }, "capabilities": [], "renderer": "vending-machine" },
+		"notice-board": { "size": { "width": 55, "height": 23 }, "capabilities": [], "renderer": "notice-board" },
+		"wall-calendar": { "size": { "width": 16, "height": 22 }, "capabilities": [], "renderer": "wall-calendar" },
+		"coat-rack": { "size": { "width": 13, "height": 29 }, "capabilities": [], "renderer": "coat-rack" },
+		"floor-fan": { "size": { "width": 18, "height": 27 }, "capabilities": [], "renderer": "floor-fan" },
 		"office-clock": { "size": { "width": 14, "height": 14 }, "capabilities": [], "renderer": "office-clock" },
 		"service-cart": { "size": { "width": 50, "height": 30 }, "capabilities": ["research"], "renderer": "service-cart" }
 	}

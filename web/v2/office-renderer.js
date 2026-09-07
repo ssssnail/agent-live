@@ -612,6 +612,59 @@ export function createOfficeRenderer(content) {
 		px(c, item.x + 4, item.y + item.h - 6, item.w - 8, 3, C.phoneDevice);
 	}
 
+	function drawNoticeBoard(c, item) {
+		px(c, item.x - 2, item.y - 2, item.w + 4, item.h + 4, C.woodDark);
+		px(c, item.x, item.y, item.w, item.h, C.activeRed);
+		px(c, item.x + 3, item.y + 3, item.w - 6, 2, C.activeAccent);
+		for (let x = item.x + 5; x < item.x + item.w - 8; x += 14) {
+			px(c, x, item.y + 8, 10, 11, C.paper);
+			px(c, x + 2, item.y + 10, 6, 1, C.paperLine);
+			px(c, x + 2, item.y + 13, 5, 1, C.paperLine);
+			px(c, x + 2, item.y + 16, 7, 1, C.activeRed);
+		}
+	}
+
+	function drawWallCalendar(c, item) {
+		px(c, item.x - 1, item.y - 1, item.w + 2, item.h + 2, C.woodDark);
+		px(c, item.x, item.y, item.w, 5, C.activeRed);
+		px(c, item.x + 2, item.y + 2, item.w - 4, 1, C.activeAccent);
+		px(c, item.x, item.y + 5, item.w, item.h - 5, C.paper);
+		for (let y = item.y + 8; y < item.y + item.h - 2; y += 4) {
+			for (let x = item.x + 2; x < item.x + item.w - 2; x += 4) px(c, x, y, 2, 2, C.paperLine);
+		}
+	}
+
+	function drawCoatRack(c, item) {
+		const cx = item.x + (item.w >> 1);
+		px(c, cx - 1, item.y + 3, 3, item.h - 6, C.woodDark);
+		px(c, cx - 5, item.y + 5, 11, 2, C.woodDark);
+		px(c, item.x + 1, item.y + 4, 2, 6, C.woodDark);
+		px(c, item.x + item.w - 3, item.y + 4, 2, 6, C.woodDark);
+		px(c, item.x + 1, item.y + 9, 5, 14, C.chairDark);
+		px(c, item.x, item.y + 11, 3, 9, C.chair);
+		px(c, cx - 5, item.y + item.h - 3, 11, 3, C.woodDark);
+	}
+
+	function drawFloorFan(c, item, t) {
+		const cx = item.x + (item.w >> 1);
+		const cy = item.y + 8;
+		px(c, cx - 7, cy - 7, 15, 15, C.metalDark);
+		px(c, cx - 5, cy - 5, 11, 11, C.metalLite);
+		px(c, cx, cy, 1, 1, C.phoneDevice);
+		const flip = ((t / 260) | 0) % 2;
+		if (flip) {
+			px(c, cx - 4, cy - 1, 4, 2, C.chairDark);
+			px(c, cx + 1, cy, 4, 2, C.chairDark);
+			px(c, cx - 1, cy - 4, 2, 4, C.chairDark);
+		} else {
+			px(c, cx - 3, cy - 4, 3, 4, C.chairDark);
+			px(c, cx, cy + 1, 3, 4, C.chairDark);
+			px(c, cx - 4, cy + 1, 4, 2, C.chairDark);
+		}
+		px(c, cx, cy + 8, 2, item.h - 12, C.metalDark);
+		px(c, cx - 5, item.y + item.h - 4, 12, 4, C.metalDark);
+	}
+
 	function drawOfficeClock(c, item, officeTime) {
 		const { now } = officeTime;
 		px(c, item.x, item.y, item.w, item.h, C.outline ?? C.woodDark);
@@ -704,6 +757,10 @@ export function createOfficeRenderer(content) {
 		for (const item of byRenderer("av-console")) drawAvConsole(c, item, hot, t);
 		for (const item of byRenderer("sideboard")) drawSideboard(c, item);
 		for (const item of byRenderer("vending-machine")) drawVendingMachine(c, item);
+		for (const item of byRenderer("notice-board")) drawNoticeBoard(c, item);
+		for (const item of byRenderer("wall-calendar")) drawWallCalendar(c, item);
+		for (const item of byRenderer("coat-rack")) drawCoatRack(c, item);
+		for (const item of byRenderer("floor-fan")) drawFloorFan(c, item, t);
 		for (const item of byRenderer("office-clock")) drawOfficeClock(c, item, officeTime);
 		for (const item of byRenderer("service-cart")) drawServiceCart(c, item);
 		for (const item of byRenderer("boss-desk")) drawBossDesk(c, item);
