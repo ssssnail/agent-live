@@ -1,0 +1,18 @@
+{
+	"schemaVersion": 1,
+	"kind": "preset",
+	"id": "builtin/rich-studio",
+	"name": "精细像素科技工作室",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"content": {
+		"style": "rich-studio",
+		"layout": "lively-office",
+		"agentSkin": "studio-team",
+		"props": "default-office",
+		"npcs": "office-staff",
+		"lifeActivities": "office-basics",
+		"atmosphere": "default"
+	}
+}

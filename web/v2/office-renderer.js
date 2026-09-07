@@ -3,6 +3,8 @@ export function createOfficeRenderer(content) {
 	const layout = content.layout;
 	const propTypes = content.props.types;
 	const C = { ...content.style.tokens.canvas, ...(content.atmosphere.styleOverrides?.canvas ?? {}) };
+	const renderMode = content.style.tokens.render?.detail ?? "classic";
+	const rich = renderMode === "rich";
 	const ambientEffects = new Set(content.atmosphere.ambientEffects ?? []);
 	const W = layout.canvas.width;
 	const H = layout.canvas.height;
@@ -53,9 +55,34 @@ export function createOfficeRenderer(content) {
 		c.fillStyle = color;
 		c.fill();
 	};
+	const noise = (x, y, salt = 0) => {
+		let value = Math.imul((x | 0) + 17, 374761393) ^ Math.imul((y | 0) + 31, 668265263) ^ salt;
+		value = Math.imul(value ^ (value >>> 13), 1274126177);
+		return (value ^ (value >>> 16)) >>> 0;
+	};
+	const outline = (c, x, y, w, h, color = C.outline ?? C.woodDark) => {
+		px(c, x, y, w, 1, color);
+		px(c, x, y + h - 1, w, 1, color);
+		px(c, x, y, 1, h, color);
+		px(c, x + w - 1, y, 1, h, color);
+	};
 
 	function drawFloor(c) {
 		px(c, 0, WALL_H, W, H - WALL_H, C.floorA);
+		if (rich) {
+			const plankH = 8;
+			const plankW = 32;
+			for (let y = WALL_H; y < H; y += plankH) {
+				const row = ((y - WALL_H) / plankH) | 0;
+				const offset = row % 2 ? -(plankW >> 1) : 0;
+				for (let x = offset; x < W; x += plankW) {
+					const tone = noise(x, y, 91) % 3;
+					px(c, x + 1, y + 1, plankW - 1, plankH - 1, tone === 0 ? C.floorA : tone === 1 ? C.floorB : C.floorC);
+					px(c, x + 5 + (noise(x, y, 17) % 15), y + 3, 8 + (noise(x, y, 33) % 8), 1, C.floorGrain);
+				}
+				px(c, 0, y, W, 1, C.floorLine);
+			}
+		} else {
 		for (let y = WALL_H; y < H; y += 16) {
 			for (let x = 0; x < W; x += 16) {
 				if (((x / 16) | 0) % 2 === ((y / 16) | 0) % 2) px(c, x, y, 16, 16, C.floorB);
@@ -63,7 +90,9 @@ export function createOfficeRenderer(content) {
 		}
 		for (let y = WALL_H; y < H; y += 16) px(c, 0, y, W, 1, C.floorLine);
 		for (let x = 0; x < W; x += 16) px(c, x, WALL_H, 1, H - WALL_H, C.floorLine);
+		}
 		for (const rug of byRenderer("rug")) {
+			if (rich) px(c, rug.x + 2, rug.y + 3, rug.w, rug.h, C.objectShadow);
 			px(c, rug.x, rug.y, rug.w, rug.h, C.rug);
 			px(c, rug.x, rug.y, rug.w, 1, C.rugEdge);
 			px(c, rug.x, rug.y + rug.h - 1, rug.w, 1, C.rugEdge);
@@ -76,17 +105,38 @@ export function createOfficeRenderer(content) {
 		px(c, 0, 0, W, WALL_H, C.wall);
 		px(c, 0, 0, W, 6, C.wallTop);
 		px(c, 0, WALL_H - 3, W, 3, C.wallTrim);
+		if (rich) {
+			px(c, 0, 6, W, 2, C.wallShade);
+			for (let x = 0; x < W; x += 48) {
+				px(c, x, 7, 2, WALL_H - 10, C.wallSeam);
+				px(c, x + 2, 7, 1, WALL_H - 10, C.wallHighlight);
+			}
+			px(c, 0, WALL_H - 7, W, 4, C.wallBase);
+			px(c, 0, WALL_H - 7, W, 1, C.wallHighlight);
+		}
 		for (const door of byRenderer("door")) {
+			if (rich) px(c, door.x - 3, door.y - 3, door.w + 6, door.h + 4, C.outline);
 			px(c, door.x, door.y, door.w, door.h, C.door);
 			px(c, door.x, door.y, door.w, 2, C.doorDark);
 			px(c, door.x + door.w - 3, door.y, 3, door.h, C.doorDark);
 			px(c, door.x + 4, door.y + 4, door.w - 11, door.h - 8, C.doorPanel);
+			if (rich) {
+				outline(c, door.x + 5, door.y + 5, door.w - 12, Math.max(6, (door.h >> 1) - 5), C.doorDark);
+				outline(c, door.x + 5, door.y + (door.h >> 1) + 1, door.w - 12, Math.max(6, (door.h >> 1) - 5), C.doorDark);
+				px(c, door.x + 7, door.y + 7, door.w - 16, 1, C.doorLite);
+			}
 			px(c, door.x + door.w - 9, door.y + 16, 2, 3, C.paper);
 		}
 		for (const window of byRenderer("window")) {
+			if (rich) px(c, window.x - 4, window.y - 4, window.w + 8, window.h + 7, C.outline);
 			px(c, window.x - 2, window.y - 2, window.w + 4, window.h + 4, C.wallTrim);
 			px(c, window.x, window.y, window.w, window.h, C.glass);
 			px(c, window.x, window.y, window.w, 8, C.glassLite);
+			if (rich) {
+				px(c, window.x + 2, window.y + 2, window.w - 4, 2, C.glassShine);
+				px(c, window.x + 3, window.y + 5, 2, window.h - 8, C.glassShine);
+				px(c, window.x - 3, window.y + window.h + 2, window.w + 6, 3, C.wallBase);
+			}
 			px(c, window.x + (window.w >> 1), window.y, 1, window.h, C.wallTrim);
 			px(c, window.x, window.y + (window.h >> 1), window.w, 1, C.wallTrim);
 			if (Math.sin(t / 900 + window.x) > 0.7) px(c, window.x + 6, window.y + 14, 2, 2, C.windowSpark);
@@ -125,14 +175,23 @@ export function createOfficeRenderer(content) {
 
 	function drawDesk(c, seat, hot) {
 		const { deskX: x, deskY: y, deskW: w, deskH: h } = seat;
+		if (rich) px(c, x + 3, y + 5, w, h + 3, C.objectShadow);
 		px(c, x, y + h, w, 3, C.woodDark);
+		if (rich) outline(c, x - 1, y - 1, w + 2, h + 3);
 		px(c, x, y, w, h, C.deskTop);
 		px(c, x, y, w, 2, C.deskLite);
 		px(c, x + 2, y + h - 2, w - 4, 2, C.woodDark);
+		if (rich) {
+			px(c, x + 5, y + 5, w - 10, 1, C.woodGrain);
+			px(c, x + 3, y + h, 4, 6, C.woodDark);
+			px(c, x + w - 7, y + h, 4, 6, C.woodDark);
+		}
 		const mx = seat.cx - 9;
 		const my = y - 11;
+		if (rich) px(c, mx - 2, my - 2, 22, 15, C.outline);
 		px(c, mx - 1, my - 1, 20, 13, C.metalDark);
 		px(c, mx, my, 18, 11, C.screen);
+		if (rich) px(c, mx + 2, my + 2, 14, 1, C.screenGlow);
 		if (hot.has(`desk${seat.index}`)) {
 			px(c, mx + 2, my + 2, 14, 1, C.activeGreen);
 			px(c, mx + 2, my + 4, 10, 1, C.activeThink);
@@ -143,6 +202,12 @@ export function createOfficeRenderer(content) {
 			px(c, mx + 2, my + 6, 11, 1, C.screenIdle);
 		}
 		px(c, seat.cx - 2, my + 12, 4, 2, C.metalDark);
+		if (rich) {
+			px(c, seat.cx - 7, y + 9, 15, 3, C.keyboard);
+			for (let key = 0; key < 6; key++) px(c, seat.cx - 6 + key * 2, y + 10, 1, 1, C.keyboardKey);
+			px(c, x + 4, y + 4, 3, 4, C.mug);
+			px(c, x + 7, y + 5, 1, 2, C.mugLite);
+		}
 		px(c, seat.cx + 12, y + 4, 7, 5, C.paper);
 		px(c, seat.cx + 12, y + 4, 7, 1, C.paperLine);
 	}
@@ -150,7 +215,12 @@ export function createOfficeRenderer(content) {
 	function drawChair(c, seat, occupied) {
 		const x = seat.cx - 7;
 		const y = seat.deskY + 21;
+		if (rich) px(c, x + 2, y + 3, 14, 11, C.objectShadow);
 		px(c, x, y, 14, 9, occupied ? C.chairDark : C.chair);
+		if (rich) {
+			outline(c, x - 1, y - 1, 16, 11);
+			px(c, x + 2, y + 2, 10, 2, occupied ? C.chair : C.chairLite);
+		}
 		px(c, x, y + 9, 14, 2, C.chairDark);
 		px(c, x + 5, y + 11, 4, 3, C.metalDark);
 	}
@@ -197,7 +267,9 @@ export function createOfficeRenderer(content) {
 	}
 
 	function drawArchive(c, item, hot, t) {
+		if (rich) px(c, item.x + 3, item.y + 4, item.w, item.h, C.objectShadow);
 		px(c, item.x, item.y, item.w, item.h, C.metal);
+		if (rich) outline(c, item.x - 1, item.y - 1, item.w + 2, item.h + 2);
 		px(c, item.x, item.y, item.w, 2, C.metalLite);
 		const open = hot.has("archive") ? ((t / 260) | 0) % 3 : -1;
 		for (let i = 0; i < 3; i++) {
@@ -213,7 +285,9 @@ export function createOfficeRenderer(content) {
 	}
 
 	function drawServerRack(c, item, hot, t) {
+		if (rich) px(c, item.x + 3, item.y + 4, item.w, item.h, C.objectShadow);
 		px(c, item.x, item.y, item.w, item.h, C.rack);
+		if (rich) outline(c, item.x - 1, item.y - 1, item.w + 2, item.h + 2);
 		px(c, item.x, item.y, item.w, 2, C.rackTrim);
 		const fast = hot.has("server");
 		for (let i = 0; i < 3; i++) {
@@ -259,21 +333,48 @@ export function createOfficeRenderer(content) {
 	}
 
 	function drawMeetingTable(c, item) {
+		if (rich) px(c, item.x + 4, item.y + 5, item.w, item.h + 2, C.objectShadow);
 		px(c, item.x, item.y + item.h, item.w, 3, C.woodDark);
+		if (rich) outline(c, item.x - 1, item.y - 1, item.w + 2, item.h + 3);
 		px(c, item.x, item.y, item.w, item.h, C.deskTop);
 		px(c, item.x, item.y, item.w, 2, C.deskLite);
+		if (rich) {
+			px(c, item.x + 7, item.y + 5, item.w - 14, 1, C.woodGrain);
+			px(c, item.x + 3, item.y + item.h, 5, 7, C.woodDark);
+			px(c, item.x + item.w - 8, item.y + item.h, 5, 7, C.woodDark);
+		}
 		px(c, item.x + 8, item.y + 8, 12, 8, C.paper);
 		px(c, item.x + item.w - 24, item.y + 6, 10, 10, C.meetingPaper);
 		px(c, item.x + (item.w >> 1) - 4, item.y + 9, 8, 6, C.meetingDevice);
 	}
 
 	function drawPlant(c, item) {
+		if (rich) px(c, item.x - 5, item.y + 4, 12, 5, C.objectShadow);
 		px(c, item.x - 4, item.y, 8, 7, C.pot);
 		px(c, item.x - 4, item.y, 8, 2, C.potLite);
 		px(c, item.x - 1, item.y - 5, 2, 5, C.plantDark);
 		px(c, item.x - 6, item.y - 11, 12, 7, C.plant);
 		px(c, item.x - 4, item.y - 14, 8, 4, C.plant);
 		px(c, item.x - 6, item.y - 11, 5, 3, C.plantDark);
+		if (rich) {
+			px(c, item.x - 7, item.y - 9, 4, 3, C.plantLite);
+			px(c, item.x + 2, item.y - 13, 5, 4, C.plantLite);
+			px(c, item.x - 1, item.y - 16, 3, 5, C.plantHighlight);
+			px(c, item.x - 3, item.y + 2, 6, 1, C.potLite);
+		}
+	}
+
+	let floorLayer = null;
+	function drawCachedFloor(c) {
+		if (!floorLayer) {
+			floorLayer = document.createElement("canvas");
+			floorLayer.width = W;
+			floorLayer.height = H;
+			const floorContext = floorLayer.getContext("2d", { alpha: false });
+			floorContext.imageSmoothingEnabled = false;
+			drawFloor(floorContext);
+		}
+		c.drawImage(floorLayer, 0, 0);
 	}
 
 	function drawCubicleCell(c, item) {
@@ -394,7 +495,7 @@ export function createOfficeRenderer(content) {
 	}
 
 	function drawRoom(c, t, hot, occupiedSeats) {
-		drawFloor(c);
+		drawCachedFloor(c);
 		drawWall(c, t);
 		for (const item of byRenderer("whiteboard")) drawWhiteboard(c, item, hot, t);
 		for (const item of byRenderer("phone-table")) drawPhoneTable(c, item, hot, t);

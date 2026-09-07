@@ -9,6 +9,7 @@ export function createSpriteRenderer(content) {
 		pips: { ...base.pips, ...(override.pips ?? {}) },
 		particles: { ...base.particles, ...(override.particles ?? {}) },
 	};
+	const rich = V.detail === "rich";
 	const px = (c, x, y, w, h, color) => {
 		c.fillStyle = color;
 		c.fillRect(x | 0, y | 0, w | 0, h | 0);
@@ -39,7 +40,88 @@ export function createSpriteRenderer(content) {
 		};
 	}
 
+	function drawRichCharacter(c, actor, t) {
+		const p = actor.palette;
+		const walking = actor.pose === "walk";
+		const sitting = actor.pose === "sit" || actor.pose === "type";
+		const step = walking ? (((actor.walkPhase / 0.14) | 0) % 2) : 0;
+		const bob = walking ? step : Math.sin(t / 680 + actor.seed) > 0.72 ? 1 : 0;
+		const y = (actor.y | 0) - (sitting ? 3 : 0) + (sitting ? 0 : bob);
+		const x = actor.x | 0;
+		const dir = actor.dir ?? "down";
+		const outline = V.outline ?? V.shoes;
+		const skinShade = V.skinShade ?? p.skin;
+
+		px(c, x - 7, y - 1, 14, 2, V.shadow);
+		px(c, x - 5, y, 10, 1, V.shadow);
+		if (!sitting) {
+			const left = step ? 1 : 0;
+			const right = step ? 0 : 1;
+			px(c, x - 4, y - 7 + left, 4, 7 - left, outline);
+			px(c, x + 1, y - 7 + right, 4, 7 - right, outline);
+			px(c, x - 3, y - 6 + left, 2, 5 - left, V.pants);
+			px(c, x + 2, y - 6 + right, 2, 5 - right, V.pants);
+			px(c, x - 4, y - 1, 4, 2, V.shoes);
+			px(c, x + 1, y - 1, 4, 2, V.shoes);
+		}
+
+		px(c, x - 6, y - 17, 12, 11, outline);
+		px(c, x - 5, y - 16, 10, 9, p.shirt);
+		px(c, x - 5, y - 16, 10, 2, p.trim);
+		px(c, x - 4, y - 9, 8, 2, p.trim);
+		px(c, x - 4, y - 13, 2, 4, V.shirtShade ?? p.trim);
+		px(c, x + 3, y - 15, 1, 5, V.shirtLite ?? p.shirt);
+		const armUp = actor.pose === "type" ? (((t / 90) | 0) % 2) : actor.pose === "reach" ? 1 : 0;
+		if (dir !== "right") {
+			px(c, x - 8, y - 16 - armUp, 3, 8, outline);
+			px(c, x - 7, y - 15 - armUp, 2, 5, p.shirt);
+			px(c, x - 7, y - 10 - armUp, 2, 2, p.skin);
+		}
+		if (dir !== "left") {
+			const other = actor.pose === "type" ? 1 - armUp : armUp;
+			px(c, x + 5, y - 16 - other, 3, 8, outline);
+			px(c, x + 5, y - 15 - other, 2, 5, p.shirt);
+			px(c, x + 5, y - 10 - other, 2, 2, p.skin);
+		}
+
+		px(c, x - 5, y - 27, 10, 11, outline);
+		px(c, x - 4, y - 26, 8, 9, p.skin);
+		px(c, x - 4, y - 26, 8, 4, p.hair);
+		px(c, x - 5, y - 25, 2, 6, p.hair);
+		px(c, x + 3, y - 25, 2, 6, p.hair);
+		px(c, x - 2, y - 25, 3, 1, V.hairLite ?? p.hair);
+		px(c, x - 4, y - 19, 2, 2, skinShade);
+		px(c, x + 2, y - 19, 2, 2, skinShade);
+		if (dir === "down") {
+			px(c, x - 2, y - 21, 1, 2, V.faceInk);
+			px(c, x + 1, y - 21, 1, 2, V.faceInk);
+			px(c, x - 2, y - 22, 1, 1, V.eyeLite ?? p.skin);
+			if (actor.pose === "talk") px(c, x - 1, y - 18, 2, 1, V.mouth);
+		} else if (dir === "left") {
+			px(c, x - 2, y - 21, 1, 2, V.faceInk);
+			px(c, x - 5, y - 26, 5, 7, p.hair);
+		} else if (dir === "right") {
+			px(c, x + 1, y - 21, 1, 2, V.faceInk);
+			px(c, x, y - 26, 5, 7, p.hair);
+		} else {
+			px(c, x - 5, y - 27, 10, 9, p.hair);
+			px(c, x - 2, y - 25, 4, 2, V.hairLite ?? p.hair);
+		}
+		px(c, x - 1, y - 14, 2, 3, p.badge);
+
+		const pip = V.pips[actor.state ?? "idle"];
+		if (pip) {
+			const hidden = actor.state === "thinking" && Math.sin(t / 240) <= -0.2;
+			if (!hidden) {
+				px(c, x - 2, y - 33, 5, 5, outline);
+				px(c, x - 1, y - 32, 3, 3, pip);
+				px(c, x, y - 33, 1, 1, pip);
+			}
+		}
+	}
+
 	function drawCharacter(c, actor, t) {
+		if (rich) return drawRichCharacter(c, actor, t);
 		const p = actor.palette;
 		const walking = actor.pose === "walk";
 		const sitting = actor.pose === "sit" || actor.pose === "type";
