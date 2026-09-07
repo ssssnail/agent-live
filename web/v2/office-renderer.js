@@ -698,6 +698,11 @@ export function createOfficeRenderer(content) {
 		dayPreview = { startedAt: performance.now(), durationMs: Math.max(8000, durationMs) };
 	}
 
+	function getOfficeTime() {
+		const { now, phase } = localOfficeTime();
+		return { hour: now.getHours(), minute: now.getMinutes(), phase };
+	}
+
 	function seatAnchor(index) {
 		return SEATS[(index ?? 0) % SEATS.length].anchor;
 	}
@@ -749,6 +754,7 @@ export function createOfficeRenderer(content) {
 		path,
 		stationKey,
 		startDayPreview,
+		getOfficeTime,
 		content,
 	});
 }

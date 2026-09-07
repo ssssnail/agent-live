@@ -8,6 +8,7 @@
 	const { Office, Sprites } = window;
 	const officeContent = window.OfficeContent ?? null;
 	const lifeActivities = officeContent?.lifeActivities?.entries ?? [];
+	const npcEntries = officeContent?.npcs?.entries ?? [];
 	const canvas = document.getElementById("stage");
 	const ctx = canvas.getContext("2d", { alpha: false });
 
@@ -45,6 +46,8 @@
 	let meeting = null;
 	const meetQueue = [];
 	let sound = false;
+	let npcShiftOpen = null;
+	let nextNpcShiftCheck = 0;
 
 	function makeActor(view) {
 		const isLead = !view.parent;
@@ -98,6 +101,7 @@
 
 	function restPose(actor) {
 		if (actor.life && !actor.path.length) return actor.life.step?.pose ?? "stand";
+		if (actor.isNpc) return actor.idlePose ?? "stand";
 		const a = actor.action;
 		if (a === "archive" || a === "server") return "reach";
 		if (a === "whiteboard") return "reach";
@@ -270,8 +274,9 @@
 		beginLifeStep(actor, life.activity, life.index + 1, now, life.slot);
 	}
 
-	function makeNpc(entry) {
-		const spawnPoint = Office.TARGETS[entry.spawn] ?? Office.TARGETS.entry;
+	function makeNpc(entry, fromEntry = false) {
+		const workPoint = Office.TARGETS[entry.spawn] ?? Office.TARGETS.entry;
+		const spawnPoint = fromEntry ? Office.TARGETS.entry : workPoint;
 		return {
 			id: `npc:${entry.id}`,
 			name: entry.name,
@@ -287,6 +292,8 @@
 			lane: spawnPoint.lane,
 			dir: spawnPoint.dir,
 			pose: entry.pose ?? "stand",
+			idlePose: entry.pose ?? "stand",
+			workTarget: entry.spawn,
 			walkPhase: 0,
 			path: [],
 			dest: spawnPoint,
@@ -306,11 +313,53 @@
 		};
 	}
 
-	function restoreNpcs() {
-		for (const entry of officeContent?.npcs?.entries ?? []) {
-			const npc = makeNpc(entry);
+	function restoreNpcs(fromEntry = false) {
+		for (const entry of npcEntries) {
+			const npc = makeNpc(entry, fromEntry);
 			actors.set(npc.id, npc);
+			if (fromEntry) {
+				bubble(npc, "life", "上班啦");
+				goTo(npc, Office.TARGETS[entry.spawn] ?? Office.TARGETS.entry);
+			}
 		}
+	}
+
+	function isNpcShiftOpen() {
+		const officeTime = Office.getOfficeTime?.();
+		const hour = officeTime?.hour ?? new Date().getHours();
+		return hour >= 6 && hour < 18;
+	}
+
+	function sendNpcsHome() {
+		for (const actor of actors.values()) {
+			if (!actor.isNpc || actor.leaving) continue;
+			cancelLife(actor);
+			actor.leaving = true;
+			actor.pose = "stand";
+			actor.nextLifeAt = 0;
+			bubble(actor, "life", "下班啦");
+			goTo(actor, Office.TARGETS.entry);
+		}
+	}
+
+	function bringNpcsToWork() {
+		for (const entry of npcEntries) {
+			const id = `npc:${entry.id}`;
+			if (actors.has(id)) continue;
+			const npc = makeNpc(entry, true);
+			actors.set(id, npc);
+			bubble(npc, "life", "上班啦");
+			goTo(npc, Office.TARGETS[entry.spawn] ?? Office.TARGETS.entry);
+		}
+	}
+
+	function syncNpcShift(now, force = false) {
+		if (!force && now < nextNpcShiftCheck) return;
+		nextNpcShiftCheck = now + 250;
+		const open = isNpcShiftOpen();
+		if (open) bringNpcsToWork();
+		else if (npcShiftOpen !== false) sendNpcsHome();
+		npcShiftOpen = open;
 	}
 
 	// ---------------------------------------------------------------- events
@@ -332,9 +381,11 @@
 				particles.length = 0;
 				hot.clear();
 				lifeHot.clear();
+				npcShiftOpen = isNpcShiftOpen();
+				nextNpcShiftCheck = 0;
 				document.getElementById("log").innerHTML = "";
 				for (const view of ev.agents) actors.set(view.id, makeActor(view));
-				restoreNpcs();
+				if (npcShiftOpen) restoreNpcs();
 				for (const item of ev.log) logLine(item);
 				session = ev.session;
 				if (ev.agents[0]?.task) setTask(ev.agents[0].task);
@@ -516,6 +567,7 @@
 	// ---------------------------------------------------------------- update
 
 	function update(dt, now) {
+		syncNpcShift(now);
 		updateMeeting(now, dt);
 
 		for (const actor of [...actors.values()]) {
