@@ -9,7 +9,7 @@
 pi 会话 ──(扩展订阅事件)──> OfficeState ──(SSE)──> 浏览器 canvas 办公室
 ```
 
-开发入口：[开发者接入指南](docs/DEVELOPER.md) · [Preset 配置手册](docs/PRESET-CONFIG.md) · [技术文档](docs/TECHNICAL.md)。产品与研究文档：[产品文档](docs/PRODUCT.md) · [产品愿景](docs/VISION.md) · [Office 内容模型](docs/OFFICE-THEMES.md) · [平台能力分析](docs/PLATFORM-CAPABILITIES.md) · [Pi 能力审计](docs/PI-CAPABILITIES.md) · [产品形态](docs/PRODUCT-FORMS.md)。
+开发入口：[开发者接入指南](docs/DEVELOPER.md) · [Preset 配置手册](docs/PRESET-CONFIG.md) · [自定义能力边界](docs/CUSTOMIZATION.md) · [技术文档](docs/TECHNICAL.md)。产品与研究文档：[产品文档](docs/PRODUCT.md) · [产品愿景](docs/VISION.md) · [Office 内容模型](docs/OFFICE-THEMES.md) · [平台能力分析](docs/PLATFORM-CAPABILITIES.md) · [Pi 能力审计](docs/PI-CAPABILITIES.md) · [产品形态](docs/PRODUCT-FORMS.md)。
 
 ## 快速开始
 

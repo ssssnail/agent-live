@@ -2,6 +2,8 @@
 
 > 面向 Preset 作者、宿主 Connector 开发者和本地二次开发者
 
+普通用户只选择官方 Preset；自然语言创作用户遵守 [自定义能力边界](CUSTOMIZATION.md)。声明式 Creator 不会自动修改本页涉及的 Runtime 源码。
+
 ## 1. 十分钟跑起来
 
 ```bash
