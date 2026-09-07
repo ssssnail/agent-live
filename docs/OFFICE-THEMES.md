@@ -8,15 +8,19 @@
 
 不再把 Big Company、Medium Company、Startup、OPC 作为产品选项，也不做园区、多楼层或视角下钻。办公室可以换布局和内容，但始终遵守同一套空间规则：单个场所、单层同屏、人物和工作行为清晰可见。
 
-产品模型收敛为：
+产品模型进一步收敛为：
 
 ```text
-固定的 Office Runtime + Work Semantics
-                    ×
-Style + Layout + Agent Skin + NPC + Props + Life Activities + Atmosphere + Environment
-                    =
-一个可直接使用的 Office Preset
+固定的 Office Engine
+        ↓
+Component Library（八类基础组件全集）
+        ↓
+Office Spec
+        ↓
+Official Preset / Custom Office
 ```
+
+Preset 不再拥有一套独立内容定义；它只是从同一个 Component Library 组装并验证出来的只读 Office Spec。Creator 的“从头自定义”也使用同一套组件、编译器和校验器。完整组件合同见 [基础组件库](COMPONENT-LIBRARY.md)。
 
 ## 1. 固定不变的部分
 
@@ -40,9 +44,9 @@ Style + Layout + Agent Skin + NPC + Props + Life Activities + Atmosphere + Envir
 | `collaborate` | 委派、交接、评审 | 会议桌 |
 | `idle` | 没有真实任务 | 工位或 Life Activity |
 
-## 2. 八个内部可替换插槽
+## 2. Component Library 的八个组件族
 
-这八项是开发和内容制作的边界，不是要求普通用户逐项设置。它们可以归成四组：
+这八项是 Component Library 的内容分类，也是开发和内容制作的边界，不是要求普通用户逐项设置。它们可以归成四组：
 
 - **视觉表现**：Style、Agent Skin、Atmosphere。
 - **空间内容**：Layout、Props、NPC。
@@ -151,7 +155,7 @@ Environment 集中管理跨 Preset 的现实规则：
 
 ## 4. Office Preset：用户实际选择的单位
 
-普通用户不需要逐项配置八个插槽。一个 Preset 是经过验证的完整组合，也是产品界面默认暴露的选择单位：
+普通用户不需要逐项配置八个组件族。一个 Preset 是经过验证的只读 Office Spec，也是产品界面默认暴露的选择单位：
 
 ```json
 {
@@ -168,7 +172,7 @@ Environment 集中管理跨 Preset 的现实规则：
 }
 ```
 
-第一版由官方提供兼容的 Preset。高级配置和创作者工具以后再允许单独替换插槽，暂不承诺任意模块之间都能自由组合。
+官方提供经过验证的 Preset。Creator 只通过 Capability Catalog 选择兼容组件；组件是否能组合由 Compiler 与 Validator 决定，不承诺任意模块都能自由组合。
 
 ## 5. 当前实现对应关系
 
@@ -181,7 +185,7 @@ Environment 集中管理跨 Preset 的现实规则：
 - **共享固定 Runtime**：`web/app.js` 仍由原版和 V2 共用，负责 SSE、状态机、移动、气泡、交接、侧栏与动画循环。
 - **工作事实层**：`src/protocol.ts`、`src/mapping.ts` 和 `src/state.ts` 负责 Work Event、工具映射和会话状态，不属于可替换内容。
 
-八类内容已经按目录拆分到 `web/v2/content/`。当前对用户开放三套正式 Preset（Tech 开放式办公室、长桌会议室、老式办公室），另保留五套内部回归内容；共有两套 Style 和五套 Layout。饮水、保洁与支持人员的本地 Life Activity 已经跑通，真实 Work Event 仍可立即打断 Agent 的生活行为。
+八类内容已经按目录拆分到 `web/v2/content/`。当前对用户开放三套正式 Preset（Tech 开放式办公室、长桌会议室、老式办公室），另保留五套内部回归内容；共有两套 Style 和五套 Layout。当前文件仍是按场景组合的过渡 registry，还没有完成唯一 Component Library、Placement Slot 和 Office Spec Compiler 的迁移。饮水、保洁与支持人员的本地 Life Activity 已经跑通，真实 Work Event 仍可立即打断 Agent 的生活行为。
 
 新增的两套空间组织已经进入正式 V2 入口：
 

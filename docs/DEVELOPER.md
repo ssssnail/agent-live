@@ -2,7 +2,7 @@
 
 > 面向 Preset 作者、宿主 Connector 开发者和本地二次开发者
 
-普通用户只选择官方 Preset；自然语言创作用户遵守 [自定义能力边界](CUSTOMIZATION.md)。声明式 Creator 不会自动修改本页涉及的 Runtime 源码。
+普通用户只选择官方 Preset；自然语言创作用户遵守 [自定义能力边界](CUSTOMIZATION.md)。Official Preset 和 Custom Office 最终都从同一套 [基础组件库](COMPONENT-LIBRARY.md) 组装；声明式 Creator 不会自动修改本页涉及的 Runtime 源码。
 
 ## 1. 十分钟跑起来
 
@@ -28,9 +28,9 @@ npm run preview
 
 宿主接入与内容制作相互独立：Connector 只报告“谁在做什么”，Preset 决定这件事在当前办公室如何表现。
 
-## 3. Preset 内容图
+## 3. 当前内容图与目标架构
 
-用户选择的一个 Preset 组合八类内容：
+当前可运行版本中，一个 Preset 组合八类内容：
 
 ```text
 Preset
@@ -45,6 +45,18 @@ Preset
 ```
 
 完整字段说明见 [Preset 配置手册](PRESET-CONFIG.md)。配置目录内也有一份就近说明：[Content README](../web/v2/content/README.md)。
+
+这仍是按文件打包的过渡形态。Creator 目标架构为：
+
+```text
+Component Library
+        ↓
+统一 Compiler + Validator
+        ↓
+Official Preset / Custom Office
+```
+
+组件作者应优先遵守 [基础组件库](COMPONENT-LIBRARY.md) 中的唯一 ID、职责分离、Capability Catalog、Zone 和 Placement Slot 约束。
 
 ## 4. Environment 公共配置
 

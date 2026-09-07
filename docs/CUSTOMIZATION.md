@@ -18,7 +18,9 @@
 | Draft | Agent 根据对话生成的本地草稿 | 只能预览 |
 | Custom Office | Draft 通过全部校验并由用户确认后的本地办公室 | 是 |
 
-Custom Office 必须基于一个 Official Preset，只保存允许的变化，不覆盖安装目录中的官方文件。产品升级、校验失败或用户取消时，最后一个有效版本必须仍可恢复。
+Custom Office 可以基于一个 Official Preset 保存允许的变化，也可以从 [Component Library](COMPONENT-LIBRARY.md) 中从头组装；两条路径最终都生成相同的 Office Spec，不覆盖安装目录中的官方文件。产品升级、校验失败或用户取消时，最后一个有效版本必须仍可恢复。
+
+运行 `/office customize` 后，Agent 必须先询问创作起点：三个 Official Preset 或“从头自定义”。选择“从头自定义”时仍需从已登记的 Layout Template 和基础组件开始，不能生成空白坐标或任意代码。
 
 ## 3. Creator v1 可以映射的能力
 
@@ -26,11 +28,12 @@ Custom Office 必须基于一个 Official Preset，只保存允许的变化，�
 | --- | --- | --- |
 | “改成暖色、深夜、雨天” | Style / Atmosphere / Environment | 只使用已有视觉 token、天气类型和时间阶段 |
 | “桌面丰富一点” | Props | 从已有 Prop Type 中选择，并放入允许的区域或插槽 |
-| “增加保安、保洁或办公室猫” | NPC | 使用现有人物 renderer、外观参数和合法出生点 |
-| “保安晚上八点上班” | Environment / NPC shift | 使用有效 `HH:MM` 班次，支持跨夜 |
+| “增加老板、保洁或前台” | NPC | 只能选择 Capability Catalog 中已登记的 NPC Template |
+| “保洁晚上八点上班” | Environment / NPC shift | 使用有效 `HH:MM` 班次，支持跨夜 |
 | “空闲时去喝水或聊天” | Life Activities | 只组合已有参与者、target、pose、particle 和 step |
 | “把饮水机放到休息区” | Layout / Props | 目标区域必须存在，放置后不能阻断导航 |
-| “从 Tech 办公室开始” | Custom Office base | 只能引用已安装的 Official Preset |
+| “从 Tech 办公室开始” | Custom Office base | 引用已安装的 Official Preset |
+| “从头做一个办公室” | Office Spec | 从 Component Library 选择合法 Layout Template 和其他组件 |
 
 Creator 可以调整和组合现有能力，但不能因为自然语言中出现了一个新名词，就假设 Runtime 已经具备对应实现。
 
@@ -78,9 +81,9 @@ Agent 必须先把一次输入拆成独立需求，再逐项分类：
 混合需求应返回一张简短清单，例如：
 
 ```text
-可以直接实现：增加夜班保安、调整班次、切换雨夜。
+可以直接实现：调整保洁班次、切换雨夜。
 可以近似实现：把“霓虹招牌”映射为现有墙面装饰，需要你确认。
-需要修改源码：新增闪电天气和人物跳舞动画。
+需要新增组件或修改源码：增加当前未登记的保安、闪电天气和人物跳舞动画。
 ```
 
 ## 6. 源码入口指引

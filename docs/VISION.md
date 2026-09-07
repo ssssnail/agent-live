@@ -2,7 +2,7 @@
 
 > 状态：已收敛方向 · 2026-09-07
 
-相关分析：[Pi / Codex / Cursor 平台能力](./PLATFORM-CAPABILITIES.md) · [产品形态与用户入口](./PRODUCT-FORMS.md) · [Office 可配置内容模型](./OFFICE-THEMES.md)
+相关分析：[Pi / Codex / Cursor 平台能力](./PLATFORM-CAPABILITIES.md) · [产品形态与用户入口](./PRODUCT-FORMS.md) · [Office 可配置内容模型](./OFFICE-THEMES.md) · [基础组件库](./COMPONENT-LIBRARY.md)
 
 ## 1. 产品定义
 
@@ -25,8 +25,10 @@
 | Show Event | 与宿主无关的真实工作事件 | Pi 事件的转换结果 |
 | Office Engine | 将事件转成办公室位置、动作和状态 | 当前 `OfficeState`、映射与前端状态机 |
 | Office Runtime | 单层办公室的渲染、移动、寻路、气泡和状态规则 | 当前 Demo 前端状态机 |
-| Office Content | 八类可替换内容，包含视觉、空间、角色、生活行为与运行环境 | 当前像素办公室组合 |
-| Office Preset | 为普通用户准备的一键内容组合 | 当前默认办公室 |
+| Component Library | 八类基础组件的唯一全集与 Capability Catalog | 当前内容目录正在迁移为该结构 |
+| Office Spec | 一间办公室最终引用和实例化的组件集合 | Official Preset 与 Custom Office 的共同合同 |
+| Official Preset | 为普通用户准备的只读 Office Spec | 当前三个正式办公室 |
+| Custom Office | Creator 多轮生成、校验并保存在本地的 Office Spec | 后续 Creator 纵向链路 |
 | Episode | 一次可实时观看或回放的任务 | 一次 session / task |
 
 无论接入哪个宿主，核心体验都保持一致：Agent 在办公室中工作。不同宿主只会因为开放能力不同而出现信息精度差异，不会变成不同产品。
@@ -59,7 +61,7 @@ Office 给设施标注能力，Office Engine 再为工作语义选择合适地�
 - **Atmosphere**：白天、雨夜等状态的色板、窗外、粒子和声音表现。
 - **Environment**：本地或固定时间、外部天气输入、自动照明和 NPC 班次。
 
-Office Preset 是上述内容的推荐组合，给普通用户提供一键选择。内容模块不改变：
+Component Library 是上述内容的唯一全集。Office Spec 从中组装一间办公室；Official Preset 是给普通用户一键选择的只读 Office Spec，Custom Office 则由 Creator 基于 Preset 修改或从组件库开始组装。两者使用同一个 Compiler 和 Validator。内容模块不改变：
 
 - Agent 的真实状态与事件事实。
 - Work Event 的真实事实和工作语义。

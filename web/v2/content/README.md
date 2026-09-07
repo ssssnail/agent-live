@@ -2,6 +2,8 @@
 
 一个 Preset 通过文件名组合八类本地内容：`styles`、`layouts`、`agent-skins`、`props`、`npcs`、`life-activities`、`atmospheres` 和 `environments`。
 
+这是当前可运行的过渡格式。目标架构会把重复定义整理成统一 Component Library，由同一个 Office Spec Compiler 组装 Official Preset 和 Custom Office；定义见 [`docs/COMPONENT-LIBRARY.md`](../../../docs/COMPONENT-LIBRARY.md)。
+
 最短工作流：
 
 1. 复制最接近的 Preset 及需要修改的模块。
