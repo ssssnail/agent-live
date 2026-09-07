@@ -7,13 +7,14 @@
 	"engine": { "min": "0.2.0" },
 	"contract": "single-office-v1",
 	"render": { "detail": "rich" },
+	"environment": { "localTime": true },
 	"content": {
 		"style": "pixel-classic",
-		"layout": "demo-office",
+		"layout": "tech-open-office",
 		"agentSkin": "tiny-developers",
-		"props": "default-office",
-		"npcs": "none",
-		"lifeActivities": "none",
+		"props": "tech-office",
+		"npcs": "tech-office-staff",
+		"lifeActivities": "tech-office-routines",
 		"atmosphere": "default"
 	}
 }

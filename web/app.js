@@ -248,7 +248,7 @@
 			y: spawnPoint.y,
 			lane: spawnPoint.lane,
 			dir: spawnPoint.dir,
-			pose: "stand",
+			pose: entry.pose ?? "stand",
 			walkPhase: 0,
 			path: [],
 			dest: spawnPoint,

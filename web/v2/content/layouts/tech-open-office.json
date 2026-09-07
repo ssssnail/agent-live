@@ -1,0 +1,84 @@
+{
+	"schemaVersion": 1,
+	"kind": "layout",
+	"id": "builtin/tech-open-office",
+	"name": "Tech 开放式办公室布局",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"canvas": { "width": 384, "height": 216 },
+	"wallHeight": 36,
+	"camera": { "mode": "fixed", "fit": "contain", "integerScale": true },
+	"navigation": {
+		"lanes": [46, 100, 162],
+		"connectors": [76, 140, 204, 276]
+	},
+	"seats": [
+		{ "index": 0, "cx": 44, "desk": { "x": 20, "y": 58, "width": 48, "height": 16 }, "anchor": { "x": 44, "y": 84, "dir": "up", "lane": 1 } },
+		{ "index": 1, "cx": 108, "desk": { "x": 84, "y": 58, "width": 48, "height": 16 }, "anchor": { "x": 108, "y": 84, "dir": "up", "lane": 1 } },
+		{ "index": 2, "cx": 172, "desk": { "x": 148, "y": 58, "width": 48, "height": 16 }, "anchor": { "x": 172, "y": 84, "dir": "up", "lane": 1 } },
+		{ "index": 3, "cx": 236, "desk": { "x": 212, "y": 58, "width": 48, "height": 16 }, "anchor": { "x": 236, "y": 84, "dir": "up", "lane": 1 } },
+		{ "index": 4, "cx": 44, "desk": { "x": 20, "y": 118, "width": 48, "height": 16 }, "anchor": { "x": 44, "y": 144, "dir": "up", "lane": 2 } },
+		{ "index": 5, "cx": 108, "desk": { "x": 84, "y": 118, "width": 48, "height": 16 }, "anchor": { "x": 108, "y": 144, "dir": "up", "lane": 2 } },
+		{ "index": 6, "cx": 172, "desk": { "x": 148, "y": 118, "width": 48, "height": 16 }, "anchor": { "x": 172, "y": 144, "dir": "up", "lane": 2 } },
+		{ "index": 7, "cx": 236, "desk": { "x": 212, "y": 118, "width": 48, "height": 16 }, "anchor": { "x": 236, "y": 144, "dir": "up", "lane": 2 } }
+	],
+	"targets": {
+		"archive": { "x": 318, "y": 100, "dir": "up", "lane": 1 },
+		"server": { "x": 320, "y": 158, "dir": "up", "lane": 2 },
+		"whiteboard": { "x": 152, "y": 46, "dir": "up", "lane": 0 },
+		"phone": { "x": 364, "y": 64, "dir": "up", "lane": 1 },
+		"coffee": { "x": 290, "y": 188, "dir": "right", "lane": 2 },
+		"meetA": { "x": 108, "y": 190, "dir": "right", "lane": 2 },
+		"meetB": { "x": 244, "y": 190, "dir": "left", "lane": 2 },
+		"entry": { "x": 38, "y": 46, "dir": "down", "lane": 0 },
+		"boss-seat": { "x": 360, "y": 104, "dir": "up", "lane": 1 },
+		"restroom": { "x": 88, "y": 46, "dir": "up", "lane": 0 }
+	},
+	"stations": {
+		"research": { "kind": "target", "target": "archive" },
+		"create": { "kind": "seat" },
+		"compute": { "kind": "target", "target": "server" },
+		"plan": { "kind": "target", "target": "whiteboard" },
+		"communicate": { "kind": "target", "target": "phone" },
+		"collaborate": { "kind": "seat", "meetingTargets": ["meetA", "meetB"] },
+		"coffee": { "kind": "target", "target": "coffee" }
+	},
+	"legacyActions": {
+		"type": "create",
+		"archive": "research",
+		"server": "compute",
+		"whiteboard": "plan",
+		"phone": "communicate",
+		"delegate": "collaborate",
+		"coffee": "coffee"
+	},
+	"furniture": {
+		"archive": { "x": 296, "y": 56, "w": 44, "h": 32 },
+		"server": { "x": 296, "y": 116, "w": 48, "h": 32 },
+		"coffee": { "x": 300, "y": 176, "w": 26, "h": 22 },
+		"phone": { "x": 348, "y": 40, "w": 32, "h": 14 },
+		"whiteboard": { "x": 116, "y": 8, "w": 72, "h": 26 },
+		"meeting": { "x": 120, "y": 176, "w": 112, "h": 26 }
+	},
+	"propInstances": [
+		{ "id": "meeting-rug", "type": "rug", "x": 104, "y": 170 },
+		{ "id": "entry-door", "type": "door", "x": 20, "y": 6 },
+		{ "id": "restroom-door", "type": "restroom-door", "x": 74, "y": 6 },
+		{ "id": "wall-clock", "type": "office-clock", "x": 99, "y": 10 },
+		{ "id": "window-1", "type": "window", "x": 208, "y": 8 },
+		{ "id": "window-2", "type": "window", "x": 268, "y": 8 },
+		{ "id": "whiteboard-main", "type": "whiteboard", "x": 116, "y": 8 },
+		{ "id": "phone-main", "type": "phone-table", "x": 348, "y": 40 },
+		{ "id": "archive-main", "type": "archive-cabinet", "x": 296, "y": 56 },
+		{ "id": "server-main", "type": "server-rack", "x": 296, "y": 116 },
+		{ "id": "coffee-main", "type": "coffee-machine", "x": 300, "y": 176 },
+		{ "id": "meeting-main", "type": "meeting-table", "x": 120, "y": 176 },
+		{ "id": "boss-desk", "type": "boss-desk", "x": 343, "y": 78 },
+		{ "id": "office-lamp", "type": "office-lamp", "x": 273, "y": 66 },
+		{ "id": "plant-1", "type": "plant", "x": 16, "y": 200 },
+		{ "id": "plant-2", "type": "plant", "x": 78, "y": 200 },
+		{ "id": "plant-3", "type": "plant", "x": 366, "y": 200 }
+	],
+	"npcSpawns": ["boss-seat"]
+}

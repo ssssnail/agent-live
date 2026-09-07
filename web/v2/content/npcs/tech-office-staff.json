@@ -1,0 +1,26 @@
+{
+	"schemaVersion": 1,
+	"kind": "npcs",
+	"id": "builtin/tech-office-staff",
+	"name": "Tech 办公室 NPC",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"entries": [
+		{
+			"id": "boss",
+			"name": "老板",
+			"role": "boss",
+			"title": "老板",
+			"spawn": "boss-seat",
+			"pose": "sit",
+			"appearance": {
+				"skin": "#d5a47c",
+				"hair": "#31333a",
+				"shirt": "#516687",
+				"trim": "#34455f",
+				"badge": "#ffcc4d"
+			}
+		}
+	]
+}

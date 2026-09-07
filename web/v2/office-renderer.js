@@ -5,6 +5,7 @@ export function createOfficeRenderer(content) {
 	const C = { ...content.style.tokens.canvas, ...(content.atmosphere.styleOverrides?.canvas ?? {}) };
 	const renderMode = content.preset.render?.detail ?? content.style.tokens.render?.detail ?? "classic";
 	const rich = renderMode === "rich";
+	const useLocalTime = content.preset.environment?.localTime === true;
 	const ambientEffects = new Set(content.atmosphere.ambientEffects ?? []);
 	const W = layout.canvas.width;
 	const H = layout.canvas.height;
@@ -66,6 +67,36 @@ export function createOfficeRenderer(content) {
 		px(c, x, y, 1, h, color);
 		px(c, x + w - 1, y, 1, h, color);
 	};
+	const pixelLine = (c, x0, y0, x1, y1, color) => {
+		x0 |= 0;
+		y0 |= 0;
+		x1 |= 0;
+		y1 |= 0;
+		const dx = Math.abs(x1 - x0);
+		const sx = x0 < x1 ? 1 : -1;
+		const dy = -Math.abs(y1 - y0);
+		const sy = y0 < y1 ? 1 : -1;
+		let error = dx + dy;
+		while (true) {
+			px(c, x0, y0, 1, 1, color);
+			if (x0 === x1 && y0 === y1) break;
+			const twice = 2 * error;
+			if (twice >= dy) {
+				error += dy;
+				x0 += sx;
+			}
+			if (twice <= dx) {
+				error += dx;
+				y0 += sy;
+			}
+		}
+	};
+	const localOfficeTime = () => {
+		const now = new Date();
+		const hour = now.getHours();
+		const phase = hour >= 6 && hour < 11 ? "morning" : hour >= 11 && hour < 17 ? "noon" : hour >= 17 && hour < 20 ? "evening" : "night";
+		return { now, phase: ambientEffects.has("rain-window") ? "night" : phase };
+	};
 
 	function drawFloor(c) {
 		px(c, 0, WALL_H, W, H - WALL_H, C.floorA);
@@ -101,7 +132,14 @@ export function createOfficeRenderer(content) {
 		}
 	}
 
-	function drawWall(c, t) {
+	function drawWall(c, t, officeTime) {
+		const timedSky = {
+			morning: C.skyMorning ?? "#7faec7",
+			noon: C.skyNoon ?? "#91cde0",
+			evening: C.skyEvening ?? "#d98262",
+			night: C.skyNight ?? "#17243c",
+		}[officeTime.phase];
+		const sky = useLocalTime ? timedSky : C.glass;
 		px(c, 0, 0, W, WALL_H, C.wall);
 		px(c, 0, 0, W, 6, C.wallTop);
 		px(c, 0, WALL_H - 3, W, 3, C.wallTrim);
@@ -130,8 +168,8 @@ export function createOfficeRenderer(content) {
 		for (const window of byRenderer("window")) {
 			if (rich) px(c, window.x - 4, window.y - 4, window.w + 8, window.h + 7, C.outline);
 			px(c, window.x - 2, window.y - 2, window.w + 4, window.h + 4, C.wallTrim);
-			px(c, window.x, window.y, window.w, window.h, C.glass);
-			px(c, window.x, window.y, window.w, 8, C.glassLite);
+			px(c, window.x, window.y, window.w, window.h, sky);
+			px(c, window.x, window.y, window.w, 8, useLocalTime && officeTime.phase === "night" ? (C.skyNightLite ?? C.glass) : C.glassLite);
 			if (rich) {
 				px(c, window.x + 2, window.y + 2, window.w - 4, 2, C.glassShine);
 				px(c, window.x + 3, window.y + 5, 2, window.h - 8, C.glassShine);
@@ -139,7 +177,19 @@ export function createOfficeRenderer(content) {
 			}
 			px(c, window.x + (window.w >> 1), window.y, 1, window.h, C.wallTrim);
 			px(c, window.x, window.y + (window.h >> 1), window.w, 1, C.wallTrim);
-			if (Math.sin(t / 900 + window.x) > 0.7) px(c, window.x + 6, window.y + 14, 2, 2, C.windowSpark);
+			if (!useLocalTime && Math.sin(t / 900 + window.x) > 0.7) px(c, window.x + 6, window.y + 14, 2, 2, C.windowSpark);
+			if (useLocalTime && officeTime.phase === "morning") px(c, window.x + 6, window.y + 11, 5, 5, C.skySun ?? C.windowSpark);
+			if (useLocalTime && officeTime.phase === "noon" && Math.sin(t / 900 + window.x) > 0.7) px(c, window.x + 6, window.y + 14, 2, 2, C.windowSpark);
+			if (useLocalTime && officeTime.phase === "evening") px(c, window.x + 1, window.y + window.h - 6, window.w - 2, 5, C.skyHorizon ?? C.activeRed);
+			if (useLocalTime && officeTime.phase === "night") {
+				px(c, window.x + 7, window.y + 12, 2, 2, C.skyStar ?? C.windowSpark);
+				px(c, window.x + window.w - 10, window.y + 6, 1, 1, C.skyStar ?? C.windowSpark);
+				for (let bx = window.x + 4; bx < window.x + window.w - 3; bx += 7) {
+					const height = 3 + (noise(bx, window.y, 47) % 6);
+					px(c, bx, window.y + window.h - height, 5, height, C.skyBuilding ?? C.wallTop);
+					if (noise(bx, window.y, 19) % 2) px(c, bx + 2, window.y + window.h - height + 2, 1, 1, C.skyWindow ?? C.windowSpark);
+				}
+			}
 			if (ambientEffects.has("rain-window")) {
 				for (let i = 0; i < 4; i++) {
 					const rx = window.x + 5 + ((i * 11 + ((t / 180) | 0) * 3) % Math.max(8, window.w - 10));
@@ -205,8 +255,26 @@ export function createOfficeRenderer(content) {
 		if (rich) {
 			px(c, seat.cx - 7, y + 9, 15, 3, C.keyboard);
 			for (let key = 0; key < 6; key++) px(c, seat.cx - 6 + key * 2, y + 10, 1, 1, C.keyboardKey);
-			px(c, x + 4, y + 4, 3, 4, C.mug);
-			px(c, x + 7, y + 5, 1, 2, C.mugLite);
+			const accessory = seat.index % 4;
+			if (accessory === 0) {
+				px(c, x + 4, y + 4, 3, 4, C.mug);
+				px(c, x + 7, y + 5, 1, 2, C.mugLite);
+			} else if (accessory === 1) {
+				px(c, x + 4, y + 6, 5, 3, C.pot);
+				px(c, x + 5, y + 2, 1, 5, C.plantDark);
+				px(c, x + 3, y + 2, 3, 3, C.plantLite);
+				px(c, x + 6, y + 1, 3, 4, C.plantHighlight);
+			} else if (accessory === 2) {
+				px(c, x + 3, y + 4, 7, 5, C.activeAccent);
+				px(c, x + 4, y + 3, 2, 2, C.activeAccent);
+				px(c, x + 7, y + 3, 2, 2, C.activeAccent);
+				px(c, x + 4, y + 5, 1, 1, C.faceInk ?? C.outline);
+				px(c, x + 8, y + 5, 1, 1, C.faceInk ?? C.outline);
+			} else {
+				px(c, x + 3, y + 5, 8, 5, C.paper);
+				px(c, x + 4, y + 6, 6, 1, C.activeThink);
+				px(c, x + 4, y + 8, 4, 1, C.paperLine);
+			}
 		}
 		px(c, seat.cx + 12, y + 4, 7, 5, C.paper);
 		px(c, seat.cx + 12, y + 4, 7, 1, C.paperLine);
@@ -474,13 +542,67 @@ export function createOfficeRenderer(content) {
 		px(c, item.x + 4, item.y + item.h - 6, item.w - 8, 3, C.phoneDevice);
 	}
 
-	function drawOfficeClock(c, item, t) {
-		px(c, item.x, item.y, item.w, item.h, C.woodDark);
-		px(c, item.x + 2, item.y + 2, item.w - 4, item.h - 4, C.paper);
+	function drawOfficeClock(c, item, officeTime) {
+		const { now } = officeTime;
+		px(c, item.x, item.y, item.w, item.h, C.outline ?? C.woodDark);
+		px(c, item.x + 2, item.y + 1, item.w - 4, item.h - 2, C.paper);
+		px(c, item.x + 1, item.y + 2, item.w - 2, item.h - 4, C.paper);
 		const cx = item.x + (item.w >> 1);
 		const cy = item.y + (item.h >> 1);
-		px(c, cx, cy - 4, 1, 5, C.phoneDevice);
-		px(c, cx, cy, 4, 1, ((t / 1000) | 0) % 2 ? C.activeRed : C.phoneDevice);
+		px(c, cx, item.y + 2, 1, 1, C.boardText);
+		px(c, cx, item.y + item.h - 3, 1, 1, C.boardText);
+		px(c, item.x + 2, cy, 1, 1, C.boardText);
+		px(c, item.x + item.w - 3, cy, 1, 1, C.boardText);
+		const minuteAngle = (now.getMinutes() / 60) * Math.PI * 2 - Math.PI / 2;
+		const hourAngle = (((now.getHours() % 12) + now.getMinutes() / 60) / 12) * Math.PI * 2 - Math.PI / 2;
+		pixelLine(c, cx, cy, cx + Math.round(Math.cos(hourAngle) * 3), cy + Math.round(Math.sin(hourAngle) * 3), C.phoneDevice);
+		pixelLine(c, cx, cy, cx + Math.round(Math.cos(minuteAngle) * 5), cy + Math.round(Math.sin(minuteAngle) * 5), C.activeRed);
+		px(c, cx, cy, 1, 1, C.outline ?? C.phoneDevice);
+	}
+
+	function drawRestroomDoor(c, item) {
+		px(c, item.x - 2, item.y - 2, item.w + 4, item.h + 4, C.outline);
+		px(c, item.x, item.y, item.w, item.h, C.door);
+		px(c, item.x + 3, item.y + 3, item.w - 6, item.h - 6, C.doorPanel);
+		px(c, item.x + item.w - 6, item.y + 16, 2, 3, C.paper);
+		const cx = item.x + (item.w >> 1);
+		px(c, cx - 2, item.y + 7, 5, 5, C.paper);
+		px(c, cx - 1, item.y + 12, 3, 7, C.paper);
+		px(c, cx - 4, item.y + 13, 3, 2, C.paper);
+		px(c, cx + 2, item.y + 13, 3, 2, C.paper);
+		px(c, cx - 3, item.y + 19, 2, 5, C.paper);
+		px(c, cx + 2, item.y + 19, 2, 5, C.paper);
+	}
+
+	function drawBossDesk(c, item) {
+		px(c, item.x + 3, item.y + 4, item.w, item.h + 3, C.objectShadow);
+		outline(c, item.x - 1, item.y - 1, item.w + 2, item.h + 3);
+		px(c, item.x, item.y, item.w, item.h, C.deskTop);
+		px(c, item.x, item.y, item.w, 2, C.deskLite);
+		px(c, item.x + 3, item.y + item.h, 4, 5, C.woodDark);
+		px(c, item.x + item.w - 7, item.y + item.h, 4, 5, C.woodDark);
+		px(c, item.x + 4, item.y - 11, 17, 12, C.outline);
+		px(c, item.x + 5, item.y - 10, 15, 9, C.screen);
+		px(c, item.x + 7, item.y - 7, 10, 1, C.activeGreen);
+		px(c, item.x + 7, item.y - 4, 7, 1, C.activeBlue);
+		px(c, item.x + 24, item.y + 4, 6, 6, C.mug);
+		px(c, item.x + 29, item.y + 5, 2, 3, C.mugLite);
+	}
+
+	function drawOfficeLamp(c, item, officeTime) {
+		const { phase } = officeTime;
+		const on = phase === "evening" || phase === "night";
+		if (on) {
+			px(c, item.x - 14, item.y + 5, item.w + 28, 31, C.lampGlowOuter ?? "rgba(255,210,112,0.06)");
+			px(c, item.x - 7, item.y + 4, item.w + 14, 22, C.lampGlow ?? "rgba(255,210,112,0.11)");
+		}
+		px(c, item.x + 3, item.y, item.w - 6, 2, C.outline);
+		px(c, item.x + 1, item.y + 2, item.w - 2, 5, C.outline);
+		px(c, item.x + 3, item.y + 2, item.w - 6, 4, on ? (C.lampOn ?? C.activeAccent) : (C.lampOff ?? C.metal));
+		px(c, item.x + 6, item.y + 7, 2, item.h - 12, C.metalDark);
+		px(c, item.x + 5, item.y + item.h - 6, 4, 4, C.metal);
+		px(c, item.x + 2, item.y + item.h - 3, item.w - 4, 3, C.outline);
+		px(c, item.x + 4, item.y + item.h - 3, item.w - 8, 1, C.metalLite);
 	}
 
 	function drawServiceCart(c, item) {
@@ -495,8 +617,11 @@ export function createOfficeRenderer(content) {
 	}
 
 	function drawRoom(c, t, hot, occupiedSeats) {
+		const officeTime = localOfficeTime();
 		drawCachedFloor(c);
-		drawWall(c, t);
+		drawWall(c, t, officeTime);
+		for (const item of byRenderer("office-lamp")) drawOfficeLamp(c, item, officeTime);
+		for (const item of byRenderer("restroom-door")) drawRestroomDoor(c, item);
 		for (const item of byRenderer("whiteboard")) drawWhiteboard(c, item, hot, t);
 		for (const item of byRenderer("phone-table")) drawPhoneTable(c, item, hot, t);
 		for (const item of byRenderer("archive-cabinet")) drawArchive(c, item, hot, t);
@@ -514,8 +639,9 @@ export function createOfficeRenderer(content) {
 		for (const item of byRenderer("av-console")) drawAvConsole(c, item, hot, t);
 		for (const item of byRenderer("sideboard")) drawSideboard(c, item);
 		for (const item of byRenderer("vending-machine")) drawVendingMachine(c, item);
-		for (const item of byRenderer("office-clock")) drawOfficeClock(c, item, t);
+		for (const item of byRenderer("office-clock")) drawOfficeClock(c, item, officeTime);
 		for (const item of byRenderer("service-cart")) drawServiceCart(c, item);
+		for (const item of byRenderer("boss-desk")) drawBossDesk(c, item);
 		for (const seat of SEATS) {
 			if (seat.renderer === "cubicle-workstation") {
 				drawCubicleSeat(c, seat, hot);

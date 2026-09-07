@@ -1,0 +1,26 @@
+{
+	"schemaVersion": 1,
+	"kind": "props",
+	"id": "builtin/tech-office",
+	"name": "Tech 开放式办公室物件",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"types": {
+		"rug": { "size": { "width": 146, "height": 42 }, "capabilities": [], "renderer": "rug" },
+		"door": { "size": { "width": 36, "height": 30 }, "capabilities": [], "renderer": "door" },
+		"restroom-door": { "size": { "width": 28, "height": 30 }, "capabilities": [], "renderer": "restroom-door" },
+		"window": { "size": { "width": 44, "height": 22 }, "capabilities": [], "renderer": "window" },
+		"office-clock": { "size": { "width": 14, "height": 14 }, "capabilities": [], "renderer": "office-clock" },
+		"office-lamp": { "size": { "width": 14, "height": 30 }, "capabilities": [], "renderer": "office-lamp" },
+		"boss-desk": { "size": { "width": 36, "height": 16 }, "capabilities": [], "renderer": "boss-desk" },
+		"workstation": { "size": { "width": 48, "height": 16 }, "capabilities": ["create", "research", "compute", "communicate"], "renderer": "workstation" },
+		"whiteboard": { "size": { "width": 72, "height": 26 }, "capabilities": ["plan"], "renderer": "whiteboard" },
+		"phone-table": { "size": { "width": 32, "height": 14 }, "capabilities": ["communicate"], "renderer": "phone-table" },
+		"archive-cabinet": { "size": { "width": 44, "height": 32 }, "capabilities": ["research"], "renderer": "archive-cabinet" },
+		"server-rack": { "size": { "width": 48, "height": 32 }, "capabilities": ["compute"], "renderer": "server-rack" },
+		"coffee-machine": { "size": { "width": 26, "height": 22 }, "capabilities": ["coffee"], "renderer": "coffee-machine" },
+		"meeting-table": { "size": { "width": 112, "height": 26 }, "capabilities": ["collaborate"], "renderer": "meeting-table" },
+		"plant": { "size": { "width": 12, "height": 21 }, "capabilities": [], "renderer": "plant" }
+	}
+}

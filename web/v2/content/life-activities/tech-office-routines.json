@@ -1,0 +1,25 @@
+{
+	"schemaVersion": 1,
+	"kind": "life-activities",
+	"id": "builtin/tech-office-routines",
+	"name": "Tech 办公室日常",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"entries": [
+		{
+			"id": "restroom-break",
+			"name": "去洗手间",
+			"participant": { "kind": "agent", "states": ["idle", "waiting", "done"] },
+			"requires": ["restroom-door"],
+			"onlyWhenSessionIdle": true,
+			"interruptible": true,
+			"startBubble": "去趟洗手间",
+			"initialDelayMs": [7000, 12000],
+			"cooldownMs": [42000, 70000],
+			"steps": [
+				{ "target": "restroom", "durationMs": 4200, "pose": "stand", "bubble": "稍等一下" }
+			]
+		}
+	]
+}
