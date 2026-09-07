@@ -30,10 +30,11 @@
 		"phone": { "x": 364, "y": 64, "dir": "up", "lane": 1 },
 		"coffee": { "x": 290, "y": 188, "dir": "right", "lane": 2 },
 		"meetA": { "x": 108, "y": 190, "dir": "right", "lane": 2 },
-		"meetB": { "x": 244, "y": 190, "dir": "left", "lane": 2 },
+		"meetB": { "x": 270, "y": 190, "dir": "left", "lane": 2 },
 		"entry": { "x": 38, "y": 46, "dir": "down", "lane": 0 },
 		"boss-seat": { "x": 360, "y": 104, "dir": "up", "lane": 1 },
-		"restroom": { "x": 88, "y": 46, "dir": "up", "lane": 0 }
+		"restroom": { "x": 88, "y": 46, "dir": "up", "lane": 0 },
+		"water": { "x": 264, "y": 194, "dir": "left", "lane": 2 }
 	},
 	"stations": {
 		"research": { "kind": "target", "target": "archive" },
@@ -65,7 +66,7 @@
 		{ "id": "meeting-rug", "type": "rug", "x": 104, "y": 170 },
 		{ "id": "entry-door", "type": "door", "x": 20, "y": 6 },
 		{ "id": "restroom-door", "type": "restroom-door", "x": 74, "y": 6 },
-		{ "id": "wall-clock", "type": "office-clock", "x": 99, "y": 10 },
+		{ "id": "wall-clock", "type": "office-clock", "x": 356, "y": 10 },
 		{ "id": "window-1", "type": "window", "x": 208, "y": 8 },
 		{ "id": "window-2", "type": "window", "x": 268, "y": 8 },
 		{ "id": "whiteboard-main", "type": "whiteboard", "x": 116, "y": 8 },
@@ -73,9 +74,11 @@
 		{ "id": "archive-main", "type": "archive-cabinet", "x": 296, "y": 56 },
 		{ "id": "server-main", "type": "server-rack", "x": 296, "y": 116 },
 		{ "id": "coffee-main", "type": "coffee-machine", "x": 300, "y": 176 },
-		{ "id": "meeting-main", "type": "meeting-table", "x": 120, "y": 176 },
+		{ "id": "meeting-main", "type": "lounge-sofa", "x": 120, "y": 176 },
+		{ "id": "dumbbell-1", "type": "dumbbell", "x": 88, "y": 179 },
+		{ "id": "dumbbell-2", "type": "dumbbell", "x": 92, "y": 190, "orientation": "vertical" },
+		{ "id": "water-main", "type": "water-cooler", "x": 252, "y": 174 },
 		{ "id": "boss-desk", "type": "boss-desk", "x": 343, "y": 78 },
-		{ "id": "office-lamp", "type": "office-lamp", "x": 273, "y": 66 },
 		{ "id": "plant-1", "type": "plant", "x": 16, "y": 200 },
 		{ "id": "plant-2", "type": "plant", "x": 78, "y": 200 },
 		{ "id": "plant-3", "type": "plant", "x": 366, "y": 200 }

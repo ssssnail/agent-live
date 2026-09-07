@@ -7,6 +7,7 @@ export function createOfficeRenderer(content) {
 	const rich = renderMode === "rich";
 	const useLocalTime = content.preset.environment?.localTime === true;
 	const ambientEffects = new Set(content.atmosphere.ambientEffects ?? []);
+	let dayPreview = null;
 	const W = layout.canvas.width;
 	const H = layout.canvas.height;
 	const WALL_H = layout.wallHeight;
@@ -93,6 +94,11 @@ export function createOfficeRenderer(content) {
 	};
 	const localOfficeTime = () => {
 		const now = new Date();
+		if (dayPreview) {
+			const elapsed = (performance.now() - dayPreview.startedAt) % dayPreview.durationMs;
+			const simulatedHour = (6 + (elapsed / dayPreview.durationMs) * 24) % 24;
+			now.setHours(Math.floor(simulatedHour), Math.floor((simulatedHour % 1) * 60), 0, 0);
+		}
 		const hour = now.getHours();
 		const phase = hour >= 6 && hour < 11 ? "morning" : hour >= 11 && hour < 17 ? "noon" : hour >= 17 && hour < 20 ? "evening" : "night";
 		return { now, phase: ambientEffects.has("rain-window") ? "night" : phase };
@@ -416,6 +422,40 @@ export function createOfficeRenderer(content) {
 		px(c, item.x + (item.w >> 1) - 4, item.y + 9, 8, 6, C.meetingDevice);
 	}
 
+	function drawLoungeSofa(c, item) {
+		px(c, item.x + 4, item.y + 5, item.w, item.h + 2, C.objectShadow);
+		px(c, item.x, item.y, item.w, item.h, C.outline);
+		px(c, item.x + 3, item.y + 3, item.w - 6, item.h - 6, C.chair);
+		px(c, item.x + 3, item.y + 3, item.w - 6, 7, C.chairDark);
+		px(c, item.x + 2, item.y + 4, 7, item.h - 8, C.chairDark);
+		px(c, item.x + item.w - 9, item.y + 4, 7, item.h - 8, C.chairDark);
+		const cushionWidth = Math.floor((item.w - 22) / 3);
+		for (let i = 0; i < 3; i++) {
+			const x = item.x + 10 + i * cushionWidth;
+			px(c, x, item.y + 11, cushionWidth - 2, item.h - 15, C.chairLite);
+			px(c, x, item.y + 11, cushionWidth - 2, 1, C.metalLite);
+		}
+		px(c, item.x + 8, item.y + item.h, 5, 3, C.chairDark);
+		px(c, item.x + item.w - 13, item.y + item.h, 5, 3, C.chairDark);
+	}
+
+	function drawDumbbell(c, item) {
+		const vertical = item.orientation === "vertical";
+		if (vertical) {
+			px(c, item.x + 5, item.y, 6, 3, C.outline);
+			px(c, item.x + 6, item.y + 1, 4, 2, C.metalLite);
+			px(c, item.x + 7, item.y + 3, 2, item.h + 3, C.metal);
+			px(c, item.x + 5, item.y + item.h + 4, 6, 3, C.outline);
+			px(c, item.x + 6, item.y + item.h + 4, 4, 2, C.metalLite);
+			return;
+		}
+		px(c, item.x, item.y + 1, 4, item.h - 2, C.outline);
+		px(c, item.x + 1, item.y + 2, 3, item.h - 4, C.metalLite);
+		px(c, item.x + 4, item.y + 3, item.w - 8, 2, C.metal);
+		px(c, item.x + item.w - 4, item.y + 1, 4, item.h - 2, C.outline);
+		px(c, item.x + item.w - 4, item.y + 2, 3, item.h - 4, C.metalLite);
+	}
+
 	function drawPlant(c, item) {
 		if (rich) px(c, item.x - 5, item.y + 4, 12, 5, C.objectShadow);
 		px(c, item.x - 4, item.y, 8, 7, C.pot);
@@ -589,20 +629,14 @@ export function createOfficeRenderer(content) {
 		px(c, item.x + 29, item.y + 5, 2, 3, C.mugLite);
 	}
 
-	function drawOfficeLamp(c, item, officeTime) {
-		const { phase } = officeTime;
-		const on = phase === "evening" || phase === "night";
-		if (on) {
-			px(c, item.x - 14, item.y + 5, item.w + 28, 31, C.lampGlowOuter ?? "rgba(255,210,112,0.06)");
-			px(c, item.x - 7, item.y + 4, item.w + 14, 22, C.lampGlow ?? "rgba(255,210,112,0.11)");
-		}
-		px(c, item.x + 3, item.y, item.w - 6, 2, C.outline);
-		px(c, item.x + 1, item.y + 2, item.w - 2, 5, C.outline);
-		px(c, item.x + 3, item.y + 2, item.w - 6, 4, on ? (C.lampOn ?? C.activeAccent) : (C.lampOff ?? C.metal));
-		px(c, item.x + 6, item.y + 7, 2, item.h - 12, C.metalDark);
-		px(c, item.x + 5, item.y + item.h - 6, 4, 4, C.metal);
-		px(c, item.x + 2, item.y + item.h - 3, item.w - 4, 3, C.outline);
-		px(c, item.x + 4, item.y + item.h - 3, item.w - 8, 1, C.metalLite);
+	function drawAutomaticLighting(c, officeTime) {
+		if (!useLocalTime) return;
+		if (officeTime.phase === "night") px(c, 0, WALL_H, W, H - WALL_H, "rgba(8,13,29,0.16)");
+		if (officeTime.phase !== "evening" && officeTime.phase !== "night") return;
+		c.save();
+		c.globalCompositeOperation = "screen";
+		px(c, 0, WALL_H, W, H - WALL_H, officeTime.phase === "night" ? (C.roomLightNight ?? "rgba(255,210,112,0.13)") : (C.roomLightEvening ?? "rgba(255,220,150,0.07)"));
+		c.restore();
 	}
 
 	function drawServiceCart(c, item) {
@@ -620,7 +654,6 @@ export function createOfficeRenderer(content) {
 		const officeTime = localOfficeTime();
 		drawCachedFloor(c);
 		drawWall(c, t, officeTime);
-		for (const item of byRenderer("office-lamp")) drawOfficeLamp(c, item, officeTime);
 		for (const item of byRenderer("restroom-door")) drawRestroomDoor(c, item);
 		for (const item of byRenderer("whiteboard")) drawWhiteboard(c, item, hot, t);
 		for (const item of byRenderer("phone-table")) drawPhoneTable(c, item, hot, t);
@@ -629,6 +662,8 @@ export function createOfficeRenderer(content) {
 		for (const item of byRenderer("coffee-machine")) drawCoffee(c, item, hot, t);
 		for (const item of byRenderer("water-cooler")) drawWaterCooler(c, item, hot, t);
 		for (const item of byRenderer("meeting-table")) drawMeetingTable(c, item);
+		for (const item of byRenderer("lounge-sofa")) drawLoungeSofa(c, item);
+		for (const item of byRenderer("dumbbell")) drawDumbbell(c, item);
 		for (const item of byRenderer("plant")) drawPlant(c, item);
 		for (const item of byRenderer("cubicle-cell")) drawCubicleCell(c, item);
 		for (const item of byRenderer("executive-desk")) drawExecutiveDesk(c, item, hot);
@@ -655,6 +690,12 @@ export function createOfficeRenderer(content) {
 				drawChair(c, seat, occupiedSeats.has(seat.index));
 			}
 		}
+		drawAutomaticLighting(c, officeTime);
+	}
+
+	function startDayPreview(durationMs = 24000) {
+		if (!useLocalTime) return;
+		dayPreview = { startedAt: performance.now(), durationMs: Math.max(8000, durationMs) };
 	}
 
 	function seatAnchor(index) {
@@ -707,6 +748,7 @@ export function createOfficeRenderer(content) {
 		seatAnchor,
 		path,
 		stationKey,
+		startDayPreview,
 		content,
 	});
 }

@@ -786,6 +786,7 @@
 		const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 		const now = () => Date.now();
 		const log = (agentId, kind, text) => apply({ type: "log", item: { at: now(), agentId, kind, text } });
+		Office.startDayPreview?.(24000);
 
 		apply({
 			type: "snapshot",
