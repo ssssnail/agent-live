@@ -1,0 +1,52 @@
+{
+	"schemaVersion": 1,
+	"kind": "life-activities",
+	"id": "builtin/old-school-routines",
+	"name": "老派办公室日常",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"entries": [
+		{
+			"id": "get-water",
+			"name": "接水",
+			"participant": { "kind": "agent", "states": ["idle"] },
+			"requires": ["water-main"],
+			"onlyWhenSessionIdle": true,
+			"interruptible": true,
+			"startBubble": "去接杯水",
+			"initialDelayMs": [5000, 8000],
+			"cooldownMs": [24000, 38000],
+			"steps": [
+				{ "target": "water", "durationMs": 3000, "pose": "stand", "bubble": "饮水机旁歇一下", "hot": "water" }
+			]
+		},
+		{
+			"id": "paperwork-round",
+			"name": "文件流转",
+			"participant": { "kind": "npc", "roles": ["receptionist"] },
+			"requires": ["copy-main"],
+			"interruptible": false,
+			"initialDelayMs": [900, 1500],
+			"cooldownMs": [5200, 7600],
+			"steps": [
+				{ "target": "archive", "durationMs": 2300, "pose": "reach", "bubble": "复印归档", "hot": "archive", "particle": "paper" },
+				{ "target": "reception", "durationMs": 2600, "pose": "sit", "bubble": "文件登记好了" }
+			]
+		},
+		{
+			"id": "facility-round",
+			"name": "后勤巡检",
+			"participant": { "kind": "npc", "roles": ["cleaner"] },
+			"requires": [],
+			"interruptible": false,
+			"initialDelayMs": [1200, 1800],
+			"cooldownMs": [4800, 7000],
+			"steps": [
+				{ "target": "clean-north", "durationMs": 2100, "pose": "reach", "bubble": "看看格子间", "particle": "spark" },
+				{ "target": "clean-south", "durationMs": 2200, "pose": "reach", "bubble": "整理一下" },
+				{ "target": "clean-meeting", "durationMs": 2100, "pose": "reach", "bubble": "会议室收好了" }
+			]
+		}
+	]
+}

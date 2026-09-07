@@ -1,0 +1,18 @@
+{
+	"schemaVersion": 1,
+	"kind": "preset",
+	"id": "builtin/lively-office",
+	"name": "有生活的像素办公室",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"content": {
+		"style": "pixel-classic",
+		"layout": "lively-office",
+		"agentSkin": "tiny-developers",
+		"props": "default-office",
+		"npcs": "office-staff",
+		"lifeActivities": "office-basics",
+		"atmosphere": "default"
+	}
+}

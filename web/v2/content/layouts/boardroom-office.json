@@ -1,0 +1,87 @@
+{
+	"schemaVersion": 1,
+	"kind": "layout",
+	"id": "builtin/boardroom-office",
+	"name": "大会议室长桌办公布局",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"canvas": { "width": 384, "height": 216 },
+	"wallHeight": 54,
+	"camera": { "mode": "fixed", "fit": "contain", "integerScale": true },
+	"navigation": {
+		"lanes": [60, 112, 146, 198],
+		"connectors": [10, 80, 192, 304, 374]
+	},
+	"seats": [
+		{ "index": 0, "cx": 192, "renderer": "boardroom-seat", "desk": { "x": 185, "y": 82, "width": 15, "height": 10 }, "anchor": { "x": 192, "y": 75, "dir": "down", "lane": 0 } },
+		{ "index": 1, "cx": 127, "renderer": "boardroom-seat", "desk": { "x": 145, "y": 95, "width": 15, "height": 10 }, "anchor": { "x": 127, "y": 108, "dir": "right", "lane": 1 } },
+		{ "index": 2, "cx": 257, "renderer": "boardroom-seat", "desk": { "x": 224, "y": 95, "width": 15, "height": 10 }, "anchor": { "x": 257, "y": 108, "dir": "left", "lane": 1 } },
+		{ "index": 3, "cx": 115, "renderer": "boardroom-seat", "desk": { "x": 139, "y": 127, "width": 15, "height": 10 }, "anchor": { "x": 115, "y": 139, "dir": "right", "lane": 2 } },
+		{ "index": 4, "cx": 269, "renderer": "boardroom-seat", "desk": { "x": 230, "y": 127, "width": 15, "height": 10 }, "anchor": { "x": 269, "y": 139, "dir": "left", "lane": 2 } },
+		{ "index": 5, "cx": 102, "renderer": "boardroom-seat", "desk": { "x": 132, "y": 158, "width": 15, "height": 10 }, "anchor": { "x": 102, "y": 170, "dir": "right", "lane": 3 } },
+		{ "index": 6, "cx": 282, "renderer": "boardroom-seat", "desk": { "x": 237, "y": 158, "width": 15, "height": 10 }, "anchor": { "x": 282, "y": 170, "dir": "left", "lane": 3 } },
+		{ "index": 7, "cx": 192, "renderer": "boardroom-seat", "desk": { "x": 185, "y": 183, "width": 15, "height": 10 }, "anchor": { "x": 192, "y": 202, "dir": "up", "lane": 3 } }
+	],
+	"targets": {
+		"archive": { "x": 68, "y": 184, "dir": "left", "lane": 3 },
+		"server": { "x": 336, "y": 111, "dir": "up", "lane": 1 },
+		"whiteboard": { "x": 50, "y": 116, "dir": "up", "lane": 1 },
+		"phone": { "x": 192, "y": 151, "dir": "up", "lane": 2 },
+		"coffee": { "x": 68, "y": 148, "dir": "left", "lane": 2 },
+		"water": { "x": 352, "y": 198, "dir": "right", "lane": 3 },
+		"meetA": { "x": 145, "y": 139, "dir": "right", "lane": 2 },
+		"meetB": { "x": 239, "y": 139, "dir": "left", "lane": 2 },
+		"entry": { "x": 10, "y": 60, "dir": "right", "lane": 0 },
+		"secretary-entry": { "x": 10, "y": 198, "dir": "right", "lane": 3 },
+		"service-entry": { "x": 374, "y": 198, "dir": "left", "lane": 3 },
+		"decision-wall": { "x": 50, "y": 116, "dir": "up", "lane": 1 },
+		"table-service-left": { "x": 82, "y": 151, "dir": "right", "lane": 2 },
+		"table-service-right": { "x": 302, "y": 151, "dir": "left", "lane": 2 }
+	},
+	"stations": {
+		"research": { "kind": "target", "target": "archive" },
+		"create": { "kind": "seat" },
+		"compute": { "kind": "target", "target": "server" },
+		"plan": { "kind": "target", "target": "whiteboard" },
+		"communicate": { "kind": "target", "target": "phone" },
+		"collaborate": { "kind": "seat", "meetingTargets": ["meetA", "meetB"] },
+		"coffee": { "kind": "target", "target": "coffee" },
+		"water": { "kind": "target", "target": "water" }
+	},
+	"legacyActions": {
+		"type": "create",
+		"archive": "research",
+		"server": "compute",
+		"whiteboard": "plan",
+		"phone": "communicate",
+		"delegate": "collaborate",
+		"coffee": "coffee"
+	},
+	"furniture": {
+		"archive": { "x": 18, "y": 161, "w": 50, "h": 30 },
+		"server": { "x": 306, "y": 64, "w": 60, "h": 45 },
+		"coffee": { "x": 48, "y": 108, "w": 26, "h": 22 },
+		"water": { "x": 344, "y": 170, "w": 16, "h": 26 },
+		"phone": { "x": 181, "y": 143, "w": 22, "h": 12 },
+		"whiteboard": { "x": 15, "y": 64, "w": 65, "h": 45 },
+		"meeting": { "x": 90, "y": 76, "w": 204, "h": 125 }
+	},
+	"propInstances": [
+		{ "id": "boardroom-rug", "type": "rug", "x": 75, "y": 70, "width": 234, "height": 140 },
+		{ "id": "entry-door", "type": "door", "x": 2, "y": 12, "width": 24, "height": 42 },
+		{ "id": "city-window-left", "type": "window", "x": 32, "y": 8, "width": 67, "height": 38 },
+		{ "id": "city-window-right", "type": "window", "x": 285, "y": 8, "width": 67, "height": 38 },
+		{ "id": "presentation-main", "type": "presentation-screen", "x": 111, "y": 6 },
+		{ "id": "decision-board", "type": "whiteboard", "x": 15, "y": 64, "width": 65, "height": 45 },
+		{ "id": "av-main", "type": "av-console", "x": 306, "y": 64 },
+		{ "id": "meeting-main", "type": "boardroom-table", "x": 90, "y": 76 },
+		{ "id": "coffee-sideboard", "type": "sideboard", "x": 16, "y": 126 },
+		{ "id": "coffee-main", "type": "coffee-machine", "x": 48, "y": 105 },
+		{ "id": "archive-main", "type": "service-cart", "x": 18, "y": 161 },
+		{ "id": "water-main", "type": "water-cooler", "x": 344, "y": 170 },
+		{ "id": "service-cabinet", "type": "sideboard", "x": 318, "y": 157, "width": 45, "height": 42 },
+		{ "id": "wall-clock", "type": "office-clock", "x": 362, "y": 8 }
+	],
+	"npcSpawns": ["secretary-entry", "service-entry"]
+}

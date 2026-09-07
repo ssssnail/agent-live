@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Agent Office · Big Company Campus</title>
+		<link rel="stylesheet" href="/big-company.css" />
+	</head>
+	<body>
+		<div id="app">
+			<header id="bar">
+				<div class="brand-lockup">
+					<span class="brand">AGENT OFFICE</span>
+					<span class="edition">BIG COMPANY</span>
+				</div>
+				<span class="pill online"><i></i> LIVE</span>
+				<span class="pill">NOVA AI · CAMPUS</span>
+				<span id="viewMeta" class="pill">5 BUILDINGS · 83 PEOPLE</span>
+				<span class="grow"></span>
+				<span id="clock" class="clock">09:41</span>
+				<span class="concept">VISUAL CONCEPT</span>
+			</header>
+
+			<main>
+				<section id="stageWrap">
+					<canvas id="stage" aria-label="Big Company campus concept"></canvas>
+					<div id="viewTitle" class="view-title">
+						<small>CAMPUS OVERVIEW</small>
+						<b>NOVA AI 总部园区</b>
+					</div>
+					<button id="back" type="button">← 返回园区</button>
+					<div id="hint" class="hint"><span></span>阿派位于研发中心 · 点击建筑进入</div>
+					<div id="taskbar">
+						<span class="task-kicker">当前 Agent</span>
+						<span id="currentLocation" class="task-title">阿派 · 研发中心 3F · 正在修改 API</span>
+						<span class="task-progress"><i></i> 68%</span>
+					</div>
+				</section>
+
+				<aside id="side">
+					<div class="company-head">
+						<div>
+							<div id="sideEyebrow" class="eyebrow">BIG COMPANY · CAMPUS</div>
+							<h1 id="sideTitle">NOVA AI</h1>
+						</div>
+						<div class="people"><b id="sideCount">83</b><span id="sideCountLabel">园区人物</span></div>
+					</div>
+					<div id="sideContent"></div>
+				</aside>
+			</main>
+		</div>
+
+		<script src="/sprites.js"></script>
+		<script src="/big-company.js"></script>
+	</body>
+</html>

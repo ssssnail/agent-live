@@ -1,0 +1,10 @@
+{
+	"schemaVersion": 1,
+	"kind": "life-activities",
+	"id": "builtin/no-life-activities",
+	"name": "不启用办公室生活",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"entries": []
+}

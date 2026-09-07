@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Agent Office</title>
+		<link rel="stylesheet" href="/style.css" />
+	</head>
+	<body>
+		<div id="app">
+			<header id="bar">
+				<span class="brand">AGENT OFFICE</span>
+				<span id="conn" class="pill offline">连接中…</span>
+				<span id="model" class="pill">model: —</span>
+				<span id="turns" class="pill">turn 0</span>
+				<span id="usage" class="pill">0 tok · $0.0000</span>
+				<span class="grow"></span>
+				<button id="mute" class="btn" title="音效开关">音效: 关</button>
+				<button id="demo" class="btn">演示</button>
+			</header>
+
+			<main>
+				<div id="stageWrap">
+					<canvas id="stage"></canvas>
+					<div id="taskbar"><span class="k">当前需求</span><span id="task">等待指令…</span></div>
+				</div>
+
+				<aside id="side">
+					<section class="panel">
+						<h2>员工</h2>
+						<div id="crew" class="crew"></div>
+					</section>
+					<section class="panel grow">
+						<h2>动态</h2>
+						<div id="log" class="log"></div>
+					</section>
+				</aside>
+			</main>
+		</div>
+
+		<script src="/sprites.js"></script>
+		<script src="/office.js"></script>
+		<script src="/app.js"></script>
+	</body>
+</html>

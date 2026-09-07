@@ -1,0 +1,25 @@
+{
+	"schemaVersion": 1,
+	"kind": "npcs",
+	"id": "builtin/office-staff",
+	"name": "办公室基础员工",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"entries": [
+		{
+			"id": "cleaner-lin",
+			"name": "林姨",
+			"role": "cleaner",
+			"title": "保洁",
+			"spawn": "cleaner-entry",
+			"appearance": {
+				"skin": "#d69f70",
+				"hair": "#30333b",
+				"shirt": "#4f9d88",
+				"trim": "#347264",
+				"badge": "#b7eadb"
+			}
+		}
+	]
+}

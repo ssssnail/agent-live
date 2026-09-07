@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Activity Hub · Layout Prototype</title>
+		<link rel="stylesheet" href="/activity-hub.css" />
+	</head>
+	<body>
+		<div class="app">
+			<header>
+				<div class="brand"><span class="mark">T</span><span>TECH ACTIVITY STUDIO</span></div>
+				<span class="pill">LAYOUT PROTOTYPE</span>
+				<span class="pill quiet">单层 · 固定俯视 · 全场同屏</span>
+				<span class="spacer"></span>
+				<span class="draft">仅视觉原型</span>
+			</header>
+
+			<main>
+				<section class="stage-shell">
+					<div class="stage-title">
+						<div>
+							<strong>一间真实可辨认的 Tech Studio</strong>
+							<span>开放工作台、玻璃项目室、电话亭、Build Lab 与 Pantry Lounge</span>
+						</div>
+						<div class="capacity">8 AGENTS + NPC</div>
+					</div>
+					<div class="canvas-wrap">
+						<canvas id="stage" width="576" height="324" aria-label="Activity Hub 办公室视觉原型"></canvas>
+					</div>
+					<div class="caption">
+						<span>空间仍是一间办公室</span>
+						<span>区别在于：位置代表工作模式，而不是员工归属</span>
+					</div>
+				</section>
+
+				<aside>
+					<section class="panel intro">
+						<div class="eyebrow">LAYOUT IDEA 01</div>
+						<h1>Tech Studio · Activity-Based</h1>
+						<p>先让家具和空间像真实科技工作室，再让 Agent 根据工作语义选择区域。无需阅读标签，也应该知道每个人在做什么。</p>
+					</section>
+
+					<section class="panel map">
+						<h2>工作映射</h2>
+						<div class="map-row"><i class="blue"></i><b>Focus Bench</b><span>编码 / 写作 / 深度思考</span></div>
+						<div class="map-row"><i class="green"></i><b>Research Wall</b><span>搜索 / 阅读 / 分析</span></div>
+						<div class="map-row"><i class="yellow"></i><b>Project Room</b><span>计划 / 协作 / 评审</span></div>
+						<div class="map-row"><i class="red"></i><b>Build Lab</b><span>运行 / 测试 / 调试</span></div>
+						<div class="map-row"><i class="purple"></i><b>Phone Booth</b><span>网络 / 提问 / 外部服务</span></div>
+						<div class="map-row"><i class="cyan"></i><b>Pantry Lounge</b><span>接水 / 休息 / 非正式交流</span></div>
+					</section>
+
+					<section class="panel notes">
+						<h2>与当前 Demo 的差异</h2>
+						<ul>
+							<li>保留真实科技办公室的开放工作台，但不绑定员工。</li>
+							<li>项目室和电话亭使用玻璃隔断，不遮挡全场视线。</li>
+							<li>Build Lab 有测试台、设备架和状态屏，而不是抽象色块。</li>
+							<li>Pantry 有冰箱、水机、咖啡机、吧台和沙发。</li>
+						</ul>
+					</section>
+				</aside>
+			</main>
+		</div>
+		<script src="/activity-hub.js"></script>
+	</body>
+</html>

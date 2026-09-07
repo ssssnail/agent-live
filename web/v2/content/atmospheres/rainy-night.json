@@ -1,0 +1,37 @@
+{
+	"schemaVersion": 1,
+	"kind": "atmosphere",
+	"id": "builtin/rainy-night",
+	"name": "雨夜加班",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"styleOverrides": {
+		"css": {
+			"bg": "#070a12",
+			"panel": "#101724",
+			"panel-2": "#172235",
+			"line": "#263852",
+			"ink": "#d6e5f5",
+			"dim": "#71859b",
+			"accent": "#ffd36a"
+		},
+		"canvas": {
+			"floorA": "#202c3a",
+			"floorB": "#243243",
+			"floorLine": "#19232f",
+			"wall": "#172334",
+			"wallTop": "#101927",
+			"wallTrim": "#2c4059",
+			"glass": "#254867",
+			"glassLite": "#315d82",
+			"windowSpark": "#9ed6ff",
+			"screen": "#09131f",
+			"screenIdle": "#1e3b55",
+			"rain": "#8bc8f2"
+		}
+	},
+	"windowScene": "rainy-night",
+	"ambientEffects": ["rain-window"],
+	"audio": null
+}

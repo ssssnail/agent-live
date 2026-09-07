@@ -1,0 +1,485 @@
+/** Build the V2 office renderer and navigation model from content data. */
+export function createOfficeRenderer(content) {
+	const layout = content.layout;
+	const propTypes = content.props.types;
+	const C = { ...content.style.tokens.canvas, ...(content.atmosphere.styleOverrides?.canvas ?? {}) };
+	const ambientEffects = new Set(content.atmosphere.ambientEffects ?? []);
+	const W = layout.canvas.width;
+	const H = layout.canvas.height;
+	const WALL_H = layout.wallHeight;
+	const LANES = [...layout.navigation.lanes];
+	const VCONN = [...layout.navigation.connectors];
+	const TARGETS = Object.fromEntries(Object.entries(layout.targets).map(([key, value]) => [key, { ...value }]));
+	const SEATS = layout.seats.map((seat) => ({
+		index: seat.index,
+		cx: seat.cx,
+		renderer: seat.renderer ?? "workstation",
+		deskX: seat.desk.x,
+		deskY: seat.desk.y,
+		deskW: seat.desk.width,
+		deskH: seat.desk.height,
+		anchor: { ...seat.anchor },
+	}));
+	const instances = layout.propInstances.map((instance) => {
+		const type = propTypes[instance.type];
+		return {
+			...instance,
+			w: instance.width ?? type.size.width,
+			h: instance.height ?? type.size.height,
+			capabilities: type.capabilities,
+		renderer: type.renderer,
+		};
+	});
+	const byRenderer = (renderer) => instances.filter((instance) => instance.renderer === renderer);
+	const first = (renderer) => byRenderer(renderer)[0];
+	const FURNITURE = {
+		archive: first("archive-cabinet"),
+		server: first("server-rack"),
+		coffee: first("coffee-machine"),
+		phone: first("phone-table"),
+		whiteboard: first("whiteboard"),
+		meeting: first("meeting-table"),
+	};
+
+	const px = (c, x, y, w, h, color) => {
+		c.fillStyle = color;
+		c.fillRect(x | 0, y | 0, w | 0, h | 0);
+	};
+	const poly = (c, points, color) => {
+		c.beginPath();
+		c.moveTo(points[0][0] | 0, points[0][1] | 0);
+		for (let i = 1; i < points.length; i++) c.lineTo(points[i][0] | 0, points[i][1] | 0);
+		c.closePath();
+		c.fillStyle = color;
+		c.fill();
+	};
+
+	function drawFloor(c) {
+		px(c, 0, WALL_H, W, H - WALL_H, C.floorA);
+		for (let y = WALL_H; y < H; y += 16) {
+			for (let x = 0; x < W; x += 16) {
+				if (((x / 16) | 0) % 2 === ((y / 16) | 0) % 2) px(c, x, y, 16, 16, C.floorB);
+			}
+		}
+		for (let y = WALL_H; y < H; y += 16) px(c, 0, y, W, 1, C.floorLine);
+		for (let x = 0; x < W; x += 16) px(c, x, WALL_H, 1, H - WALL_H, C.floorLine);
+		for (const rug of byRenderer("rug")) {
+			px(c, rug.x, rug.y, rug.w, rug.h, C.rug);
+			px(c, rug.x, rug.y, rug.w, 1, C.rugEdge);
+			px(c, rug.x, rug.y + rug.h - 1, rug.w, 1, C.rugEdge);
+			px(c, rug.x, rug.y, 1, rug.h, C.rugEdge);
+			px(c, rug.x + rug.w - 1, rug.y, 1, rug.h, C.rugEdge);
+		}
+	}
+
+	function drawWall(c, t) {
+		px(c, 0, 0, W, WALL_H, C.wall);
+		px(c, 0, 0, W, 6, C.wallTop);
+		px(c, 0, WALL_H - 3, W, 3, C.wallTrim);
+		for (const door of byRenderer("door")) {
+			px(c, door.x, door.y, door.w, door.h, C.door);
+			px(c, door.x, door.y, door.w, 2, C.doorDark);
+			px(c, door.x + door.w - 3, door.y, 3, door.h, C.doorDark);
+			px(c, door.x + 4, door.y + 4, door.w - 11, door.h - 8, C.doorPanel);
+			px(c, door.x + door.w - 9, door.y + 16, 2, 3, C.paper);
+		}
+		for (const window of byRenderer("window")) {
+			px(c, window.x - 2, window.y - 2, window.w + 4, window.h + 4, C.wallTrim);
+			px(c, window.x, window.y, window.w, window.h, C.glass);
+			px(c, window.x, window.y, window.w, 8, C.glassLite);
+			px(c, window.x + (window.w >> 1), window.y, 1, window.h, C.wallTrim);
+			px(c, window.x, window.y + (window.h >> 1), window.w, 1, C.wallTrim);
+			if (Math.sin(t / 900 + window.x) > 0.7) px(c, window.x + 6, window.y + 14, 2, 2, C.windowSpark);
+			if (ambientEffects.has("rain-window")) {
+				for (let i = 0; i < 4; i++) {
+					const rx = window.x + 5 + ((i * 11 + ((t / 180) | 0) * 3) % Math.max(8, window.w - 10));
+					const ry = window.y + 3 + ((i * 7 + ((t / 95) | 0) * 2) % Math.max(6, window.h - 7));
+					px(c, rx, ry, 1, 4, C.rain ?? C.waterActive);
+				}
+			}
+		}
+		for (const window of byRenderer("venetian-window")) {
+			px(c, window.x - 2, window.y - 2, window.w + 4, window.h + 4, C.wallTrim);
+			px(c, window.x, window.y, window.w, window.h, C.glass);
+			px(c, window.x + (window.w >> 1), window.y, 1, window.h, C.wallTrim);
+			for (let y = window.y + 3; y < window.y + window.h - 1; y += 4) {
+				px(c, window.x + 1, y, window.w - 2, 1, C.paperLine);
+			}
+		}
+	}
+
+	function drawWhiteboard(c, item, hot, t) {
+		px(c, item.x - 2, item.y - 2, item.w + 4, item.h + 4, C.boardFrame);
+		px(c, item.x, item.y, item.w, item.h, C.board);
+		px(c, item.x + 5, item.y + 4, 34, 1, C.boardText);
+		px(c, item.x + 5, item.y + 8, 46, 1, C.boardText);
+		px(c, item.x + 5, item.y + 12, 26, 1, C.boardTextDim);
+		if (hot.has("whiteboard")) {
+			const n = 4 + (((t / 140) | 0) % 24);
+			px(c, item.x + 5, item.y + 16, n, 1, C.activeRed);
+			px(c, item.x + 5, item.y + 20, Math.max(2, n - 9), 1, C.activeBlue);
+		} else {
+			px(c, item.x + 5, item.y + 16, 18, 1, C.boardIdle);
+		}
+	}
+
+	function drawDesk(c, seat, hot) {
+		const { deskX: x, deskY: y, deskW: w, deskH: h } = seat;
+		px(c, x, y + h, w, 3, C.woodDark);
+		px(c, x, y, w, h, C.deskTop);
+		px(c, x, y, w, 2, C.deskLite);
+		px(c, x + 2, y + h - 2, w - 4, 2, C.woodDark);
+		const mx = seat.cx - 9;
+		const my = y - 11;
+		px(c, mx - 1, my - 1, 20, 13, C.metalDark);
+		px(c, mx, my, 18, 11, C.screen);
+		if (hot.has(`desk${seat.index}`)) {
+			px(c, mx + 2, my + 2, 14, 1, C.activeGreen);
+			px(c, mx + 2, my + 4, 10, 1, C.activeThink);
+			px(c, mx + 2, my + 6, 12, 1, C.activeThink);
+			px(c, mx + 2, my + 8, 6, 1, C.activeAccent);
+		} else {
+			px(c, mx + 2, my + 3, 8, 1, C.screenIdle);
+			px(c, mx + 2, my + 6, 11, 1, C.screenIdle);
+		}
+		px(c, seat.cx - 2, my + 12, 4, 2, C.metalDark);
+		px(c, seat.cx + 12, y + 4, 7, 5, C.paper);
+		px(c, seat.cx + 12, y + 4, 7, 1, C.paperLine);
+	}
+
+	function drawChair(c, seat, occupied) {
+		const x = seat.cx - 7;
+		const y = seat.deskY + 21;
+		px(c, x, y, 14, 9, occupied ? C.chairDark : C.chair);
+		px(c, x, y + 9, 14, 2, C.chairDark);
+		px(c, x + 5, y + 11, 4, 3, C.metalDark);
+	}
+
+	function drawCubicleSeat(c, seat, hot) {
+		const { deskX: x, deskY: y, deskW: w, deskH: h } = seat;
+		px(c, x, y + h, w, 3, C.woodDark);
+		px(c, x, y, w, h, C.deskTop);
+		px(c, x, y, w, 2, C.deskLite);
+		const mx = seat.cx - 8;
+		const my = seat.anchor.dir === "down" ? y + h - 1 : y - 13;
+		px(c, mx - 1, my - 1, 18, 13, C.metalDark);
+		px(c, mx, my, 16, 10, C.screen);
+		if (hot.has(`desk${seat.index}`)) {
+			px(c, mx + 2, my + 2, 12, 1, C.activeGreen);
+			px(c, mx + 2, my + 5, 8, 1, C.activeThink);
+			px(c, mx + 2, my + 7, 11, 1, C.activeAccent);
+		} else {
+			px(c, mx + 2, my + 3, 8, 1, C.screenIdle);
+			px(c, mx + 2, my + 6, 11, 1, C.screenIdle);
+		}
+		px(c, mx + 6, my + 11, 4, 2, C.metalDark);
+		px(c, x + w - 10, y + 4, 7, 5, C.phoneDevice);
+		px(c, x + 3, y + 5, 8, 5, C.paper);
+	}
+
+	function drawBoardroomSeat(c, seat, hot, occupied) {
+		const { deskX: x, deskY: y, deskW: w, deskH: h } = seat;
+		px(c, x - 1, y - 1, w + 2, h + 2, C.metalDark);
+		px(c, x, y, w, h, C.screen);
+		px(c, x + 2, y + 2, w - 4, 1, hot.has(`desk${seat.index}`) ? C.activeGreen : C.screenIdle);
+		px(c, x + 2, y + 5, Math.max(3, w - 7), 1, hot.has(`desk${seat.index}`) ? C.activeThink : C.screenIdle);
+		px(c, x + 2, y + h, w - 4, 2, C.metalDark);
+		const a = seat.anchor;
+		const chairSeat = { ...seat, deskY: a.y - 21 };
+		if (a.dir === "up" || a.dir === "down") {
+			drawChair(c, chairSeat, occupied);
+		} else {
+			const color = occupied ? C.chairDark : C.chair;
+			px(c, a.x - 4, a.y - 7, 8, 14, color);
+			px(c, a.x + (a.dir === "right" ? -6 : 4), a.y - 5, 2, 10, C.metalDark);
+			px(c, a.x - 1, a.y + 7, 2, 3, C.metalDark);
+		}
+	}
+
+	function drawArchive(c, item, hot, t) {
+		px(c, item.x, item.y, item.w, item.h, C.metal);
+		px(c, item.x, item.y, item.w, 2, C.metalLite);
+		const open = hot.has("archive") ? ((t / 260) | 0) % 3 : -1;
+		for (let i = 0; i < 3; i++) {
+			const dy = item.y + 4 + i * 9;
+			px(c, item.x + 3, dy, item.w - 6, 7, C.metalDark);
+			px(c, item.x + 3, dy, item.w - 6, 1, C.drawerLite);
+			px(c, item.x + (item.w >> 1) - 5, dy + 3, 10, 1, C.drawerHandle);
+			if (i === open) {
+				px(c, item.x + 3, dy, item.w - 6, 7, C.drawerOpen);
+				px(c, item.x + 5, dy + 1, item.w - 10, 5, C.paper);
+			}
+		}
+	}
+
+	function drawServerRack(c, item, hot, t) {
+		px(c, item.x, item.y, item.w, item.h, C.rack);
+		px(c, item.x, item.y, item.w, 2, C.rackTrim);
+		const fast = hot.has("server");
+		for (let i = 0; i < 3; i++) {
+			const dy = item.y + 5 + i * 9;
+			px(c, item.x + 3, dy, item.w - 6, 7, C.rackPanel);
+			px(c, item.x + 5, dy + 3, item.w - 24, 1, C.rackLine);
+			const on = Math.sin((fast ? t / 90 : t / 520) + i * 1.7) > 0;
+			px(c, item.x + item.w - 12, dy + 2, 2, 2, on ? C.signalOn : C.signalOff);
+			px(c, item.x + item.w - 8, dy + 2, 2, 2, on ? C.signalOff : C.signalOn);
+		}
+	}
+
+	function drawCoffee(c, item, hot, t) {
+		px(c, item.x, item.y, item.w, item.h, C.metalDark);
+		px(c, item.x, item.y, item.w, 2, C.metal);
+		px(c, item.x + 4, item.y + 5, item.w - 8, 8, C.coffeePanel);
+		px(c, item.x + 6, item.y + 7, 6, 4, hot.has("coffee") ? C.coffeeHot : C.coffeeIdle);
+		px(c, item.x + 5, item.y + item.h - 5, item.w - 10, 3, C.metal);
+		if (hot.has("coffee") && ((t / 240) | 0) % 2) px(c, item.x + 9, item.y - 3, 2, 3, C.steam);
+	}
+
+	function drawWaterCooler(c, item, hot, t) {
+		const active = hot.has("water");
+		px(c, item.x + 2, item.y, item.w - 4, 11, C.waterGlass);
+		px(c, item.x + 3, item.y + 2, item.w - 6, 6, active ? C.waterActive : C.waterLevel);
+		px(c, item.x + 1, item.y + 10, item.w - 2, item.h - 10, C.waterBody);
+		px(c, item.x + 1, item.y + item.h - 3, item.w - 2, 3, C.waterDark);
+		px(c, item.x + 4, item.y + 14, 3, 2, C.activeBlue);
+		px(c, item.x + item.w - 7, item.y + 14, 3, 2, C.activeRed);
+		px(c, item.x + 5, item.y + 18, item.w - 10, 4, C.waterDark);
+		if (active && ((t / 180) | 0) % 2) px(c, item.x - 2, item.y + 17, 2, 4, C.waterActive);
+	}
+
+	function drawPhoneTable(c, item, hot, t) {
+		px(c, item.x, item.y, item.w, item.h, C.wood);
+		px(c, item.x, item.y, item.w, 2, C.phoneTop);
+		px(c, item.x + 8, item.y - 7, 16, 8, C.phoneDevice);
+		px(c, item.x + 10, item.y - 5, 12, 3, hot.has("phone") ? C.signalOn : C.phoneIdle);
+		if (hot.has("phone") && ((t / 200) | 0) % 2) {
+			px(c, item.x + 4, item.y - 11, 2, 2, C.activeAccent);
+			px(c, item.x + 26, item.y - 11, 2, 2, C.activeAccent);
+		}
+	}
+
+	function drawMeetingTable(c, item) {
+		px(c, item.x, item.y + item.h, item.w, 3, C.woodDark);
+		px(c, item.x, item.y, item.w, item.h, C.deskTop);
+		px(c, item.x, item.y, item.w, 2, C.deskLite);
+		px(c, item.x + 8, item.y + 8, 12, 8, C.paper);
+		px(c, item.x + item.w - 24, item.y + 6, 10, 10, C.meetingPaper);
+		px(c, item.x + (item.w >> 1) - 4, item.y + 9, 8, 6, C.meetingDevice);
+	}
+
+	function drawPlant(c, item) {
+		px(c, item.x - 4, item.y, 8, 7, C.pot);
+		px(c, item.x - 4, item.y, 8, 2, C.potLite);
+		px(c, item.x - 1, item.y - 5, 2, 5, C.plantDark);
+		px(c, item.x - 6, item.y - 11, 12, 7, C.plant);
+		px(c, item.x - 4, item.y - 14, 8, 4, C.plant);
+		px(c, item.x - 6, item.y - 11, 5, 3, C.plantDark);
+	}
+
+	function drawCubicleCell(c, item) {
+		px(c, item.x, item.y, item.w, 5, C.metalDark);
+		px(c, item.x + 1, item.y, item.w - 2, 3, C.metal);
+		px(c, item.x, item.y, 5, item.h, C.metalDark);
+		px(c, item.x + 1, item.y + 1, 3, item.h - 2, C.metal);
+		px(c, item.x + item.w - 5, item.y, 5, item.h, C.metalDark);
+		px(c, item.x + item.w - 4, item.y + 1, 3, item.h - 2, C.metal);
+	}
+
+	function drawExecutiveDesk(c, item, hot) {
+		px(c, item.x, item.y + item.h, item.w, 5, C.woodDark);
+		px(c, item.x, item.y, item.w, item.h, C.deskTop);
+		px(c, item.x, item.y, item.w, 2, C.deskLite);
+		px(c, item.x + 20, item.y + 4, 26, item.h - 7, C.plantDark);
+		px(c, item.x + 4, item.y - 12, 17, 13, C.metalDark);
+		px(c, item.x + 5, item.y - 11, 15, 10, C.screen);
+		const active = hot.has(`desk${item.seatIndex ?? 0}`);
+		px(c, item.x + 7, item.y - 8, active ? 11 : 7, 1, active ? C.activeGreen : C.screenIdle);
+		px(c, item.x + item.w - 15, item.y + 4, 9, 5, C.phoneDevice);
+		px(c, item.x + item.w - 24, item.y - 9, 2, 11, C.activeAccent);
+		px(c, item.x + item.w - 29, item.y - 11, 12, 4, C.plantDark);
+	}
+
+	function drawCopyStation(c, item, hot, t) {
+		px(c, item.x, item.y + 12, item.w, item.h - 12, C.waterBody);
+		px(c, item.x + 2, item.y, item.w - 4, 14, C.metalDark);
+		px(c, item.x + 4, item.y + 2, item.w - 8, 8, C.screen);
+		px(c, item.x + item.w - 6, item.y + 17, 3, 2, hot.has("archive") && ((t / 240) | 0) % 2 ? C.signalOn : C.signalOff);
+		px(c, item.x + item.w - 2, item.y + 17, 7, 3, C.paper);
+		px(c, item.x + item.w - 2, item.y + 17, 1, 10, C.paperLine);
+	}
+
+	function drawReceptionDesk(c, item, hot) {
+		px(c, item.x, item.y, item.w, item.h, C.woodDark);
+		px(c, item.x + 2, item.y + 2, item.w - 4, item.h - 4, C.wood);
+		px(c, item.x, item.y, item.w, 3, C.deskLite);
+		px(c, item.x + 8, item.y - 12, 18, 13, C.metalDark);
+		px(c, item.x + 10, item.y - 10, 14, 9, C.screen);
+		px(c, item.x + 12, item.y - 7, hot.has("phone") ? 10 : 6, 1, hot.has("phone") ? C.signalOn : C.screenIdle);
+		px(c, item.x + item.w - 16, item.y - 6, 9, 7, C.phoneDevice);
+	}
+
+	function drawPresentationScreen(c, item, hot, t) {
+		px(c, item.x, item.y, item.w, item.h, C.metalDark);
+		px(c, item.x + 2, item.y + 2, item.w - 4, item.h - 4, C.screen);
+		px(c, item.x + 7, item.y + 8, item.w / 2 - 14, 3, C.paper);
+		for (let row = 0; row < 3; row++) {
+			const y = item.y + 17 + row * 6;
+			px(c, item.x + 7, y, 22, 2, [C.activeBlue, C.activeAccent, C.activeGreen][row]);
+			px(c, item.x + 33, y, item.w / 2 - 42, 2, C.rackLine);
+			const width = hot.has("whiteboard") ? 20 + (((t / 260) | 0) + row * 9) % 24 : 18 + row * 8;
+			px(c, item.x + 33, y, width, 2, [C.activeBlue, C.activeAccent, C.activeGreen][row]);
+		}
+		px(c, item.x + item.w - 47, item.y + 9, 38, 24, C.rackPanel);
+		for (let row = 0; row < 4; row++) {
+			px(c, item.x + item.w - 42, item.y + 13 + row * 5, 6, 2, row % 2 ? C.activeRed : C.activeGreen);
+			px(c, item.x + item.w - 32, item.y + 13 + row * 5, 18, 2, C.rackLine);
+		}
+	}
+
+	function drawBoardroomTable(c, item) {
+		const inset = Math.max(16, Math.round(item.w * 0.25));
+		poly(c, [[item.x + inset, item.y], [item.x + item.w - inset, item.y], [item.x + item.w, item.y + item.h], [item.x, item.y + item.h]], C.woodDark);
+		poly(c, [[item.x + inset + 3, item.y], [item.x + item.w - inset - 3, item.y], [item.x + item.w - 7, item.y + item.h - 6], [item.x + 7, item.y + item.h - 6]], C.deskTop);
+		poly(c, [[item.x + inset + 7, item.y + 4], [item.x + item.w - inset - 7, item.y + 4], [item.x + item.w - 18, item.y + item.h - 13], [item.x + 18, item.y + item.h - 13]], C.deskLite);
+		const cx = item.x + (item.w >> 1);
+		poly(c, [[cx - 4, item.y + 10], [cx + 4, item.y + 10], [cx + 12, item.y + item.h - 20], [cx - 12, item.y + item.h - 20]], C.woodDark);
+		px(c, cx - 11, item.y + Math.round(item.h * 0.56), 22, 12, C.meetingDevice);
+		px(c, cx - 5, item.y + Math.round(item.h * 0.56) + 3, 10, 5, C.phoneDevice);
+	}
+
+	function drawAvConsole(c, item, hot, t) {
+		px(c, item.x, item.y, item.w, item.h, C.rack);
+		px(c, item.x, item.y, item.w, 2, C.rackTrim);
+		px(c, item.x + 6, item.y + 6, Math.floor(item.w * .42), 15, C.screen);
+		px(c, item.x + 9, item.y + 10, Math.floor(item.w * .32), 2, hot.has("server") ? C.activeGreen : C.screenIdle);
+		px(c, item.x + 9, item.y + 15, Math.floor(item.w * .23), 2, C.activeBlue);
+		for (let x = item.x + 7; x < item.x + item.w - 7; x += 8) {
+			px(c, x, item.y + item.h - 15, 4, 4, Math.sin(t / 190 + x) > 0 ? C.signalOn : C.signalOff);
+		}
+		px(c, item.x + 6, item.y + item.h - 7, item.w - 12, 4, C.metal);
+	}
+
+	function drawSideboard(c, item) {
+		px(c, item.x, item.y, item.w, item.h, C.wood);
+		px(c, item.x, item.y, item.w, 3, C.deskLite);
+		px(c, item.x, item.y + item.h - 3, item.w, 3, C.woodDark);
+		for (let x = item.x + 6; x < item.x + item.w - 6; x += 14) px(c, x, item.y - 4, 5, 5, C.paper);
+	}
+
+	function drawVendingMachine(c, item) {
+		px(c, item.x, item.y, item.w, item.h, C.activeRed);
+		px(c, item.x + 3, item.y + 3, item.w - 6, Math.max(8, item.h - 12), C.screen);
+		for (let y = item.y + 6; y < item.y + item.h - 8; y += 5) px(c, item.x + 5, y, item.w - 10, 2, y % 2 ? C.activeAccent : C.activeGreen);
+		px(c, item.x + 4, item.y + item.h - 6, item.w - 8, 3, C.phoneDevice);
+	}
+
+	function drawOfficeClock(c, item, t) {
+		px(c, item.x, item.y, item.w, item.h, C.woodDark);
+		px(c, item.x + 2, item.y + 2, item.w - 4, item.h - 4, C.paper);
+		const cx = item.x + (item.w >> 1);
+		const cy = item.y + (item.h >> 1);
+		px(c, cx, cy - 4, 1, 5, C.phoneDevice);
+		px(c, cx, cy, 4, 1, ((t / 1000) | 0) % 2 ? C.activeRed : C.phoneDevice);
+	}
+
+	function drawServiceCart(c, item) {
+		px(c, item.x, item.y, item.w, item.h, C.metal);
+		px(c, item.x, item.y, item.w, 2, C.metalLite);
+		for (let y = item.y + 5; y < item.y + item.h - 4; y += 7) {
+			px(c, item.x + 4, y, item.w - 8, 4, C.paper);
+			px(c, item.x + 7, y + 1, Math.floor(item.w * .4), 1, C.activeBlue);
+		}
+		px(c, item.x + 5, item.y + item.h, 4, 3, C.phoneDevice);
+		px(c, item.x + item.w - 9, item.y + item.h, 4, 3, C.phoneDevice);
+	}
+
+	function drawRoom(c, t, hot, occupiedSeats) {
+		drawFloor(c);
+		drawWall(c, t);
+		for (const item of byRenderer("whiteboard")) drawWhiteboard(c, item, hot, t);
+		for (const item of byRenderer("phone-table")) drawPhoneTable(c, item, hot, t);
+		for (const item of byRenderer("archive-cabinet")) drawArchive(c, item, hot, t);
+		for (const item of byRenderer("server-rack")) drawServerRack(c, item, hot, t);
+		for (const item of byRenderer("coffee-machine")) drawCoffee(c, item, hot, t);
+		for (const item of byRenderer("water-cooler")) drawWaterCooler(c, item, hot, t);
+		for (const item of byRenderer("meeting-table")) drawMeetingTable(c, item);
+		for (const item of byRenderer("plant")) drawPlant(c, item);
+		for (const item of byRenderer("cubicle-cell")) drawCubicleCell(c, item);
+		for (const item of byRenderer("executive-desk")) drawExecutiveDesk(c, item, hot);
+		for (const item of byRenderer("copy-station")) drawCopyStation(c, item, hot, t);
+		for (const item of byRenderer("reception-desk")) drawReceptionDesk(c, item, hot);
+		for (const item of byRenderer("presentation-screen")) drawPresentationScreen(c, item, hot, t);
+		for (const item of byRenderer("boardroom-table")) drawBoardroomTable(c, item);
+		for (const item of byRenderer("av-console")) drawAvConsole(c, item, hot, t);
+		for (const item of byRenderer("sideboard")) drawSideboard(c, item);
+		for (const item of byRenderer("vending-machine")) drawVendingMachine(c, item);
+		for (const item of byRenderer("office-clock")) drawOfficeClock(c, item, t);
+		for (const item of byRenderer("service-cart")) drawServiceCart(c, item);
+		for (const seat of SEATS) {
+			if (seat.renderer === "cubicle-workstation") {
+				drawCubicleSeat(c, seat, hot);
+				drawChair(c, seat, occupiedSeats.has(seat.index));
+			} else if (seat.renderer === "boardroom-seat") {
+				drawBoardroomSeat(c, seat, hot, occupiedSeats.has(seat.index));
+			} else if (seat.renderer === "executive-seat") {
+				drawChair(c, seat, occupiedSeats.has(seat.index));
+			} else {
+				drawDesk(c, seat, hot);
+				drawChair(c, seat, occupiedSeats.has(seat.index));
+			}
+		}
+	}
+
+	function seatAnchor(index) {
+		return SEATS[(index ?? 0) % SEATS.length].anchor;
+	}
+
+	function anchorFor(action, seatIndex) {
+		const capability = layout.legacyActions[action ?? "type"] ?? "create";
+		const station = layout.stations[capability];
+		if (!station || station.kind === "seat") return seatAnchor(seatIndex);
+		return TARGETS[station.target] ?? seatAnchor(seatIndex);
+	}
+
+	function path(from, target) {
+		const fromLane = from.lane ?? 1;
+		const toLane = target.lane ?? 1;
+		const points = [];
+		const laneY = LANES[fromLane];
+		if (Math.abs(from.y - laneY) > 0.5) points.push({ x: from.x, y: laneY });
+		if (fromLane !== toLane) {
+			const vx = VCONN.reduce((best, x) =>
+				Math.abs(x - from.x) + Math.abs(x - target.x) < Math.abs(best - from.x) + Math.abs(best - target.x) ? x : best,
+			);
+			points.push({ x: vx, y: laneY });
+			points.push({ x: vx, y: LANES[toLane] });
+		}
+		points.push({ x: target.x, y: LANES[toLane] });
+		points.push({ x: target.x, y: target.y });
+		return points;
+	}
+
+	function stationKey(action, seatIndex) {
+		const capability = layout.legacyActions[action ?? "type"] ?? "create";
+		const station = layout.stations[capability];
+		return !station || station.kind === "seat" ? `desk${seatIndex ?? 0}` : station.target;
+	}
+
+	return Object.freeze({
+		W,
+		H,
+		WALL_H,
+		LANES,
+		SEATS,
+		TARGETS,
+		FURNITURE,
+		colors: C,
+		px,
+		drawRoom,
+		anchorFor,
+		seatAnchor,
+		path,
+		stationKey,
+		content,
+	});
+}

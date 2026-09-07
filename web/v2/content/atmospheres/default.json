@@ -1,0 +1,13 @@
+{
+	"schemaVersion": 1,
+	"kind": "atmosphere",
+	"id": "builtin/default-atmosphere",
+	"name": "原版环境",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"styleOverrides": { "css": {} },
+	"windowScene": "classic",
+	"ambientEffects": [],
+	"audio": null
+}

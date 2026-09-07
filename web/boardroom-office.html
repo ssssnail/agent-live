@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Boardroom Office · Layout Prototype</title>
+		<link rel="stylesheet" href="/boardroom-office.css" />
+	</head>
+	<body>
+		<div class="app">
+			<header>
+				<div class="brand"><span class="mark">BR</span><span>BOARDROOM OFFICE</span></div>
+				<span class="pill">ALL-HANDS · LIVE</span>
+				<span class="pill muted">ONE TABLE · ONE TEAM</span>
+				<span class="spacer"></span>
+				<span class="draft">VISUAL PROTOTYPE</span>
+			</header>
+
+			<main>
+				<section class="stage-shell">
+					<div class="stage-title">
+						<div>
+							<strong>Executive Boardroom Office</strong>
+							<span>团队围绕一张长桌持续办公，老板在主屏前讲话</span>
+						</div>
+						<div class="capacity">10 SEATS · 1 LEAD · 2 NPC</div>
+					</div>
+					<div class="canvas-wrap">
+						<canvas id="stage" width="576" height="324" aria-label="大会议室长桌办公视觉原型"></canvas>
+					</div>
+					<div class="caption">
+						<span>同一张桌子完成工作、讨论、评审与决策</span>
+						<span>大会议室 · 集中协作 · 强领导席</span>
+					</div>
+				</section>
+
+				<aside>
+					<section class="panel intro">
+						<div class="eyebrow">LAYOUT IDEA 03</div>
+						<h1>Boardroom as Office</h1>
+						<p>不是偶尔开会，而是直接把大会议室变成工作现场。Agent 固定坐在长桌两侧，主 Agent 或老板位于桌首，随时讲话、分派与总结。</p>
+					</section>
+
+					<section class="panel map">
+						<h2>工作映射</h2>
+						<div class="map-row"><i class="gold"></i><b>Head Seat</b><span>计划 / 分派 / 最终决策</span></div>
+						<div class="map-row"><i class="blue"></i><b>Team Seats</b><span>编码 / 调研 / 写作 / 测试</span></div>
+						<div class="map-row"><i class="cyan"></i><b>Main Screen</b><span>任务状态 / Diff / 结果展示</span></div>
+						<div class="map-row"><i class="red"></i><b>Hot Seat</b><span>汇报 / 提问 / 等待审批</span></div>
+						<div class="map-row"><i class="green"></i><b>Service Edge</b><span>茶水 / 文件 / 设备支持</span></div>
+					</section>
+
+					<section class="panel notes">
+						<h2>空间特征</h2>
+						<ul>
+							<li>一张占据视觉中心的超长木质会议桌。</li>
+							<li>老板在桌首和大屏之间讲话，方向关系明确。</li>
+							<li>每个座位都有电脑、文件、杯子和桌面身份牌。</li>
+							<li>会议电话、投影控制台、白板、茶水车和秘书 NPC。</li>
+						</ul>
+					</section>
+				</aside>
+			</main>
+		</div>
+		<script src="/boardroom-office.js"></script>
+	</body>
+</html>

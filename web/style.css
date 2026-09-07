@@ -1,0 +1,288 @@
+:root {
+	--bg: #0d1017;
+	--panel: #151a24;
+	--panel-2: #1c2230;
+	--line: #2a3243;
+	--ink: #d7dee9;
+	--dim: #7c8798;
+	--accent: #ffcc4d;
+	--ok: #6ee7a8;
+	--warn: #ff8f6b;
+	--think: #8fb8ff;
+	font-family: ui-monospace, SFMono-Regular, Menlo, "PingFang SC", monospace;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	height: 100%;
+	background: var(--bg);
+	color: var(--ink);
+	overflow: hidden;
+}
+
+#app {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+#bar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	background: var(--panel);
+	border-bottom: 2px solid var(--line);
+	font-size: 12px;
+}
+
+.brand {
+	color: var(--accent);
+	letter-spacing: 2px;
+	font-weight: 700;
+}
+
+.grow {
+	flex: 1;
+}
+
+.pill {
+	padding: 2px 8px;
+	border: 1px solid var(--line);
+	border-radius: 2px;
+	color: var(--dim);
+	white-space: nowrap;
+}
+
+.pill.online {
+	color: var(--ok);
+	border-color: #2c5c45;
+}
+
+.pill.offline {
+	color: var(--warn);
+	border-color: #5c3a2c;
+}
+
+.btn {
+	background: var(--panel-2);
+	color: var(--ink);
+	border: 1px solid var(--line);
+	border-radius: 2px;
+	padding: 3px 10px;
+	font: inherit;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+.btn:hover {
+	border-color: var(--accent);
+	color: var(--accent);
+}
+
+main {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+}
+
+#stageWrap {
+	position: relative;
+	flex: 1;
+	min-width: 0;
+	background: #07090d;
+}
+
+#stage {
+	display: block;
+	width: 100%;
+	height: 100%;
+	image-rendering: pixelated;
+}
+
+#taskbar {
+	position: absolute;
+	left: 12px;
+	right: 12px;
+	bottom: 10px;
+	display: flex;
+	gap: 8px;
+	align-items: baseline;
+	padding: 6px 10px;
+	background: rgba(10, 13, 19, 0.86);
+	border: 1px solid var(--line);
+	font-size: 12px;
+}
+
+#taskbar .k {
+	color: var(--accent);
+	white-space: nowrap;
+}
+
+#task {
+	color: var(--ink);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#side {
+	width: 330px;
+	display: flex;
+	flex-direction: column;
+	border-left: 2px solid var(--line);
+	background: var(--panel);
+	min-height: 0;
+}
+
+.panel {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	border-bottom: 1px solid var(--line);
+}
+
+.panel.grow {
+	flex: 1;
+}
+
+.panel h2 {
+	margin: 0;
+	padding: 7px 10px;
+	font-size: 11px;
+	letter-spacing: 1px;
+	color: var(--dim);
+	text-transform: uppercase;
+	background: var(--panel-2);
+}
+
+.crew {
+	overflow-y: auto;
+	max-height: 40vh;
+}
+
+.card {
+	display: flex;
+	gap: 8px;
+	align-items: flex-start;
+	padding: 8px 10px;
+	border-bottom: 1px solid #1e2431;
+	font-size: 12px;
+}
+
+.card .avatar {
+	width: 14px;
+	height: 14px;
+	border-radius: 2px;
+	flex: none;
+	margin-top: 2px;
+}
+
+.card .body {
+	min-width: 0;
+	flex: 1;
+}
+
+.card .name {
+	color: var(--ink);
+	font-weight: 700;
+}
+
+.card .role {
+	color: var(--dim);
+}
+
+.card .detail {
+	color: var(--think);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.card .meta {
+	color: #5c6675;
+	font-size: 11px;
+}
+
+.badge {
+	font-size: 10px;
+	padding: 1px 5px;
+	border: 1px solid var(--line);
+	color: var(--dim);
+}
+
+.badge.thinking {
+	color: var(--think);
+	border-color: #34456b;
+}
+
+.badge.working {
+	color: var(--accent);
+	border-color: #5c4c22;
+}
+
+.badge.waiting {
+	color: #c79bff;
+	border-color: #453163;
+}
+
+.badge.done {
+	color: var(--ok);
+	border-color: #2c5c45;
+}
+
+.badge.error {
+	color: var(--warn);
+	border-color: #5c3a2c;
+}
+
+.log {
+	overflow-y: auto;
+	flex: 1;
+	padding: 4px 0;
+	font-size: 12px;
+	line-height: 1.45;
+}
+
+.line {
+	display: flex;
+	gap: 6px;
+	padding: 2px 10px;
+}
+
+.line .who {
+	flex: none;
+	color: var(--dim);
+}
+
+.line .txt {
+	min-width: 0;
+	word-break: break-word;
+}
+
+.line.thought .txt {
+	color: var(--think);
+}
+
+.line.tool .txt {
+	color: var(--accent);
+}
+
+.line.delegate .txt {
+	color: #c79bff;
+}
+
+.line.say .txt {
+	color: var(--ink);
+}
+
+.line.join .txt,
+.line.leave .txt,
+.line.system .txt {
+	color: var(--dim);
+}

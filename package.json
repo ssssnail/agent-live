@@ -1,0 +1,33 @@
+{
+	"name": "agent-office",
+	"version": "0.1.0",
+	"type": "module",
+	"description": "把 coding agent 的思考与协作过程渲染成一间像素办公室",
+	"keywords": ["pi-package", "pi-extension", "agent-visualization", "pixel-office"],
+	"author": "ssssnail",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ssssnail/agent-office.git"
+	},
+	"homepage": "https://github.com/ssssnail/agent-office#readme",
+	"bugs": {
+		"url": "https://github.com/ssssnail/agent-office/issues"
+	},
+	"files": ["index.ts", "src", "web", "README.md", "LICENSE"],
+	"engines": {
+		"node": ">=20"
+	},
+	"scripts": {
+		"preview": "node scripts/preview.ts",
+		"validate:content": "node scripts/validate-content.ts",
+		"check": "npm run validate:content && node --check src/index.ts && node --check src/server.ts && node --check web/app.js && node --check web/v2/bootstrap.js && node --check web/v2/office-renderer.js && node --check web/v2/sprite-renderer.js",
+		"prepack": "npm run check"
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-coding-agent": "*"
+	},
+	"pi": {
+		"extensions": ["./index.ts"]
+	}
+}

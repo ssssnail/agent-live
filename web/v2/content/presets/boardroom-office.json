@@ -1,0 +1,18 @@
+{
+	"schemaVersion": 1,
+	"kind": "preset",
+	"id": "builtin/boardroom-office",
+	"name": "大会议室长桌办公",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"content": {
+		"style": "pixel-classic",
+		"layout": "boardroom-office",
+		"agentSkin": "tiny-developers",
+		"props": "extended-office",
+		"npcs": "boardroom-staff",
+		"lifeActivities": "boardroom-routines",
+		"atmosphere": "default"
+	}
+}
