@@ -547,13 +547,38 @@ export function createOfficeRenderer(content) {
 
 	function drawBoardroomTable(c, item) {
 		const inset = Math.max(16, Math.round(item.w * 0.25));
+		if (rich) poly(c, [[item.x + inset + 4, item.y + 5], [item.x + item.w - inset + 4, item.y + 5], [item.x + item.w + 5, item.y + item.h + 5], [item.x + 5, item.y + item.h + 5]], C.objectShadow);
 		poly(c, [[item.x + inset, item.y], [item.x + item.w - inset, item.y], [item.x + item.w, item.y + item.h], [item.x, item.y + item.h]], C.woodDark);
 		poly(c, [[item.x + inset + 3, item.y], [item.x + item.w - inset - 3, item.y], [item.x + item.w - 7, item.y + item.h - 6], [item.x + 7, item.y + item.h - 6]], C.deskTop);
 		poly(c, [[item.x + inset + 7, item.y + 4], [item.x + item.w - inset - 7, item.y + 4], [item.x + item.w - 18, item.y + item.h - 13], [item.x + 18, item.y + item.h - 13]], C.deskLite);
 		const cx = item.x + (item.w >> 1);
 		poly(c, [[cx - 4, item.y + 10], [cx + 4, item.y + 10], [cx + 12, item.y + item.h - 20], [cx - 12, item.y + item.h - 20]], C.woodDark);
-		px(c, cx - 11, item.y + Math.round(item.h * 0.56), 22, 12, C.meetingDevice);
-		px(c, cx - 5, item.y + Math.round(item.h * 0.56) + 3, 10, 5, C.phoneDevice);
+		if (rich) {
+			for (let y = item.y + 18; y < item.y + item.h - 18; y += 20) {
+				px(c, item.x + 25, y, item.w - 50, 1, C.woodGrain);
+			}
+			for (const [x, y, flip] of [
+				[item.x + 43, item.y + 31, false],
+				[item.x + item.w - 55, item.y + 31, true],
+				[item.x + 27, item.y + 77, false],
+				[item.x + item.w - 39, item.y + 77, true],
+			]) {
+				px(c, x, y, 11, 7, C.meetingPaper);
+				px(c, x + 2, y + 2, 7, 1, C.paperLine);
+				px(c, x + (flip ? -3 : 12), y + 1, 1, 6, C.activeBlue);
+				px(c, x + (flip ? 13 : -5), y + 1, 4, 4, C.waterGlass);
+				px(c, x + (flip ? 14 : -4), y + 2, 2, 1, C.waterLevel);
+			}
+			for (const y of [item.y + 22, item.y + 92]) {
+				px(c, cx - 15, y, 30, 3, C.woodDark);
+				px(c, cx - 11, y, 22, 1, C.activeAccent);
+			}
+		}
+		const deviceY = item.y + Math.round(item.h * 0.56);
+		px(c, cx - 11, deviceY, 22, 12, C.meetingDevice);
+		px(c, cx - 5, deviceY + 3, 10, 5, C.phoneDevice);
+		px(c, cx - 8, deviceY + 2, 2, 2, C.signalOn);
+		px(c, cx + 6, deviceY + 2, 2, 2, C.signalOff);
 	}
 
 	function drawAvConsole(c, item, hot, t) {

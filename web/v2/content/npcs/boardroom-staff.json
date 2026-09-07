@@ -8,6 +8,21 @@
 	"contract": "single-office-v1",
 	"entries": [
 		{
+			"id": "boardroom-boss",
+			"name": "老板",
+			"role": "boss",
+			"title": "会议主持",
+			"spawn": "boss-speaker",
+			"pose": "talk",
+			"appearance": {
+				"skin": "#d5a47c",
+				"hair": "#2b3039",
+				"shirt": "#465d80",
+				"trim": "#2d405e",
+				"badge": "#ffcc4d"
+			}
+		},
+		{
 			"id": "executive-assistant",
 			"name": "秘书",
 			"role": "secretary",

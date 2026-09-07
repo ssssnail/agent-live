@@ -33,6 +33,8 @@
 		"meetA": { "x": 145, "y": 139, "dir": "right", "lane": 2 },
 		"meetB": { "x": 239, "y": 139, "dir": "left", "lane": 2 },
 		"entry": { "x": 10, "y": 60, "dir": "right", "lane": 0 },
+		"boss-speaker": { "x": 96, "y": 62, "dir": "right", "lane": 0 },
+		"boss-screen": { "x": 288, "y": 62, "dir": "left", "lane": 0 },
 		"secretary-entry": { "x": 10, "y": 198, "dir": "right", "lane": 3 },
 		"service-entry": { "x": 374, "y": 198, "dir": "left", "lane": 3 },
 		"decision-wall": { "x": 50, "y": 116, "dir": "up", "lane": 1 },
@@ -81,7 +83,9 @@
 		{ "id": "archive-main", "type": "service-cart", "x": 18, "y": 161 },
 		{ "id": "water-main", "type": "water-cooler", "x": 344, "y": 170 },
 		{ "id": "service-cabinet", "type": "sideboard", "x": 318, "y": 157, "width": 45, "height": 42 },
+		{ "id": "plant-front-left", "type": "plant", "x": 91, "y": 69 },
+		{ "id": "plant-front-right", "type": "plant", "x": 295, "y": 69 },
 		{ "id": "wall-clock", "type": "office-clock", "x": 362, "y": 8 }
 	],
-	"npcSpawns": ["secretary-entry", "service-entry"]
+	"npcSpawns": ["boss-speaker", "secretary-entry", "service-entry"]
 }
