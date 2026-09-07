@@ -21,7 +21,7 @@
 	"scripts": {
 		"preview": "node scripts/preview.ts",
 		"validate:content": "node scripts/validate-content.ts",
-		"check": "npm run validate:content && node --check src/index.ts && node --check src/server.ts && node --check web/app.js && node --check web/v2/bootstrap.js && node --check web/v2/office-renderer.js && node --check web/v2/sprite-renderer.js",
+		"check": "npm run validate:content && node --check src/index.ts && node --check src/server.ts && node --check web/app.js && node --check web/product.js && node --check web/v2/bootstrap.js && node --check web/v2/office-renderer.js && node --check web/v2/sprite-renderer.js",
 		"prepack": "npm run check"
 	},
 	"peerDependencies": {

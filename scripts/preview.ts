@@ -13,6 +13,7 @@ const server = await startServer(state, {
 });
 
 console.log(`Agent Office preview: ${server.url}/v2.html?demo=1`);
+console.log(`Product page: ${server.url}/product.html`);
 console.log(`Original demo baseline: ${server.url}/?demo=1`);
 console.log(`Activity Hub prototype: ${server.url}/activity-hub.html`);
 console.log(`Old-School Office prototype: ${server.url}/old-school-office.html`);
