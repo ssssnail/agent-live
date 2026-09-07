@@ -27,7 +27,7 @@
                    │ office.js │ office-renderer │
                    │ sprites.js│ sprite-renderer │
                    │           │ ▲               │
-                   │           │ Preset + 七类内容│
+                   │           │ Preset + 八类内容│
                    └─────────────────────────────┘
 ```
 
@@ -61,7 +61,8 @@ agent-office/
 ├── docs/                 # 产品、愿景、内容模型、平台能力与技术文档
 ├── scripts/
 │   ├── preview.ts        # 脱离 pi 单独起服务，用于调视觉
-│   └── validate-content.ts # 校验 V2 内容合同
+│   ├── validate-content.ts # 校验 V2 内容合同
+│   └── validate-environment.ts # 校验时间、天气与 NPC 班次
 ├── src/
 │   ├── index.ts          # 扩展主体：订阅 pi 事件，翻译成办公室动作
 │   ├── protocol.ts       # 前后端共享的事件协议
@@ -77,10 +78,11 @@ agent-office/
     ├── v2.html           # 配置化入口
     └── v2/
         ├── bootstrap.js        # 内容加载、校验、token 应用与启动
+        ├── environment-runtime.js # 时间、天气、照明与 NPC 班次
         ├── office-renderer.js  # Layout / Props / Style 原生 renderer
         ├── sprite-renderer.js  # Agent Skin / Style 原生 renderer
         ├── parity.html/.js     # 原版与 V2 的逐像素回归
-        └── content/            # 七类内容、四套 Layout 与六个内置 Preset
+        └── content/            # 八类内容、三套正式 Preset 与内部回归内容
 ```
 
 ## 4. 生命周期
@@ -416,7 +418,8 @@ export { default } from "./src/index.ts";
 | 演示全流程 | 播放中与播放后读取 DOM | 中段 3 人各就各位、状态正确；结束时子 agent 已离场，成本汇总 46.2k tok / $0.1840 |
 | 动态栏（演示） | 播完读取 `#log` 文本 | 16 条、无重复；思考 / 工具 / 汇报 / 派活 四类齐全 |
 | 动态栏（真实会话） | 会话期间浏览器读取 `#log` | 依次出现“阿派 上班了”、四条思考全文、“查阅 package.json”、“执行 ls -la web”、汇报全文 |
-| V2 内容合同 | `npm run validate:content` | 内置 Preset 与七类内容全部通过 |
+| V2 内容合同 | `npm run validate:content` | 内置 Preset 与八类内容全部通过 |
+| 公共运行环境 | `npm run validate:environment` | 时间覆盖、天气覆盖、18:00 下班与跨夜班次全部通过 |
 | V2 像素一致性 | `/v2/parity.html` | 房间 5 组、角色 3 组、粒子 7 组，共 15 个用例均为 0 channel differences |
 | V2 完整演示 | 播放 `/v2.html?demo=1` 并检查 DOM / console | 完成至 46.2k tok / $0.1840，子 agent 正常离场，无 console error |
 | V2 真实连接 | 非 demo 入口连接 SSE | 成功建立连接并接收会话状态 |
@@ -481,16 +484,19 @@ export { default } from "./src/index.ts";
 ```text
 v2.html
   └─ v2/bootstrap.js
-       ├─ 解析 URL 指定的 Preset（默认 builtin/demo-office）
-       ├─ 并行加载 Style / Layout / Agent Skin / Props / NPC / Life / Atmosphere
-       ├─ 校验 single-office-v1、座位、工作能力、Target 和 Prop 引用
-       ├─ 应用 UI tokens
+       ├─ 解析 URL 指定的 Preset（默认 builtin/tech-open-office）
+       ├─ 并行加载 Style / Layout / Agent Skin / Props / NPC / Life / Atmosphere / Environment
+       ├─ 校验 single-office-v1、内容引用、时间天气和 NPC 班次
+       ├─ environment-runtime.js → window.OfficeEnvironment
+       ├─ 应用 UI tokens 与 Atmosphere 覆盖
        ├─ office-renderer.js → window.Office
        ├─ sprite-renderer.js → window.Sprites
        └─ 动态加载固定的 app.js Office Runtime
 ```
 
-V2 的办公室和角色绘制已经完全由自己的 renderer 与内容配置生成，不加载经典 `office.js` / `sprites.js`。两条入口只共用固定的 `app.js` Office Runtime，使事件协议、移动、气泡、交接和侧栏行为保持一致。当前 `demo-office`、`lively-office`、`old-school-office` 与 `boardroom-office` 四套 Layout 共用这条 Runtime；布局差异不会改变宿主事件协议。
+V2 的办公室和角色绘制已经完全由自己的 renderer 与内容配置生成，不加载经典 `office.js` / `sprites.js`。两条入口只共用固定的 `app.js` Office Runtime，使事件协议、移动、气泡、交接和侧栏行为保持一致。五套 Layout 共用这条 Runtime；布局差异不会改变宿主事件协议。
+
+Environment 也是本地模块：核心不主动请求天气服务。宿主可通过 URL 参数或 `window.OfficeEnvironment.update()` 注入已经标准化的天气/时间，renderer 只读取快照。这使联网、定位和密钥权限停留在 Connector 一侧，内容和画面层仍保持零网络依赖。
 
 新增目录：
 
@@ -498,6 +504,7 @@ V2 的办公室和角色绘制已经完全由自己的 renderer 与内容配置�
 web/v2.html
 web/v2/
   bootstrap.js
+  environment-runtime.js
   office-renderer.js
   sprite-renderer.js
   style.css
@@ -521,6 +528,9 @@ web/v2/
     life-activities/old-school-routines.json
     life-activities/boardroom-routines.json
     atmospheres/default.json
+    environments/local-office.json
+    environments/static-office.json
+    environments/rainy-night.json
 ```
 
 内容合同检查使用：

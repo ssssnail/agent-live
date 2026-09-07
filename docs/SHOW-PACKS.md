@@ -8,7 +8,7 @@
 
 - 办公世界固定为 Demo 规格的单层同屏场所，但可以替换同规格 Layout。
 - Agent 的工作行为使用固定的办公隐喻。
-- Style 决定整个画面的美术语言；Layout、Agent Skin、NPC、Props、Life Activities 和 Atmosphere 决定具体内容。
+- Style 决定整个画面的美术语言；Layout、Agent Skin、NPC、Props、Life Activities 和 Atmosphere 决定具体内容；Environment 统一管理时间、外部天气、照明与 NPC 班次。
 - 这些模块不修改事件事实、功能区语义和故事规则。
 
 现行方案见 [Office 可配置内容模型](./OFFICE-THEMES.md) 和 [产品愿景](./VISION.md)。

@@ -1,5 +1,6 @@
 import { createOfficeRenderer } from "./office-renderer.js";
 import { createSpriteRenderer } from "./sprite-renderer.js";
+import { createEnvironmentRuntime } from "./environment-runtime.js";
 
 const legacyOffice = window.Office;
 const legacySprites = window.Sprites;
@@ -21,7 +22,7 @@ function pixelDiff(a, b) {
 	return changed;
 }
 
-const [style, layout, agentSkin, props, npcs, lifeActivities, atmosphere, preset] = await Promise.all([
+const [style, layout, agentSkin, props, npcs, lifeActivities, atmosphere, environment, preset] = await Promise.all([
 	read("styles/pixel-classic.json"),
 	read("layouts/demo-office.json"),
 	read("agent-skins/tiny-developers.json"),
@@ -29,10 +30,11 @@ const [style, layout, agentSkin, props, npcs, lifeActivities, atmosphere, preset
 	read("npcs/none.json"),
 	read("life-activities/none.json"),
 	read("atmospheres/default.json"),
+	read("environments/static-office.json"),
 	read("presets/demo-office.json"),
 ]);
-const content = { style, layout, agentSkin, props, npcs, lifeActivities, atmosphere, preset };
-const nativeOffice = createOfficeRenderer(content);
+const content = { style, layout, agentSkin, props, npcs, lifeActivities, atmosphere, environment, preset };
+const nativeOffice = createOfficeRenderer(content, createEnvironmentRuntime(environment));
 const nativeSprites = createSpriteRenderer(content);
 const results = [];
 

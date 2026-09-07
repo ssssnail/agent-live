@@ -13,6 +13,7 @@
 		"props": "default-office",
 		"npcs": "none",
 		"lifeActivities": "none",
-		"atmosphere": "default"
+		"atmosphere": "default",
+		"environment": "static-office"
 	}
 }

@@ -13,7 +13,7 @@
 ```text
 固定的 Office Runtime + Work Semantics
                     ×
-Style + Layout + Agent Skin + NPC + Props + Life Activities + Atmosphere
+Style + Layout + Agent Skin + NPC + Props + Life Activities + Atmosphere + Environment
                     =
 一个可直接使用的 Office Preset
 ```
@@ -40,13 +40,14 @@ Style + Layout + Agent Skin + NPC + Props + Life Activities + Atmosphere
 | `collaborate` | 委派、交接、评审 | 会议桌 |
 | `idle` | 没有真实任务 | 工位或 Life Activity |
 
-## 2. 七个内部可替换插槽
+## 2. 八个内部可替换插槽
 
-这七项是开发和内容制作的边界，不是要求普通用户逐项设置。它们可以归成三组：
+这八项是开发和内容制作的边界，不是要求普通用户逐项设置。它们可以归成四组：
 
 - **视觉表现**：Style、Agent Skin、Atmosphere。
 - **空间内容**：Layout、Props、NPC。
 - **生活行为**：Life Activities。
+- **公共运行环境**：Environment。
 
 ### 2.1 Style：整套美术风格
 
@@ -110,13 +111,24 @@ Life Activity 决定角色空闲时会做什么：
 
 每个活动声明参与者、需要的 Props、持续时间、冷却时间、概率和动画。所有 Life Activity 都可被新的 Work Event 打断，并明确标记为模拟事件。
 
-### 2.7 Atmosphere：环境状态
+### 2.7 Atmosphere：环境视觉
 
-Atmosphere 在不改变 Layout 的情况下切换：
+Atmosphere 决定时间与天气状态如何被画出来，但不判断现实中现在是什么状态：
 
-- 白天、黄昏和深夜。
-- 晴天、雨天、雪天和窗外景色。
-- 节日装饰、环境光、背景音乐与环境音。
+- 白天、黄昏和深夜的色板与窗外景色。
+- 晴天、雨天、雪天的粒子和材质。
+- 节日装饰、背景音乐与环境音。
+
+### 2.8 Environment：公共运行环境
+
+Environment 集中管理跨 Preset 的现实规则：
+
+- 使用用户本地时间还是固定演示时间，以及上午、中午、傍晚、夜晚的边界。
+- 外部天气允许值、默认值和宿主注入的实时覆盖。
+- 哪些时间阶段自动开启室内照明。
+- NPC 的默认班次、按角色班次和单个 NPC 覆盖。
+
+核心不会自行联网获取天气；Connector 或宿主 WebView 只需注入标准化的 `clear/cloudy/rain/snow`。因此内容仍完全在本地运行，Environment 也不包含坐标或美术资源。
 
 ## 3. 边界判断
 
@@ -130,7 +142,8 @@ Atmosphere 在不改变 Layout 的情况下切换：
 | 是否出现保安或办公室猫 | NPC |
 | 是否摆放饮水机、沙发或游戏机 | Props |
 | 空闲时去接水、聊天或巡逻 | Life Activities |
-| 当前是雨夜还是白天 | Atmosphere |
+| 现在几点、外部天气、是否开灯、NPC 是否当班 | Environment |
+| 雨夜或白天具体画成什么样 | Atmosphere |
 | “执行命令”是否真的发生 | 不可替换，由 Work Event 决定 |
 | “执行命令”去服务器还是电脑 | Layout 中 Props 的能力映射 |
 
@@ -138,7 +151,7 @@ Atmosphere 在不改变 Layout 的情况下切换：
 
 ## 4. Office Preset：用户实际选择的单位
 
-普通用户不需要逐项配置七个插槽。一个 Preset 是经过验证的完整组合，也是产品界面默认暴露的选择单位：
+普通用户不需要逐项配置八个插槽。一个 Preset 是经过验证的完整组合，也是产品界面默认暴露的选择单位：
 
 ```json
 {
@@ -150,7 +163,8 @@ Atmosphere 在不改变 Layout 的情况下切换：
   "npcs": ["cleaner", "office-cat"],
   "props": ["default-workstations", "coffee-corner", "lounge"],
   "lifeActivities": ["get-water", "coffee-break", "cleaning-round"],
-  "atmosphere": "rainy-night"
+  "atmosphere": "rainy-night",
+  "environment": "rainy-night"
 }
 ```
 
@@ -161,18 +175,18 @@ Atmosphere 在不改变 Layout 的情况下切换：
 当前已经有两条明确分开的实现路径：
 
 - **原版基线**：`web/office.js`、`web/sprites.js`、`web/style.css` 和 `web/app.js`。只用于保留已验证的 Demo，不再承接新内容开发。
-- **V2 内容入口**：`web/v2.html` 与 `web/v2/bootstrap.js`。Bootstrap 解析 Preset、加载并校验七类内容、应用 UI tokens，然后启动 Runtime。
+- **V2 内容入口**：`web/v2.html` 与 `web/v2/bootstrap.js`。Bootstrap 解析 Preset、加载并校验八类内容、创建 Environment Runtime、应用 UI tokens，然后启动 Office Runtime。
 - **V2 原生办公室渲染**：`web/v2/office-renderer.js` 从 Layout、Props 和 Style 配置生成地图、设施、导航与工作特效，不加载原版 `web/office.js`。
 - **V2 原生角色渲染**：`web/v2/sprite-renderer.js` 从 Agent Skin 和 Style 配置生成角色与粒子，不加载原版 `web/sprites.js`。
 - **共享固定 Runtime**：`web/app.js` 仍由原版和 V2 共用，负责 SSE、状态机、移动、气泡、交接、侧栏与动画循环。
 - **工作事实层**：`src/protocol.ts`、`src/mapping.ts` 和 `src/state.ts` 负责 Work Event、工具映射和会话状态，不属于可替换内容。
 
-七类内容已经按目录拆分到 `web/v2/content/`。当前有六个内置 Preset、两套 Style 和四套 Layout；饮水、保洁与支持人员的本地 Life Activity 已经跑通，真实 Work Event 仍可立即打断 Agent 的生活行为。
+八类内容已经按目录拆分到 `web/v2/content/`。当前对用户开放三套正式 Preset（Tech 开放式办公室、长桌会议室、老式办公室），另保留五套内部回归内容；共有两套 Style 和五套 Layout。饮水、保洁与支持人员的本地 Life Activity 已经跑通，真实 Work Event 仍可立即打断 Agent 的生活行为。
 
 新增的两套空间组织已经进入正式 V2 入口：
 
 - `old-school-office`：6 个固定格子间、独立经理室、正式会议室、档案 / 复印区、计算机房、前台和茶水间。档案读取、命令执行、规划、通信和委派都有独立落点。
-- `boardroom-office`：一张长桌承载 8 个座位，主 Agent 固定在桌首；主屏、决策墙、AV 控制台、会议电话、资料车和茶水边柜承担其他工作语义。主 Agent 的真实说话气泡会直接出现在桌首，形成“老板讲话”的效果。
+- `boardroom-office`：一张长桌承载 Agent 两侧坐席，老板 NPC 坐在桌首指挥；主屏、决策墙、AV 控制台、会议电话、资料车和茶水边柜承担其他工作语义。Agent 的真实工作仍落在两侧坐席和对应设施，不冒充老板发言。
 
 两套 Layout 都保持 `single-office-v1`：384×216、单层同屏、8 个可分配座位、连通导航和六种必需 Work Semantic。独立原型页仍作为设计参考保留，正式产品使用 `/v2.html?preset=...`。
 
@@ -199,7 +213,7 @@ Atmosphere 在不改变 Layout 的情况下切换：
 ```json
 {
   "schemaVersion": 1,
-  "kind": "style | layout | agent-skin | npc | prop | life-activity | atmosphere | preset",
+  "kind": "style | layout | agent-skin | npc | prop | life-activity | atmosphere | environment | preset",
   "id": "作者命名空间/稳定-id",
   "name": "用户可见名称",
   "version": "1.0.0",
@@ -226,6 +240,7 @@ content/
   props/
   life-activities/
   atmospheres/
+  environments/
   presets/
 ```
 
@@ -384,6 +399,24 @@ Atmosphere 只提供环境覆盖：
 
 它可以改变窗外、环境色、装饰层和声音，但不能增加碰撞、移动锚点、角色或工作事件。
 
+### 8.8 Environment
+
+Environment 只描述可执行的公共环境规则：
+
+```json
+{
+  "kind": "environment",
+  "id": "builtin/local-office",
+  "render": { "dynamicTime": true, "dynamicWeather": true },
+  "clock": { "mode": "local", "phases": [], "preview": {} },
+  "weather": { "source": "runtime", "fallback": "clear", "allowedConditions": ["clear", "cloudy", "rain", "snow"] },
+  "lighting": { "enabled": true, "activePhases": ["evening", "night"] },
+  "npcSchedule": { "enabled": true, "defaultShift": { "start": "06:00", "end": "18:00" }, "roleOverrides": {} }
+}
+```
+
+班次按“单个 NPC `shift` > 角色覆盖 > 默认班次”解析，也支持跨夜班次。Environment 决定状态，Atmosphere 和 renderer 决定表现，两者不能互相夹带配置。
+
 ## 9. Runtime 的事件优先级
 
 同一个角色同一时间只能由一类事件控制。优先级固定为：
@@ -418,11 +451,12 @@ NPC 不需要等待 Agent 会话空闲，可以独立巡逻或打扫，但必须
 Preset 是唯一面向普通用户的入口。加载顺序固定为：
 
 1. 加载内置默认内容，建立完整可运行办公室。
-2. 应用 Preset 指向的 Style 和 Atmosphere。
-3. 加载 Layout，并解析其中的 Prop Type 与 Prop Instance。
-4. 加载 Agent Skin 和启用的 NPC。
-5. 只启用当前设施和参与者条件都满足的 Life Activities。
-6. 校验导航与必需工作能力，成功后一次性切换；失败则继续使用上一个有效 Preset。
+2. 加载 Environment，建立当前时间、天气、照明和 NPC 班次快照。
+3. 应用 Preset 指向的 Style 和 Atmosphere。
+4. 加载 Layout，并解析其中的 Prop Type 与 Prop Instance。
+5. 加载 Agent Skin 和当前当班的 NPC。
+6. 只启用当前设施和参与者条件都满足的 Life Activities。
+7. 校验导航与必需工作能力，成功后一次性切换；失败则继续使用上一个有效 Preset。
 
 兼容原则：
 
@@ -454,7 +488,7 @@ M0/M1 已完成的验收：
 
 - `/office demo` 的事件顺序、角色移动、工具落点和交接动画与当前版本一致。
 - V2 房间、角色和粒子的 15 个逐像素回归用例均无差异。
-- 内置 Preset 与七类内容通过 schema、引用、座位和必需工作能力校验。
+- 内置 Preset 与八类内容通过 schema、引用、座位、时间/天气、班次和必需工作能力校验。
 - V2 原生 renderer 不加载原版 `office.js` / `sprites.js`，原版文件保持冻结。
 
 M2–M4 新增的验收门：
@@ -466,7 +500,7 @@ M2–M4 新增的验收门：
 当前迁移入口：
 
 - 原版：`/?demo=1`，继续由 `web/office.js`、`web/sprites.js`、`web/app.js` 驱动，不在迁移中修改。
-- 新版：`/v2.html?demo=1&preset=<id>`，加载 URL 指定的 Preset（缺省为 `builtin/demo-office`），再由 `web/v2/office-renderer.js` 与 `web/v2/sprite-renderer.js` 原生渲染；只与原版共用固定的 `web/app.js` Runtime。
+- 新版：`/v2.html?demo=1&preset=<id>`，加载 URL 指定的 Preset（缺省为 `builtin/tech-open-office`），再由 `web/v2/office-renderer.js` 与 `web/v2/sprite-renderer.js` 原生渲染；只与原版共用固定的 `web/app.js` Runtime。
 - 回归：`/v2/parity.html` 对原版和 V2 的房间、角色与粒子做逐像素比较，当前 15 个用例均为 0 channel differences。
 - 后续只在新版内容和 Runtime 上开发；原版作为视觉与行为回归基线保留。
 

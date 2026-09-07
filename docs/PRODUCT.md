@@ -2,7 +2,7 @@
 
 > 版本 0.1.0（原型）· 最后更新 2026-09-07
 
-> 长期产品方向：**Live Agent Show**。当前只做 Demo 规格的单层办公室；真实 Agent 工作驱动主线，Style、Layout、Agent Skin、NPC、Props、Life Activities 与 Atmosphere 是可替换内容；一次 session 是一个可实时展示和回放的 Episode。详见 [产品愿景](VISION.md)。
+> 长期产品方向：**Live Agent Show**。当前只做 Demo 规格的单层办公室；真实 Agent 工作驱动主线，Preset 组合八类可替换内容，Environment 统一管理时间、外部天气、照明和 NPC 班次；一次 session 是一个可实时展示和回放的 Episode。详见 [产品愿景](VISION.md)。
 
 > 当前实现：原版 Demo 作为冻结的视觉与行为基线保留；V2 已用配置化内容和原生 renderer 完成 1:1 复刻，后续产品开发以 V2 为准。两者共用同一套 Agent 事件与 Office Runtime，因此当前用户体验没有分叉。
 
@@ -216,8 +216,9 @@ npm run preview   # 然后打开 http://localhost:7788/?demo=1
 
 | 顺序 | 项目 | 说明 |
 | --- | --- | --- |
-| 已完成 | V2 配置化复刻 | 原版 Demo 冻结；Style、Layout、Agent Skin、Props、NPC、Life Activities、Atmosphere 与 Preset 已拆分，并由 V2 原生 renderer 1:1 复现 |
+| 已完成 | V2 配置化复刻 | 原版 Demo 冻结；八类内容与 Preset 已拆分，并由 V2 原生 renderer 1:1 复现 |
 | 已完成 | Office Life 纵向切片 | 已加入饮水机、保洁 / 支持 NPC、接水与巡检，并验证空闲触发和真实工作抢占 |
-| 已完成 | 多 Preset 与布局切换 | 已提供两套 Style、四套 Layout 和六个 Preset，包括老派企业办公室与大会议室长桌办公 |
+| 已完成 | 三套正式 Preset | Tech 开放式办公室、长桌会议室、老式办公室已完成；另保留内部回归 Preset |
+| 已完成 | 公共 Environment | 时间阶段、外部天气、自动照明和 NPC 班次可复用配置，并支持宿主运行时注入 |
 | 后续 | 回放与更多 Connector | 保存标准 Show Event，逐步接入 Codex / Cursor，并按宿主能力明确降级 |
 | 观察项 | 工位竞争、更多单层 Layout、录屏分享 | 根据真实用户反馈决定优先级，不扩展为多楼层或多建筑产品 |

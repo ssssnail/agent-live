@@ -1,0 +1,27 @@
+{
+	"schemaVersion": 1,
+	"kind": "environment",
+	"id": "builtin/static-office-environment",
+	"name": "静态兼容环境",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"render": { "dynamicTime": false, "dynamicWeather": false },
+	"clock": {
+		"mode": "local",
+		"phases": [
+			{ "id": "morning", "start": "06:00" },
+			{ "id": "noon", "start": "11:00" },
+			{ "id": "evening", "start": "17:00" },
+			{ "id": "night", "start": "20:00" }
+		],
+		"preview": { "enabled": false }
+	},
+	"weather": { "source": "fixed", "condition": "clear", "allowedConditions": ["clear", "cloudy", "rain", "snow"] },
+	"lighting": { "enabled": false, "activePhases": [] },
+	"npcSchedule": {
+		"enabled": true,
+		"defaultShift": { "start": "06:00", "end": "18:00" },
+		"roleOverrides": {},
+		"labels": { "arrival": "上班啦", "departure": "下班啦" }
+	}
+}

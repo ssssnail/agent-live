@@ -10,7 +10,7 @@
 
 这里的 Show 不是舞台剧，也不是让用户创造任意世界；它表示“工作正在现场发生，并且看得见”。办公室是固定的产品世界观，读取文件、执行命令、编辑代码、任务委派、等待和完成，都有稳定的办公叙事。
 
-当前只做 Demo 规格的单层办公室。用户可以替换美术风格、单层布局、Agent 外观、NPC、物件、办公室生活和环境氛围，但不能改变真实工作语义和基础运行规则。
+当前只做 Demo 规格的单层办公室。用户可以替换美术风格、单层布局、Agent 外观、NPC、物件、办公室生活、环境视觉和公共运行环境，但不能改变真实工作语义和基础运行规则。
 
 一句话可以表达为：
 
@@ -25,7 +25,7 @@
 | Show Event | 与宿主无关的真实工作事件 | Pi 事件的转换结果 |
 | Office Engine | 将事件转成办公室位置、动作和状态 | 当前 `OfficeState`、映射与前端状态机 |
 | Office Runtime | 单层办公室的渲染、移动、寻路、气泡和状态规则 | 当前 Demo 前端状态机 |
-| Office Content | 可替换的 Style、Layout、Agent Skin、NPC、Props、Life Activities 与 Atmosphere | 当前像素办公室组合 |
+| Office Content | 八类可替换内容，包含视觉、空间、角色、生活行为与运行环境 | 当前像素办公室组合 |
 | Office Preset | 为普通用户准备的一键内容组合 | 当前默认办公室 |
 | Episode | 一次可实时观看或回放的任务 | 一次 session / task |
 
@@ -48,7 +48,7 @@ Office 给设施标注能力，Office Engine 再为工作语义选择合适地�
 
 ## 4. 可组合的 Office 内容
 
-当前固定为 Demo 的单层同屏办公室，不再定义 Company Scale。可替换内容拆成七个插槽：
+当前固定为 Demo 的单层同屏办公室，不再定义 Company Scale。可替换内容拆成八个插槽：
 
 - **Style**：像素、手绘等整体美术语言，覆盖角色、家具、气泡、侧栏、颜色和特效。
 - **Layout**：同一单层办公室内的墙体、区域、家具坐标、功能锚点、座位和路径。
@@ -56,7 +56,8 @@ Office 给设施标注能力，Office Engine 再为工作语义选择合适地�
 - **NPC**：保安、清洁工、前台、访客、普通同事和宠物等办公室角色。
 - **Props**：工位、服务器、白板、饮水机、沙发、游戏机、绿植等功能或装饰物件。
 - **Life Activities**：喝水、休息、聊天、划水、娱乐，以及 NPC 的巡逻、打扫和接待等模拟日常。
-- **Atmosphere**：白天、雨夜、季节、环境光和声音。
+- **Atmosphere**：白天、雨夜等状态的色板、窗外、粒子和声音表现。
+- **Environment**：本地或固定时间、外部天气输入、自动照明和 NPC 班次。
 
 Office Preset 是上述内容的推荐组合，给普通用户提供一键选择。内容模块不改变：
 
@@ -88,7 +89,7 @@ Office Preset 是上述内容的推荐组合，给普通用户提供一键选择
 
 - 完善 Pi 事件覆盖、多人委派、错误和等待状态。
 - 将当前 Demo 明确为唯一的空间规格，不建设 Company Scale。
-- 已将 Demo 拆为 Preset、Style、Layout、Agent Skin、Props、NPC、Life Activities 与 Atmosphere，并由 V2 原生 renderer 驱动。
+- 已将 Demo 拆为 Preset 与八类内容，并由 V2 原生 renderer 和 Environment Runtime 驱动。
 - 将现有 `OfficeAction` 从具体家具逐步提升为 `research / create / compute / plan / communicate / collaborate` 等工作语义。
 - 将项目整理成用户可一键安装的 Pi Package，并提供宿主内启动入口。
 
@@ -97,7 +98,7 @@ Office Preset 是上述内容的推荐组合，给普通用户提供一键选择
 - 加入一个饮水机 Prop、一个保洁 NPC，以及接水和巡检两类 Life Activities。
 - 保证 Life Activity 只在空闲时触发，并能被新的 Work Event 立即打断。
 - 保证 NPC 与模拟活动不会进入 Agent、工具、token 或任务统计。
-- 用这条纵向切片验证七类内容不是只有配置文件，而是能共同驱动画面与行为。
+- 用这条纵向切片验证内容模块不是只有配置文件，而是能共同驱动画面与行为。
 
 ### 阶段三：用第二套 Style 验证美术切换（已完成）
 
@@ -110,7 +111,7 @@ Office Preset 是上述内容的推荐组合，给普通用户提供一键选择
 
 - 已增加 `old-school-office` 与 `boardroom-office` 两个单层 Layout，用设施能力标签承载相同 Work Semantics。
 - 已增加前台、后勤、秘书和会务 NPC，以及文件流转、会议支持与茶水服务；保安、办公室猫和更多生活行为继续作为可选内容。
-- 已用 Office Preset 将 Style、Layout、Agent Skin、Props、NPC、Life Activities 和 Atmosphere 组合成顶部一键选项。
+- 已用 Office Preset 将八类内容组合成顶部一键选项，并把时间、天气、照明和 NPC 班次收敛进共享 Environment。
 
 ### 阶段五：回放与更多宿主
 
@@ -121,7 +122,7 @@ Office Preset 是上述内容的推荐组合，给普通用户提供一键选择
 
 ### 阶段六：有限开放内容创作
 
-- 先让用户选择经过验证的 Office Preset，再逐步开放 Style、Layout、Agent Skin、NPC、Props、Life Activities 和 Atmosphere。
+- 先让用户选择经过验证的 Office Preset，再逐步开放八类内容的替换与参数配置。
 - 再提供模块与 Preset 的导入、导出、版本检查和分享。
 - 只有真实需求出现后，再考虑可视化编辑器和内容市场。
 
@@ -140,4 +141,4 @@ Live Agent Show 的边界可以概括为：
 
 > **一个开放而可信的办公世界：真实 Agent 工作驱动主线，独立 Office Life 让它在空闲时也持续生活。**
 
-当前 Demo 的配置拆分、V2 原生渲染和逐像素一致性验证已经完成。下一步先用“饮水机 + 保洁 NPC + 可中断的接水 / 巡检行为”打通第一条 Office Life 纵向链路；验证稳定后，再制作第二套 Style 和官方 Preset。
+当前 Demo 的配置拆分、V2 原生渲染、Office Life、三套正式 Preset 与公共 Environment 已经完成。下一阶段聚焦真实宿主接入质量、开发者配置体验和发布流程，不扩张办公室世界边界。

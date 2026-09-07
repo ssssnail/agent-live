@@ -9,7 +9,7 @@
 pi 会话 ──(扩展订阅事件)──> OfficeState ──(SSE)──> 浏览器 canvas 办公室
 ```
 
-完整文档：[产品文档](docs/PRODUCT.md)（定位、功能、交互、路线图）· [Live Agent Show 产品愿景](docs/VISION.md)（真实工作与办公室生活）· [Office 内容模型](docs/OFFICE-THEMES.md)（当前单层办公室与七个可替换插槽）· [Preset 配置手册](docs/PRESET-CONFIG.md)（直接修改和组合本地内容）· [平台能力分析](docs/PLATFORM-CAPABILITIES.md)（Pi、Codex、Cursor 的接入深度）· [Pi 能力审计](docs/PI-CAPABILITIES.md)（接口、演出上限与创意）· [产品形态](docs/PRODUCT-FORMS.md)（Connector、Viewer Window 与回放）· [技术文档](docs/TECHNICAL.md)（架构、协议、渲染、缺陷、扩展指南）
+开发入口：[开发者接入指南](docs/DEVELOPER.md) · [Preset 配置手册](docs/PRESET-CONFIG.md) · [技术文档](docs/TECHNICAL.md)。产品与研究文档：[产品文档](docs/PRODUCT.md) · [产品愿景](docs/VISION.md) · [Office 内容模型](docs/OFFICE-THEMES.md) · [平台能力分析](docs/PLATFORM-CAPABILITIES.md) · [Pi 能力审计](docs/PI-CAPABILITIES.md) · [产品形态](docs/PRODUCT-FORMS.md)。
 
 ## 快速开始
 
@@ -45,7 +45,9 @@ pi install /absolute/path/to/agent-office
 npm run preview      # 然后打开 http://localhost:7788/?demo=1
 ```
 
-原版 Demo 永久保留在 `/?demo=1`。基于可替换内容架构的入口位于 `/v2.html?demo=1`；顶部 Preset 选择器目前可切换原版复刻、有生活的办公室、雨夜、暖调工作室、老派企业办公室和大会议室长桌办公。V2 使用自己的办公室与角色 renderer，只与原版共用固定的 `web/app.js` Runtime。后续视觉和内容调整只在新版入口继续。
+原版 Demo 永久保留在 `/?demo=1`。基于可替换内容架构的入口位于 `/v2.html?demo=1`；顶部 Preset 选择器提供 Tech 开放式办公室、长形会议室和老式办公室，旧原型与回归组合保留为内部内容。V2 使用自己的办公室与角色 renderer，只与原版共用固定的 `web/app.js` Runtime。后续视觉和内容调整只在新版入口继续。
+
+正式 Preset 共用本地 Environment 配置：时间取用户本地时钟，窗外支持 `clear/cloudy/rain/snow`，室内灯光按时段变化，NPC 默认 06:00 上班、18:00 下班。核心不会主动访问天气服务；宿主可用 `?weather=rain` 或 `window.OfficeEnvironment.update({ weather: "rain" })` 注入外部天气。
 
 `web/big-company.*` 是已停止推进的视觉探索，不属于当前产品入口。
 
@@ -121,24 +123,27 @@ web/
   v2.html      配置化入口
   v2/
     bootstrap.js         Preset 加载、校验与启动
+    environment-runtime.js  时间、天气、灯光与 NPC 班次
     office-renderer.js   从 Layout / Props / Style 原生渲染办公室
     sprite-renderer.js   从 Agent Skin / Style 原生渲染角色与粒子
-    content/             七类内容与六个内置 Preset
+    content/             八类内容与内置 Preset
     parity.html          原版与 V2 的逐像素回归页
 scripts/
   preview.ts             不接 pi 单独预览
   validate-content.ts    校验 V2 内容合同
+  validate-environment.ts 校验时间、天气和 NPC 班次
 ```
 
 V2 内容合同可用下面的命令独立校验：
 
 ```bash
 npm run validate:content
+npm run validate:environment
 ```
 
 ## 已知限制 / 下一步
 
-- 当前 V2 已有两套 Style、四套 Layout 和六个 Preset；新 Layout 仍需遵守单层、同屏、8 个座位的 `single-office-v1` 合同。
+- 当前产品选择器提供 Tech 开放式办公室、长形会议室和老式办公室三个正式 Preset；实验和回归 Preset 仍保留为内部内容。新 Layout 需遵守单层、同屏、8 个座位的 `single-office-v1` 合同。
 - 小人仍是程序化绘制；Agent Skin 数据已经独立，未来可以在不改 Runtime 的前提下替换为精灵图。
 - 子 agent 的进度依赖委派工具在 `details.results` 里回传消息，字段名换了就只能看到状态不看到细节。
 - 还没做会话回放和多会话（多个 pi 同时跑会各占一个端口，页面各看各的）。

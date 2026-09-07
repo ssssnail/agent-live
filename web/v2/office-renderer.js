@@ -1,13 +1,11 @@
 /** Build the V2 office renderer and navigation model from content data. */
-export function createOfficeRenderer(content) {
+export function createOfficeRenderer(content, environment = null) {
 	const layout = content.layout;
 	const propTypes = content.props.types;
 	const C = { ...content.style.tokens.canvas, ...(content.atmosphere.styleOverrides?.canvas ?? {}) };
 	const renderMode = content.preset.render?.detail ?? content.style.tokens.render?.detail ?? "classic";
 	const rich = renderMode === "rich";
-	const useLocalTime = content.preset.environment?.localTime === true;
 	const ambientEffects = new Set(content.atmosphere.ambientEffects ?? []);
-	let dayPreview = null;
 	const W = layout.canvas.width;
 	const H = layout.canvas.height;
 	const WALL_H = layout.wallHeight;
@@ -94,16 +92,12 @@ export function createOfficeRenderer(content) {
 			}
 		}
 	};
-	const localOfficeTime = () => {
+	const currentEnvironment = () => {
+		if (environment?.snapshot) return environment.snapshot();
 		const now = new Date();
-		if (dayPreview) {
-			const elapsed = (performance.now() - dayPreview.startedAt) % dayPreview.durationMs;
-			const simulatedHour = (6 + (elapsed / dayPreview.durationMs) * 24) % 24;
-			now.setHours(Math.floor(simulatedHour), Math.floor((simulatedHour % 1) * 60), 0, 0);
-		}
 		const hour = now.getHours();
 		const phase = hour >= 6 && hour < 11 ? "morning" : hour >= 11 && hour < 17 ? "noon" : hour >= 17 && hour < 20 ? "evening" : "night";
-		return { now, phase: ambientEffects.has("rain-window") ? "night" : phase };
+		return { now, hour, minute: now.getMinutes(), phase, weather: ambientEffects.has("rain-window") ? "rain" : "clear", dynamicTime: false, dynamicWeather: ambientEffects.size > 0, lightingOn: false };
 	};
 
 	function drawFloor(c) {
@@ -147,7 +141,7 @@ export function createOfficeRenderer(content) {
 			evening: C.skyEvening ?? "#d98262",
 			night: C.skyNight ?? "#17243c",
 		}[officeTime.phase];
-		const sky = useLocalTime ? timedSky : C.glass;
+		const sky = officeTime.dynamicTime ? timedSky : C.glass;
 		px(c, 0, 0, W, WALL_H, C.wall);
 		px(c, 0, 0, W, 6, C.wallTop);
 		px(c, 0, WALL_H - 3, W, 3, C.wallTrim);
@@ -177,7 +171,7 @@ export function createOfficeRenderer(content) {
 			if (rich) px(c, window.x - 4, window.y - 4, window.w + 8, window.h + 7, C.outline);
 			px(c, window.x - 2, window.y - 2, window.w + 4, window.h + 4, C.wallTrim);
 			px(c, window.x, window.y, window.w, window.h, sky);
-			px(c, window.x, window.y, window.w, 8, useLocalTime && officeTime.phase === "night" ? (C.skyNightLite ?? C.glass) : C.glassLite);
+			px(c, window.x, window.y, window.w, 8, officeTime.dynamicTime && officeTime.phase === "night" ? (C.skyNightLite ?? C.glass) : C.glassLite);
 			if (rich) {
 				px(c, window.x + 2, window.y + 2, window.w - 4, 2, C.glassShine);
 				px(c, window.x + 3, window.y + 5, 2, window.h - 8, C.glassShine);
@@ -185,11 +179,11 @@ export function createOfficeRenderer(content) {
 			}
 			px(c, window.x + (window.w >> 1), window.y, 1, window.h, C.wallTrim);
 			px(c, window.x, window.y + (window.h >> 1), window.w, 1, C.wallTrim);
-			if (!useLocalTime && Math.sin(t / 900 + window.x) > 0.7) px(c, window.x + 6, window.y + 14, 2, 2, C.windowSpark);
-			if (useLocalTime && officeTime.phase === "morning") px(c, window.x + 6, window.y + 11, 5, 5, C.skySun ?? C.windowSpark);
-			if (useLocalTime && officeTime.phase === "noon" && Math.sin(t / 900 + window.x) > 0.7) px(c, window.x + 6, window.y + 14, 2, 2, C.windowSpark);
-			if (useLocalTime && officeTime.phase === "evening") px(c, window.x + 1, window.y + window.h - 6, window.w - 2, 5, C.skyHorizon ?? C.activeRed);
-			if (useLocalTime && officeTime.phase === "night") {
+			if (!officeTime.dynamicTime && Math.sin(t / 900 + window.x) > 0.7) px(c, window.x + 6, window.y + 14, 2, 2, C.windowSpark);
+			if (officeTime.dynamicTime && officeTime.phase === "morning") px(c, window.x + 6, window.y + 11, 5, 5, C.skySun ?? C.windowSpark);
+			if (officeTime.dynamicTime && officeTime.phase === "noon" && Math.sin(t / 900 + window.x) > 0.7) px(c, window.x + 6, window.y + 14, 2, 2, C.windowSpark);
+			if (officeTime.dynamicTime && officeTime.phase === "evening") px(c, window.x + 1, window.y + window.h - 6, window.w - 2, 5, C.skyHorizon ?? C.activeRed);
+			if (officeTime.dynamicTime && officeTime.phase === "night") {
 				px(c, window.x + 7, window.y + 12, 2, 2, C.skyStar ?? C.windowSpark);
 				px(c, window.x + window.w - 10, window.y + 6, 1, 1, C.skyStar ?? C.windowSpark);
 				for (let bx = window.x + 4; bx < window.x + window.w - 3; bx += 7) {
@@ -198,20 +192,37 @@ export function createOfficeRenderer(content) {
 					if (noise(bx, window.y, 19) % 2) px(c, bx + 2, window.y + window.h - height + 2, 1, 1, C.skyWindow ?? C.windowSpark);
 				}
 			}
-			if (ambientEffects.has("rain-window")) {
-				for (let i = 0; i < 4; i++) {
-					const rx = window.x + 5 + ((i * 11 + ((t / 180) | 0) * 3) % Math.max(8, window.w - 10));
-					const ry = window.y + 3 + ((i * 7 + ((t / 95) | 0) * 2) % Math.max(6, window.h - 7));
-					px(c, rx, ry, 1, 4, C.rain ?? C.waterActive);
-				}
-			}
+			drawWindowWeather(c, window, t, officeTime);
 		}
 		for (const window of byRenderer("venetian-window")) {
 			px(c, window.x - 2, window.y - 2, window.w + 4, window.h + 4, C.wallTrim);
-			px(c, window.x, window.y, window.w, window.h, C.glass);
+			px(c, window.x, window.y, window.w, window.h, sky);
 			px(c, window.x + (window.w >> 1), window.y, 1, window.h, C.wallTrim);
+			drawWindowWeather(c, window, t, officeTime);
 			for (let y = window.y + 3; y < window.y + window.h - 1; y += 4) {
 				px(c, window.x + 1, y, window.w - 2, 1, C.paperLine);
+			}
+		}
+	}
+
+	function drawWindowWeather(c, window, t, officeTime) {
+		const condition = officeTime.dynamicWeather ? officeTime.weather : ambientEffects.has("rain-window") ? "rain" : "clear";
+		if (condition === "cloudy") {
+			px(c, window.x + 5, window.y + 8, Math.max(8, window.w - 18), 3, C.cloud ?? C.paper);
+			px(c, window.x + 12, window.y + 5, Math.max(5, window.w - 25), 4, C.cloud ?? C.paper);
+		}
+		if (condition === "rain") {
+			for (let i = 0; i < 4; i++) {
+				const rx = window.x + 5 + ((i * 11 + ((t / 180) | 0) * 3) % Math.max(8, window.w - 10));
+				const ry = window.y + 3 + ((i * 7 + ((t / 95) | 0) * 2) % Math.max(6, window.h - 7));
+				px(c, rx, ry, 1, 4, C.rain ?? C.waterActive);
+			}
+		}
+		if (condition === "snow") {
+			for (let i = 0; i < 5; i++) {
+				const sx = window.x + 4 + ((i * 13 + ((t / 260) | 0)) % Math.max(7, window.w - 8));
+				const sy = window.y + 3 + ((i * 7 + ((t / 180) | 0)) % Math.max(5, window.h - 6));
+				px(c, sx, sy, 2, 2, C.snow ?? C.paper);
 			}
 		}
 	}
@@ -714,9 +725,9 @@ export function createOfficeRenderer(content) {
 	}
 
 	function drawAutomaticLighting(c, officeTime) {
-		if (!useLocalTime) return;
+		if (!officeTime.dynamicTime) return;
 		if (officeTime.phase === "night") px(c, 0, WALL_H, W, H - WALL_H, "rgba(8,13,29,0.16)");
-		if (officeTime.phase !== "evening" && officeTime.phase !== "night") return;
+		if (!officeTime.lightingOn) return;
 		c.save();
 		c.globalCompositeOperation = "screen";
 		px(c, 0, WALL_H, W, H - WALL_H, officeTime.phase === "night" ? (C.roomLightNight ?? "rgba(255,210,112,0.13)") : (C.roomLightEvening ?? "rgba(255,220,150,0.07)"));
@@ -752,7 +763,7 @@ export function createOfficeRenderer(content) {
 	}
 
 	function drawRoom(c, t, hot, occupiedSeats) {
-		const officeTime = localOfficeTime();
+		const officeTime = currentEnvironment();
 		drawCachedFloor(c);
 		drawWall(c, t, officeTime);
 		for (const item of byRenderer("restroom-door")) drawRestroomDoor(c, item);
@@ -800,13 +811,19 @@ export function createOfficeRenderer(content) {
 	}
 
 	function startDayPreview(durationMs = 24000) {
-		if (!useLocalTime) return;
-		dayPreview = { startedAt: performance.now(), durationMs: Math.max(8000, durationMs) };
+		return environment?.startPreview?.(durationMs) ?? false;
 	}
 
 	function getOfficeTime() {
-		const { now, phase } = localOfficeTime();
-		return { hour: now.getHours(), minute: now.getMinutes(), phase };
+		return currentEnvironment();
+	}
+
+	function isNpcOnDuty(role, shift) {
+		return environment?.isNpcOnDuty?.(role, shift) ?? true;
+	}
+
+	function npcShiftLabel(kind) {
+		return environment?.shiftLabel?.(kind) ?? (kind === "arrival" ? "上班啦" : "下班啦");
 	}
 
 	function seatAnchor(index) {
@@ -926,6 +943,8 @@ export function createOfficeRenderer(content) {
 		interactions: Object.freeze({ ...(layout.interactions ?? {}) }),
 		startDayPreview,
 		getOfficeTime,
+		isNpcOnDuty,
+		npcShiftLabel,
 		content,
 	});
 }

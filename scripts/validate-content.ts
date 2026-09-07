@@ -13,6 +13,16 @@ function ok(condition: unknown, message: string): asserts condition {
 	if (!condition) throw new Error(message);
 }
 
+function validClock(value: unknown): value is string {
+	if (typeof value !== "string" || !/^\d{2}:\d{2}$/.test(value)) return false;
+	const [hour, minute] = value.split(":").map(Number);
+	return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
+}
+
+function validateShift(shift: any, label: string) {
+	ok(shift && validClock(shift.start) && validClock(shift.end), `${label}: shift must use valid HH:MM start/end values`);
+}
+
 const expectedKinds: Record<string, string> = {
 	style: "style",
 	layout: "layout",
@@ -21,6 +31,7 @@ const expectedKinds: Record<string, string> = {
 	npcs: "npcs",
 	lifeActivities: "life-activities",
 	atmosphere: "atmosphere",
+	environment: "environment",
 };
 const requiredCapabilities = ["research", "create", "compute", "plan", "communicate", "collaborate"];
 
@@ -39,6 +50,7 @@ function validatePreset(filename: string) {
 		npcs: read(`npcs/${refs.npcs}.json`),
 		lifeActivities: read(`life-activities/${refs.lifeActivities}.json`),
 		atmosphere: read(`atmospheres/${refs.atmosphere}.json`),
+		environment: read(`environments/${refs.environment}.json`),
 	};
 
 	for (const [key, value] of Object.entries(content)) {
@@ -47,7 +59,7 @@ function validatePreset(filename: string) {
 		ok(Boolean(value.id && value.version), `${filename}/${key}: missing id or version`);
 	}
 
-	const { layout, props, agentSkin, npcs, lifeActivities } = content;
+	const { layout, props, agentSkin, npcs, lifeActivities, environment } = content;
 	ok(layout.contract === "single-office-v1", `${filename}/layout: unsupported contract`);
 	ok(layout.canvas.width === 384 && layout.canvas.height === 216, `${filename}/layout: canvas must be 384x216`);
 	ok(layout.seats.length === 8, `${filename}/layout: single-office-v1 must have 8 seats`);
@@ -74,6 +86,7 @@ function validatePreset(filename: string) {
 		ok(npc.id && npc.name && npc.role, `${filename}/npcs: incomplete NPC`);
 		ok(!npcIds.has(npc.id), `${filename}/npcs: duplicate NPC ${npc.id}`);
 		ok(layout.targets[npc.spawn], `${filename}/npcs: missing spawn target ${npc.spawn}`);
+		if (npc.shift) validateShift(npc.shift, `${filename}/npcs/${npc.id}`);
 		npcIds.add(npc.id);
 	}
 
@@ -96,6 +109,22 @@ function validatePreset(filename: string) {
 			}
 		}
 		activityIds.add(activity.id);
+	}
+
+	ok(["local", "fixed"].includes(environment.clock?.mode), `${filename}/environment: invalid clock mode`);
+	if (environment.clock.mode === "fixed") ok(validClock(environment.clock.fixedTime), `${filename}/environment: invalid fixed time`);
+	ok(Array.isArray(environment.clock?.phases) && environment.clock.phases.length > 0, `${filename}/environment: missing day phases`);
+	for (const phase of environment.clock.phases) {
+		ok(phase.id && validClock(phase.start), `${filename}/environment: invalid day phase`);
+	}
+	ok(Array.isArray(environment.weather?.allowedConditions) && environment.weather.allowedConditions.length > 0, `${filename}/environment: missing weather conditions`);
+	const allowedWeather = new Set(environment.weather.allowedConditions);
+	for (const condition of [environment.weather.condition, environment.weather.fallback]) {
+		if (condition != null) ok(allowedWeather.has(condition), `${filename}/environment: weather ${condition} is not allowed`);
+	}
+	validateShift(environment.npcSchedule?.defaultShift, `${filename}/environment/default NPC`);
+	for (const [role, shift] of Object.entries(environment.npcSchedule?.roleOverrides ?? {})) {
+		validateShift(shift, `${filename}/environment/role ${role}`);
 	}
 
 	if (filename === "demo-office.json") {

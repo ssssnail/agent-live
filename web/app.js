@@ -46,7 +46,6 @@
 	let meeting = null;
 	const meetQueue = [];
 	let sound = false;
-	let npcShiftOpen = null;
 	let nextNpcShiftCheck = 0;
 
 	function makeActor(view) {
@@ -296,6 +295,7 @@
 			pose: entry.pose ?? "stand",
 			idlePose: entry.pose ?? "stand",
 			workTarget: entry.spawn,
+			shift: entry.shift,
 			walkPhase: 0,
 			path: [],
 			dest: spawnPoint,
@@ -317,51 +317,50 @@
 
 	function restoreNpcs(fromEntry = false) {
 		for (const entry of npcEntries) {
+			if (!isNpcOnDuty(entry)) continue;
 			const npc = makeNpc(entry, fromEntry);
 			actors.set(npc.id, npc);
 			if (fromEntry) {
-				bubble(npc, "life", "上班啦");
+				bubble(npc, "life", Office.npcShiftLabel?.("arrival") ?? "上班啦");
 				goTo(npc, Office.TARGETS[entry.spawn] ?? Office.TARGETS.entry);
 			}
 		}
 	}
 
-	function isNpcShiftOpen() {
-		const officeTime = Office.getOfficeTime?.();
-		const hour = officeTime?.hour ?? new Date().getHours();
-		return hour >= 6 && hour < 18;
+	function isNpcOnDuty(entry) {
+		return Office.isNpcOnDuty?.(entry.role, entry.shift) ?? true;
 	}
 
-	function sendNpcsHome() {
-		for (const actor of actors.values()) {
-			if (!actor.isNpc || actor.leaving) continue;
-			cancelLife(actor);
-			actor.leaving = true;
-			actor.pose = "stand";
-			actor.nextLifeAt = 0;
-			bubble(actor, "life", "下班啦");
-			goTo(actor, Office.TARGETS.entry);
-		}
+	function sendNpcHome(actor) {
+		if (!actor?.isNpc || actor.leaving) return;
+		cancelLife(actor);
+		actor.leaving = true;
+		actor.pose = "stand";
+		actor.nextLifeAt = 0;
+		bubble(actor, "life", Office.npcShiftLabel?.("departure") ?? "下班啦");
+		goTo(actor, Office.TARGETS.entry);
 	}
 
-	function bringNpcsToWork() {
-		for (const entry of npcEntries) {
-			const id = `npc:${entry.id}`;
-			if (actors.has(id)) continue;
-			const npc = makeNpc(entry, true);
-			actors.set(id, npc);
-			bubble(npc, "life", "上班啦");
-			goTo(npc, Office.TARGETS[entry.spawn] ?? Office.TARGETS.entry);
-		}
+	function bringNpcToWork(entry) {
+		const id = `npc:${entry.id}`;
+		if (actors.has(id)) return;
+		const npc = makeNpc(entry, true);
+		actors.set(id, npc);
+		bubble(npc, "life", Office.npcShiftLabel?.("arrival") ?? "上班啦");
+		goTo(npc, Office.TARGETS[entry.spawn] ?? Office.TARGETS.entry);
 	}
 
-	function syncNpcShift(now, force = false) {
-		if (!force && now < nextNpcShiftCheck) return;
+	function syncNpcShift(now) {
+		if (now < nextNpcShiftCheck) return;
 		nextNpcShiftCheck = now + 250;
-		const open = isNpcShiftOpen();
-		if (open) bringNpcsToWork();
-		else if (npcShiftOpen !== false) sendNpcsHome();
-		npcShiftOpen = open;
+		for (const entry of npcEntries) {
+			const actor = actors.get(`npc:${entry.id}`);
+			if (isNpcOnDuty(entry)) {
+				if (!actor) bringNpcToWork(entry);
+			} else if (actor) {
+				sendNpcHome(actor);
+			}
+		}
 	}
 
 	// ---------------------------------------------------------------- events
@@ -383,11 +382,10 @@
 				particles.length = 0;
 				hot.clear();
 				lifeHot.clear();
-				npcShiftOpen = isNpcShiftOpen();
 				nextNpcShiftCheck = 0;
 				document.getElementById("log").innerHTML = "";
 				for (const view of ev.agents) actors.set(view.id, makeActor(view));
-				if (npcShiftOpen) restoreNpcs();
+				restoreNpcs();
 				for (const item of ev.log) logLine(item);
 				session = ev.session;
 				if (ev.agents[0]?.task) setTask(ev.agents[0].task);

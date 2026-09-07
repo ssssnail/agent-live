@@ -14,6 +14,7 @@
 		"props": "extended-office",
 		"npcs": "boardroom-staff",
 		"lifeActivities": "boardroom-routines",
-		"atmosphere": "default"
+		"atmosphere": "default",
+		"environment": "local-office"
 	}
 }

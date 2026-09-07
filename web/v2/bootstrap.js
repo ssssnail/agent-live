@@ -1,5 +1,6 @@
 import { createOfficeRenderer } from "./office-renderer.js";
 import { createSpriteRenderer } from "./sprite-renderer.js";
+import { createEnvironmentRuntime } from "./environment-runtime.js";
 
 /**
  * Config-driven boot path for the preserved Demo.
@@ -47,7 +48,7 @@ async function loadPreset(presetId) {
 	const preset = await readJson(`presets/${presetId}.json`);
 	assertManifest(preset, "preset");
 	const refs = preset.content ?? {};
-	const [style, layout, agentSkin, props, npcs, lifeActivities, atmosphere] = await Promise.all([
+	const [style, layout, agentSkin, props, npcs, lifeActivities, atmosphere, environment] = await Promise.all([
 		readJson(`styles/${refs.style}.json`),
 		readJson(`layouts/${refs.layout}.json`),
 		readJson(`agent-skins/${refs.agentSkin}.json`),
@@ -55,8 +56,9 @@ async function loadPreset(presetId) {
 		readJson(`npcs/${refs.npcs}.json`),
 		readJson(`life-activities/${refs.lifeActivities}.json`),
 		readJson(`atmospheres/${refs.atmosphere}.json`),
+		readJson(`environments/${refs.environment}.json`),
 	]);
-	const registry = { preset, style, layout, agentSkin, props, npcs, lifeActivities, atmosphere };
+	const registry = { preset, style, layout, agentSkin, props, npcs, lifeActivities, atmosphere, environment };
 	validateRegistry(registry);
 	return Object.freeze(registry);
 }
@@ -64,6 +66,18 @@ async function loadPreset(presetId) {
 function assertManifest(value, kind) {
 	if (!value || value.schemaVersion !== 1 || value.kind !== kind || !value.id || !value.version) {
 		throw new Error(`无效的 ${kind} 内容清单`);
+	}
+}
+
+function validClock(value) {
+	if (typeof value !== "string" || !/^\d{2}:\d{2}$/.test(value)) return false;
+	const [hour, minute] = value.split(":").map(Number);
+	return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
+}
+
+function assertShift(shift, label) {
+	if (!shift || !validClock(shift.start) || !validClock(shift.end)) {
+		throw new Error(`${label} 必须提供有效的 HH:MM 起止时间`);
 	}
 }
 
@@ -91,6 +105,7 @@ function validateRegistry(content) {
 	}
 	for (const npc of npcs.entries ?? []) {
 		if (!npc.id || !npc.role || !layout.targets?.[npc.spawn]) throw new Error(`无效的 NPC：${npc.id ?? "—"}`);
+		if (npc.shift) assertShift(npc.shift, `NPC ${npc.id} 的 shift`);
 	}
 	for (const activity of lifeActivities.entries ?? []) {
 		if (!activity.id || !["agent", "npc"].includes(activity.participant?.kind) || !activity.steps?.length) {
@@ -109,6 +124,22 @@ function validateRegistry(content) {
 			}
 		}
 	}
+	const environment = content.environment;
+	if (!["local", "fixed"].includes(environment.clock?.mode)) throw new Error("Environment 的 clock.mode 必须是 local 或 fixed");
+	if (environment.clock.mode === "fixed" && !validClock(environment.clock.fixedTime)) throw new Error("Environment 的 fixedTime 无效");
+	if (!Array.isArray(environment.clock?.phases) || !environment.clock.phases.length) throw new Error("Environment 缺少 day phases");
+	for (const phase of environment.clock.phases) {
+		if (!phase.id || !validClock(phase.start)) throw new Error("Environment 包含无效的 day phase");
+	}
+	if (!Array.isArray(environment.weather?.allowedConditions) || !environment.weather.allowedConditions.length) throw new Error("Environment 缺少天气类型");
+	const allowedWeather = new Set(environment.weather.allowedConditions);
+	for (const condition of [environment.weather.condition, environment.weather.fallback]) {
+		if (condition != null && !allowedWeather.has(condition)) throw new Error(`Environment 的天气 ${condition} 不在 allowedConditions 中`);
+	}
+	assertShift(environment.npcSchedule?.defaultShift, "Environment 的 NPC 默认班次");
+	for (const [role, shift] of Object.entries(environment.npcSchedule?.roleOverrides ?? {})) {
+		assertShift(shift, `Environment 的 ${role} 班次`);
+	}
 }
 
 function applyStyle(style, atmosphere) {
@@ -118,8 +149,25 @@ function applyStyle(style, atmosphere) {
 	document.documentElement.dataset.officePreset = style.id;
 }
 
-function installOfficeAdapter(content) {
-	window.Office = createOfficeRenderer(content);
+function installEnvironmentAdapter(content, query) {
+	const runtime = createEnvironmentRuntime(content.environment);
+	const overrides = {};
+	if (query.has("time")) overrides.time = query.get("time");
+	if (query.has("weather")) overrides.weather = query.get("weather");
+	if (Object.keys(overrides).length) runtime.update(overrides);
+	window.OfficeEnvironment = runtime;
+	window.addEventListener("agent-office:environment", (event) => {
+		try {
+			runtime.update(event.detail ?? {});
+		} catch (error) {
+			console.warn("无法应用环境更新", error);
+		}
+	});
+	return runtime;
+}
+
+function installOfficeAdapter(content, environment) {
+	window.Office = createOfficeRenderer(content, environment);
 }
 
 function installSpriteAdapter(content) {
@@ -185,7 +233,8 @@ try {
 	window.OfficeContent = content;
 	applyStyle(content.style, content.atmosphere);
 	await installPresetPicker(presetId);
-	installOfficeAdapter(content);
+	const environment = installEnvironmentAdapter(content, query);
+	installOfficeAdapter(content, environment);
 	installSpriteAdapter(content);
 	await loadRuntime();
 } catch (error) {
