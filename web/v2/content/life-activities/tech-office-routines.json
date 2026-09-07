@@ -8,6 +8,60 @@
 	"contract": "single-office-v1",
 	"entries": [
 		{
+			"id": "colleague-chat",
+			"name": "和同事聊聊天",
+			"participant": { "kind": "agent", "states": ["idle", "waiting", "done"], "minAgents": 2 },
+			"requires": ["meeting-main"],
+			"onlyWhenSessionIdle": true,
+			"interruptible": true,
+			"startBubble": "聊两句？",
+			"initialDelayMs": [6500, 10000],
+			"cooldownMs": [30000, 48000],
+			"steps": [
+				{
+					"target": "chat-a",
+					"targets": ["chat-a", "chat-b"],
+					"durationMs": 5200,
+					"pose": "talk",
+					"bubbles": ["最近进展怎么样？", "刚处理完一块，歇一下"]
+				}
+			]
+		},
+		{
+			"id": "outside-walk",
+			"name": "和同事出去溜达",
+			"participant": { "kind": "agent", "states": ["idle", "waiting", "done"], "minAgents": 2 },
+			"requires": ["entry-door"],
+			"onlyWhenSessionIdle": true,
+			"interruptible": true,
+			"startBubble": "出去走走？",
+			"initialDelayMs": [10000, 16000],
+			"cooldownMs": [46000, 72000],
+			"steps": [
+				{
+					"target": "walk-outside-a",
+					"targets": ["walk-outside-a", "walk-outside-b"],
+					"durationMs": 6500,
+					"pose": "stand",
+					"bubbles": ["透口气", "走一圈再回来"]
+				}
+			]
+		},
+		{
+			"id": "phone-break",
+			"name": "摸鱼玩手机",
+			"participant": { "kind": "agent", "states": ["idle", "waiting", "done"] },
+			"requires": [],
+			"onlyWhenSessionIdle": true,
+			"interruptible": true,
+			"startBubble": "摸会儿鱼",
+			"initialDelayMs": [5500, 9000],
+			"cooldownMs": [26000, 44000],
+			"steps": [
+				{ "target": "phone-break", "durationMs": 4800, "pose": "phone", "bubble": "刷一下手机" }
+			]
+		},
+		{
 			"id": "restroom-break",
 			"name": "去洗手间",
 			"participant": { "kind": "agent", "states": ["idle", "waiting", "done"] },
@@ -19,6 +73,20 @@
 			"cooldownMs": [42000, 70000],
 			"steps": [
 				{ "target": "restroom", "durationMs": 4200, "pose": "stand", "bubble": "稍等一下" }
+			]
+		},
+		{
+			"id": "cleaning-round",
+			"name": "保洁巡回",
+			"participant": { "kind": "npc", "roles": ["cleaner"] },
+			"requires": [],
+			"interruptible": false,
+			"initialDelayMs": [1000, 1800],
+			"cooldownMs": [5200, 8200],
+			"steps": [
+				{ "target": "clean-desks-north", "durationMs": 2200, "pose": "reach", "bubble": "整理一下桌面", "particle": "spark" },
+				{ "target": "clean-desks-south", "durationMs": 2300, "pose": "reach", "bubble": "这边也收拾好", "particle": "spark" },
+				{ "target": "clean-lounge", "durationMs": 2400, "pose": "reach", "bubble": "休息区整理好了", "particle": "spark" }
 			]
 		}
 	]

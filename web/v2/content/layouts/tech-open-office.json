@@ -34,7 +34,16 @@
 		"entry": { "x": 38, "y": 46, "dir": "down", "lane": 0 },
 		"boss-seat": { "x": 360, "y": 104, "dir": "up", "lane": 1 },
 		"restroom": { "x": 88, "y": 46, "dir": "up", "lane": 0 },
-		"water": { "x": 264, "y": 194, "dir": "left", "lane": 2 }
+		"water": { "x": 264, "y": 194, "dir": "left", "lane": 2 },
+		"phone-break": { "x": 218, "y": 208, "dir": "down", "lane": 2 },
+		"chat-a": { "x": 140, "y": 208, "dir": "right", "lane": 2 },
+		"chat-b": { "x": 172, "y": 208, "dir": "left", "lane": 2 },
+		"walk-outside-a": { "x": -10, "y": 46, "dir": "left", "lane": 0 },
+		"walk-outside-b": { "x": -18, "y": 46, "dir": "left", "lane": 0 },
+		"cleaner-entry": { "x": 376, "y": 162, "dir": "left", "lane": 2 },
+		"clean-desks-north": { "x": 276, "y": 92, "dir": "left", "lane": 1 },
+		"clean-desks-south": { "x": 276, "y": 152, "dir": "left", "lane": 2 },
+		"clean-lounge": { "x": 238, "y": 208, "dir": "left", "lane": 2 }
 	},
 	"stations": {
 		"research": { "kind": "target", "target": "archive" },
@@ -83,5 +92,5 @@
 		{ "id": "plant-2", "type": "plant", "x": 78, "y": 200 },
 		{ "id": "plant-3", "type": "plant", "x": 366, "y": 200 }
 	],
-	"npcSpawns": ["boss-seat"]
+	"npcSpawns": ["boss-seat", "cleaner-entry"]
 }

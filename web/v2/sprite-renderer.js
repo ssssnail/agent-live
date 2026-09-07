@@ -71,7 +71,7 @@ export function createSpriteRenderer(content) {
 		px(c, x - 4, y - 9, 8, 2, p.trim);
 		px(c, x - 4, y - 13, 2, 4, V.shirtShade ?? p.trim);
 		px(c, x + 3, y - 15, 1, 5, V.shirtLite ?? p.shirt);
-		const armUp = actor.pose === "type" ? (((t / 90) | 0) % 2) : actor.pose === "reach" ? 1 : 0;
+		const armUp = actor.pose === "type" ? (((t / 90) | 0) % 2) : actor.pose === "reach" || actor.pose === "phone" ? 1 : 0;
 		if (dir !== "right") {
 			px(c, x - 8, y - 16 - armUp, 3, 8, outline);
 			px(c, x - 7, y - 15 - armUp, 2, 5, p.shirt);
@@ -82,6 +82,11 @@ export function createSpriteRenderer(content) {
 			px(c, x + 5, y - 16 - other, 3, 8, outline);
 			px(c, x + 5, y - 15 - other, 2, 5, p.shirt);
 			px(c, x + 5, y - 10 - other, 2, 2, p.skin);
+		}
+		if (actor.pose === "phone") {
+			px(c, x - 2, y - 14, 5, 6, outline);
+			px(c, x - 1, y - 13, 3, 4, V.pips.thinking ?? V.faceInk);
+			px(c, x, y - 12, 1, 1, V.eyeLite ?? p.skin);
 		}
 
 		px(c, x - 5, y - 27, 10, 11, outline);

@@ -96,11 +96,17 @@ function validateRegistry(content) {
 		if (!activity.id || !["agent", "npc"].includes(activity.participant?.kind) || !activity.steps?.length) {
 			throw new Error(`无效的 Life Activity：${activity.id ?? "—"}`);
 		}
+		if (activity.participant?.minAgents != null && (!Number.isInteger(activity.participant.minAgents) || activity.participant.minAgents < 2)) {
+			throw new Error(`${activity.id} 的 minAgents 必须是至少 2 的整数`);
+		}
 		for (const requiredProp of activity.requires ?? []) {
 			if (!propInstances.has(requiredProp)) throw new Error(`${activity.id} 缺少 Prop：${requiredProp}`);
 		}
 		for (const step of activity.steps) {
 			if (!layout.targets?.[step.target]) throw new Error(`${activity.id} 缺少 Target：${step.target}`);
+			for (const target of step.targets ?? []) {
+				if (!layout.targets?.[target]) throw new Error(`${activity.id} 缺少 Group Target：${target}`);
+			}
 		}
 	}
 }

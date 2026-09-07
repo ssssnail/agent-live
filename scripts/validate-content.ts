@@ -82,12 +82,18 @@ function validatePreset(filename: string) {
 		ok(activity.id && activity.participant, `${filename}/life: incomplete activity`);
 		ok(!activityIds.has(activity.id), `${filename}/life: duplicate activity ${activity.id}`);
 		ok(["agent", "npc"].includes(activity.participant.kind), `${filename}/life: invalid participant kind`);
+		if (activity.participant.minAgents != null) {
+			ok(Number.isInteger(activity.participant.minAgents) && activity.participant.minAgents >= 2, `${filename}/life: invalid minAgents`);
+		}
 		ok(Array.isArray(activity.steps) && activity.steps.length > 0, `${filename}/life: activity ${activity.id} has no steps`);
 		for (const required of activity.requires ?? []) {
 			ok(instanceIds.has(required), `${filename}/life: activity ${activity.id} requires missing prop ${required}`);
 		}
 		for (const step of activity.steps) {
 			ok(layout.targets[step.target], `${filename}/life: activity ${activity.id} targets missing ${step.target}`);
+			for (const target of step.targets ?? []) {
+				ok(layout.targets[target], `${filename}/life: activity ${activity.id} group target missing ${target}`);
+			}
 		}
 		activityIds.add(activity.id);
 	}

@@ -144,13 +144,24 @@
 		return min + (Sprites.hash(seed) % (max - min + 1));
 	}
 
+	function matchesParticipant(actor, participant) {
+		if ((participant.kind === "npc") !== actor.isNpc) return false;
+		if (participant.roles?.length && !participant.roles.includes(actor.role)) return false;
+		if (participant.states?.length && !participant.states.includes(actor.state)) return false;
+		return true;
+	}
+
 	function activitiesFor(actor) {
 		return lifeActivities.filter((activity) => {
 			const participant = activity.participant ?? {};
-			if ((participant.kind === "npc") !== actor.isNpc) return false;
-			if (participant.roles?.length && !participant.roles.includes(actor.role)) return false;
-			if (participant.states?.length && !participant.states.includes(actor.state)) return false;
+			if (!matchesParticipant(actor, participant)) return false;
 			if (activity.onlyWhenSessionIdle && session.busy) return false;
+			if (Number(participant.minAgents ?? 1) > 1) {
+				const available = [...actors.values()].filter((candidate) =>
+					!candidate.isNpc && !candidate.leaving && matchesParticipant(candidate, participant),
+				);
+				if (available.length < Number(participant.minAgents)) return false;
+			}
 			return true;
 		});
 	}
@@ -175,23 +186,50 @@
 		scheduleLife(actor, activity, now);
 	}
 
-	function beginLifeStep(actor, activity, index, now) {
-		const step = activity.steps[index];
-		if (!step) {
+	function beginLifeStep(actor, activity, index, now, slot = actor.life?.slot ?? 0) {
+		const configuredStep = activity.steps[index];
+		if (!configuredStep) {
 			actor.life = null;
 			scheduleLife(actor, activity, now);
 			if (!actor.isNpc) retarget(actor);
 			return;
 		}
+		const targetName = configuredStep.targets?.[slot % configuredStep.targets.length] ?? configuredStep.target;
+		const step = {
+			...configuredStep,
+			target: targetName,
+			bubble: configuredStep.bubbles?.[slot % configuredStep.bubbles.length] ?? configuredStep.bubble,
+		};
 		const target = Office.TARGETS[step.target];
 		actor._lifeAcc = 0;
-		actor.life = { activity, index, step, phase: "walk", until: 0 };
+		actor.life = { activity, index, step, slot, phase: "walk", until: 0 };
 		goTo(actor, target);
 		if (index === 0 && activity.startBubble) bubble(actor, "life", activity.startBubble);
 	}
 
 	function startLife(actor, activity, now) {
-		beginLifeStep(actor, activity, 0, now);
+		const participant = activity.participant ?? {};
+		const minAgents = Math.max(1, Number(participant.minAgents ?? 1));
+		if (minAgents === 1) {
+			beginLifeStep(actor, activity, 0, now);
+			return;
+		}
+		const partners = [...actors.values()].filter((candidate) =>
+			candidate.id !== actor.id &&
+			!candidate.isNpc &&
+			!candidate.life &&
+			!candidate.path.length &&
+			!candidate.action &&
+			!candidate.inMeeting &&
+			!candidate.leaving &&
+			matchesParticipant(candidate, participant),
+		);
+		const group = [actor, ...partners.slice(0, minAgents - 1)];
+		if (group.length < minAgents) {
+			scheduleLife(actor, activity, now);
+			return;
+		}
+		for (let slot = 0; slot < group.length; slot++) beginLifeStep(group[slot], activity, 0, now, slot);
 	}
 
 	function updateActorLife(actor, now, dt) {
@@ -202,7 +240,7 @@
 				actor.nextLifeAt = 0;
 				return;
 			}
-			const activity = choices[Sprites.hash(`${actor.id}:${actor.lifeCycle}`) % choices.length];
+			const activity = choices[(Sprites.hash(`${actor.id}:${actor.lifeCycle}`) >>> 4) % choices.length];
 			if (!actor.nextLifeAt) scheduleLife(actor, activity, now, true);
 			if (now >= actor.nextLifeAt) startLife(actor, activity, now);
 			return;
@@ -229,7 +267,7 @@
 		}
 		if (now < life.until) return;
 		clearLifeStep(actor);
-		beginLifeStep(actor, life.activity, life.index + 1, now);
+		beginLifeStep(actor, life.activity, life.index + 1, now, life.slot);
 	}
 
 	function makeNpc(entry) {
@@ -855,8 +893,6 @@
 		apply({ type: "usage", id: "planner", tokens: 12400, cost: 0.0088 });
 		apply({ type: "agent_state", id: "planner", state: "done", detail: "已交付" });
 		await wait(1400);
-		apply({ type: "agent_leave", id: "scout", ok: true });
-		apply({ type: "agent_leave", id: "planner", ok: true });
 
 		apply({ type: "action", id: "main", action: "type", label: "修改 …/core/session-manager.ts", toolCallId: "d5" });
 		await wait(3200);
@@ -869,6 +905,9 @@
 		await wait(1500);
 		apply({ type: "agent_state", id: "main", state: "idle", detail: "待命" });
 		apply({ type: "session", session: { cwd: "demo", model: "demo-model", busy: false, turns: 3, startedAt: now() } });
+		await wait(20000);
+		apply({ type: "agent_leave", id: "scout", ok: true });
+		apply({ type: "agent_leave", id: "planner", ok: true });
 	}
 
 	// ---------------------------------------------------------------- boot
