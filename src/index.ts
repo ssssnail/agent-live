@@ -8,13 +8,9 @@ const MAIN = "main";
 const DEFAULT_PORT = Number(process.env.PI_OFFICE_PORT ?? 7788);
 const VIEWER_PATH = "v2.html";
 const PRESETS = new Map([
-	["refined-demo", "Agent Office Demo"],
-	["demo-office", "原版基准（Legacy）"],
-	["lively-office", "有生活的像素办公室"],
-	["night-shift", "雨夜加班办公室"],
-	["cozy-studio", "暖调创意工作室"],
-	["old-school-office", "老派企业办公室"],
-	["boardroom-office", "大会议室长桌办公"],
+	["tech-open-office", "Tech 开放式办公室"],
+	["boardroom-office", "长形会议室"],
+	["old-school-office", "老式办公室"],
 ]);
 
 const ROLE_NAMES: Record<string, string> = {

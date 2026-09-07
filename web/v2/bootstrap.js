@@ -10,7 +10,7 @@ import { createSpriteRenderer } from "./sprite-renderer.js";
  */
 
 const CONTENT_ROOT = "/v2/content";
-const DEFAULT_PRESET = "refined-demo";
+const DEFAULT_PRESET = "tech-open-office";
 const PRESET_STORAGE_KEY = "agent-office:selected-preset";
 
 function savedPreset() {
@@ -126,7 +126,7 @@ async function installPresetPicker(selectedId) {
 		throw new Error("无效的 Preset Catalog");
 	}
 	const select = document.getElementById("preset");
-	for (const item of catalog.presets) {
+	for (const item of catalog.presets.filter((entry) => entry.visibility !== "internal" || entry.id === selectedId)) {
 		const option = document.createElement("option");
 		option.value = item.id;
 		option.textContent = item.name;
