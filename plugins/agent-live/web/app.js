@@ -17,6 +17,7 @@
 	const ctx = canvas.getContext("2d", { alpha: false });
 
 	const SPEED = 44; // logical px per second
+	const REPLAY_RATE = 3;
 	const BUBBLE_MS = { think: 4200, say: 6000, do: 2800, life: 3200 };
 
 	let dpr = 1;
@@ -129,7 +130,7 @@
 			kind,
 			text: String(text),
 			shown: 0,
-			until: performance.now() + (BUBBLE_MS[kind] ?? 3000),
+			remainingMs: BUBBLE_MS[kind] ?? 3000,
 		};
 	}
 
@@ -263,7 +264,7 @@
 		const life = actor.life;
 		if (life.phase === "walk" && !actor.path.length) {
 			life.phase = "dwell";
-			life.until = now + Number(life.step.durationMs ?? 1500);
+			life.remainingMs = Number(life.step.durationMs ?? 1500);
 			if (life.step.hot) lifeHot.add(life.step.hot);
 			if (life.step.bubble) bubble(actor, "life", tx(life.step.bubble));
 			actor.pose = life.step.pose ?? "stand";
@@ -279,7 +280,8 @@
 				color: Office.colors.waterActive,
 			});
 		}
-		if (now < life.until) return;
+		life.remainingMs -= dt * 1000;
+		if (life.remainingMs > 0) return;
 		clearLifeStep(actor);
 		beginLifeStep(actor, life.activity, life.index + 1, now, life.slot);
 	}
@@ -606,6 +608,7 @@
 	// ---------------------------------------------------------------- update
 
 	function update(dt, now) {
+		if (replay) dt *= REPLAY_RATE;
 		syncNpcShift(now);
 		updateMeeting(now, dt);
 
@@ -653,7 +656,8 @@
 					actor.bubble.text.length,
 					actor.bubble.shown + dt * 46,
 				);
-				if (now > actor.bubble.until) actor.bubble = null;
+				actor.bubble.remainingMs -= dt * 1000;
+				if (actor.bubble.remainingMs <= 0) actor.bubble = null;
 			}
 
 			emitWorkParticles(actor, dt);
@@ -898,7 +902,7 @@
 	function waitForReplay(ms, run) {
 		return new Promise((resolve) => {
 			run.resolveWait = resolve;
-			run.timer = setTimeout(resolve, Math.min(5_000, Math.max(350, ms)));
+			run.timer = setTimeout(resolve, Math.min(3_000, Math.max(220, ms)));
 		});
 	}
 
@@ -965,7 +969,7 @@
 		for (let index = 0; index < history.length; index++) {
 			const entry = history[index];
 			if (run.cancelled) return;
-			await waitForReplay((entry.at - previousAt) / 1.5, run);
+			await waitForReplay((entry.at - previousAt) / REPLAY_RATE, run);
 			if (run.cancelled) return;
 			replayStatus.textContent = t("replay.progress", { current: index + 1, total: history.length });
 			replayStatus.hidden = false;

@@ -4,9 +4,18 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Agent Live</title>
+		<style>
+			html.file-mode body { display: grid; place-items: center; padding: 32px; background: #0d1017; color: #d7dee9; font: 14px ui-monospace, monospace; }
+			html.file-mode #app { display: none; }
+			#fileFallback { display: none; max-width: 520px; padding: 20px; border: 1px solid #2a3243; background: #151a24; }
+			html.file-mode #fileFallback { display: block; }
+			#fileFallback strong { display: block; margin-bottom: 8px; color: #ffcc4d; font-size: 18px; }
+		</style>
+		<script>if (location.protocol === "file:") document.documentElement.classList.add("file-mode");</script>
 		<link rel="stylesheet" href="/v2/style.css" />
 	</head>
 	<body>
+		<div id="fileFallback"><strong>Agent Live is not running</strong>This is a local source file, not a live office. Run <code>/agent-live</code> in Codex to open a new authenticated session.</div>
 		<div id="app">
 			<header id="bar">
 				<span class="brand">AGENT LIVE</span>
