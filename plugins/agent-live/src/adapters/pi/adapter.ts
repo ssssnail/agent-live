@@ -1,11 +1,18 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { actionForTool, describeDelegation, isDelegationTool, labelForTool } from "./mapping.ts";
-import type { OfficeServer } from "./server.ts";
-import { startServer } from "./server.ts";
-import { OfficeState } from "./state.ts";
+import { actionForTool, describeDelegation, isDelegationTool, labelForTool } from "../../core/mapping.ts";
+import type { OfficeServer } from "../../runtime/server.ts";
+import { OfficeState } from "../../core/state.ts";
+import { AgentLiveRuntime } from "../../runtime/agent-live-runtime.ts";
+import type { AdapterDescriptor } from "../contract.ts";
+
+export const PI_ADAPTER: AdapterDescriptor = {
+	id: "pi",
+	name: "Pi",
+	capabilities: { observe: true, prompt: false, interrupt: false, modelSelect: true, approvals: false, subagents: true },
+};
 
 const MAIN = "main";
-const DEFAULT_PORT = Number(process.env.PI_OFFICE_PORT ?? 7788);
+const DEFAULT_PORT = Number(process.env.AGENT_LIVE_PI_PORT ?? 7788);
 const VIEWER_PATH = "v2.html";
 const PRESETS = new Map([
 	["tech-open-office", "Tech 开放式办公室"],
@@ -40,6 +47,7 @@ function joinBlocks(content: unknown, kind: "text" | "thinking"): string {
 export default function (pi: ExtensionAPI) {
 	let state: OfficeState | null = null;
 	let server: OfficeServer | null = null;
+	let runtime: AgentLiveRuntime | null = null;
 	/** Streaming cursors so we only forward newly generated thinking text. */
 	let thinkingCursor = 0;
 	let textCursor = 0;
@@ -55,7 +63,8 @@ export default function (pi: ExtensionAPI) {
 
 	async function boot(ctx: any): Promise<void> {
 		if (state) return;
-		state = new OfficeState(ctx.cwd ?? process.cwd());
+		runtime = new AgentLiveRuntime(ctx.cwd ?? process.cwd());
+		state = runtime.state;
 		state.updateSession({
 			cwd: ctx.cwd ?? process.cwd(),
 			model: ctx?.model?.id,
@@ -64,14 +73,14 @@ export default function (pi: ExtensionAPI) {
 		const info = mainName(ctx);
 		state.join(MAIN, { ...info, model: ctx?.model?.id });
 		try {
-			server = await startServer(state, { port: DEFAULT_PORT });
+			server = await runtime.start({ port: DEFAULT_PORT });
 			if (ctx.hasUI) {
-				ctx.ui.setStatus("office", `office: ${server.url}/${VIEWER_PATH}`);
-				ctx.ui.notify(`Agent Office: ${server.url}/${VIEWER_PATH} (/office 打开)`, "info");
+				ctx.ui.setStatus("agent-live", `agent-live: ${server.url}/${VIEWER_PATH}`);
+				ctx.ui.notify(`Agent Live: ${server.url}/${VIEWER_PATH} (/agent-live 打开)`, "info");
 			}
-			if (process.env.PI_OFFICE_AUTO_OPEN === "1") server.open(VIEWER_PATH);
+			if (process.env.AGENT_LIVE_AUTO_OPEN === "1") server.open(VIEWER_PATH);
 		} catch (err) {
-			const message = `Agent Office 启动失败: ${(err as Error).message}`;
+			const message = `Agent Live 启动失败: ${(err as Error).message}`;
 			if (ctx.hasUI) ctx.ui.notify(message, "error");
 			else console.error(message);
 		}
@@ -82,10 +91,10 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("session_shutdown", async () => {
-		await server?.close();
+		await runtime?.close();
 		server = null;
-		state?.dispose();
 		state = null;
+		runtime = null;
 		delegated.clear();
 	});
 
@@ -279,19 +288,19 @@ export default function (pi: ExtensionAPI) {
 		});
 	}
 
-	pi.registerCommand("office", {
-		description: "打开 Agent Office 可视化 (demo | status | preset [id])",
+	pi.registerCommand("agent-live", {
+		description: "打开 Agent Live 可视化 (demo | status | preset [id])",
 		handler: async (args: string, ctx: any) => {
 			await boot(ctx);
 			const sub = (args ?? "").trim().toLowerCase();
 			const [command, value, ...rest] = sub.split(/\s+/).filter(Boolean);
 
 			if (!server) {
-				ctx.ui.notify("Agent Office 服务未启动", "error");
+				ctx.ui.notify("Agent Live 服务未启动", "error");
 				return;
 			}
 			if (command === "status") {
-				ctx.ui.notify(`Agent Office: ${server.url}/${VIEWER_PATH}`, "info");
+				ctx.ui.notify(`Agent Live: ${server.url}/${VIEWER_PATH}`, "info");
 				return;
 			}
 			if (command === "demo") {
@@ -306,7 +315,7 @@ export default function (pi: ExtensionAPI) {
 					return;
 				}
 				if (rest.length || !PRESETS.has(value)) {
-					ctx.ui.notify(`未知 Preset：${[value, ...rest].filter(Boolean).join(" ")}。输入 /office preset 查看可用选项。`, "error");
+					ctx.ui.notify(`未知 Preset：${[value, ...rest].filter(Boolean).join(" ")}。输入 /agent-live preset 查看可用选项。`, "error");
 					return;
 				}
 				server.open(`${VIEWER_PATH}?preset=${encodeURIComponent(value)}`);
@@ -314,7 +323,7 @@ export default function (pi: ExtensionAPI) {
 				return;
 			}
 			if (command && command !== "open") {
-				ctx.ui.notify("用法：/office [demo | status | preset [id]]", "error");
+				ctx.ui.notify("用法：/agent-live [demo | status | preset [id]]", "error");
 				return;
 			}
 			server.open(VIEWER_PATH);

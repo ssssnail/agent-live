@@ -19,7 +19,7 @@ Pi 对 Live Agent Show 的价值不只是事件数量多，而是同时开放了
 - **多 Agent 世界**：通过 Subagent Bridge 表现多个 Agent 的真实内部动作。
 - **导演模式**：用户从 Viewer 中干预、分叉和控制会话。
 
-当前 Agent Office 已经完成了第一层的主要骨架，但只用了 Pi 高价值接口的一部分。近期最值得补的不是更多家具，而是精确流事件、Session 持久化、异常/压缩剧情和 Subagent Bridge。
+当前 Agent Live 已经完成了第一层的主要骨架，但只用了 Pi 高价值接口的一部分。近期最值得补的不是更多家具，而是精确流事件、Session 持久化、异常/压缩剧情和 Subagent Bridge。
 
 ## 1. 安装与分发
 
@@ -205,7 +205,7 @@ pi.events.on("live-show:actor", handler);
 
 这是可行的第二产品模式，但不应混入第一版被动观察插件。控制能力会增加安全、状态同步和用户预期成本。
 
-## 5. 当前 Agent Office 已经用了什么
+## 5. 当前 Agent Live 已经用了什么
 
 本机版本的 `ExtensionAPI` 提供 33 个 `pi.on(...)` 事件入口，当前扩展注册了其中 15 个。数量并不等于产品完成度，但能说明我们主要使用了基础直播链路，Session 树、输入、Provider、拦截和跨扩展协作仍未展开。
 
@@ -219,7 +219,7 @@ pi.events.on("live-show:actor", handler);
 - Tool Execution Start / Update / End。
 - Agent End / Settled。
 - Assistant Usage、Token 和 Cost。
-- `/office` 命令、Status 和 Notification。
+- `/agent-live` 命令、Status 和 Notification。
 - 对 Subagent `details.results[]` 的兼容解析。
 
 已经可以完成：主 Agent 思考、说话、去工位、工具成败、派活、子角色进出和片尾资源统计。
@@ -368,7 +368,7 @@ Pi 允许扩展修改 Context、System Prompt、Tool 参数与结果，甚至注
 2. 接入 Input、User Bash、Provider 和 Compaction；Retry 只消费当前运行模式明确提供的事实事件。
 3. 为并行 Tool Call 引入 Tool Ticket，不复制 Agent。
 4. 用 `appendEntry` 保存 Episode、Scene 和关键 Beat。
-5. 将 `/office` 升级为 `/show`，增加状态栏与快捷入口。
+5. 将 `/agent-live` 升级为 `/show`，增加状态栏与快捷入口。
 
 ### P1：把群像做真
 

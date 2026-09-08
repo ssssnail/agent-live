@@ -3,8 +3,8 @@ import * as fs from "node:fs";
 import * as http from "node:http";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { OfficeEvent } from "./protocol.ts";
-import type { OfficeState } from "./state.ts";
+import type { OfficeEvent } from "../core/protocol.ts";
+import type { OfficeState } from "../core/state.ts";
 
 const MIME: Record<string, string> = {
 	".html": "text/html; charset=utf-8",
@@ -23,7 +23,7 @@ function moduleDir(): string {
 	}
 }
 
-const WEB_ROOT = path.resolve(moduleDir(), "..", "web");
+const WEB_ROOT = path.resolve(moduleDir(), "..", "..", "web");
 
 export interface OfficeServer {
 	url: string;
@@ -32,19 +32,29 @@ export interface OfficeServer {
 	open(query?: string): void;
 }
 
+export interface OfficeControls {
+	token: string;
+	status(): unknown;
+	selectModel(model: string): Promise<unknown> | unknown;
+	prompt(text: string, model?: string): Promise<unknown>;
+	interrupt(): Promise<unknown>;
+	resolveApproval(id: number | string, allow: boolean, forSession: boolean): Promise<unknown> | unknown;
+}
+
 /**
  * Static file host for the office UI plus an SSE endpoint carrying office events.
  * Server-sent events keep this dependency-free: the browser only ever listens.
  */
 export async function startServer(
 	state: OfficeState,
-	options: { port: number; host?: string },
+	options: { port: number; host?: string; controls?: OfficeControls; onViewerCountChange?: (count: number) => void },
 ): Promise<OfficeServer> {
 	const host = options.host ?? "127.0.0.1";
 	const clients = new Set<http.ServerResponse>();
 
 	const server = http.createServer((req, res) => {
 		const url = new URL(req.url ?? "/", `http://${host}`);
+		const controls = options.controls;
 
 		if (url.pathname === "/events") {
 			res.writeHead(200, {
@@ -56,6 +66,7 @@ export async function startServer(
 			res.write(": connected\n\n");
 			write(res, state.snapshot());
 			clients.add(res);
+			options.onViewerCountChange?.(clients.size);
 			const unsubscribe = state.subscribe((event) => write(res, event));
 			const heartbeat = setInterval(() => res.write(": ping\n\n"), 25_000);
 			heartbeat.unref?.();
@@ -63,6 +74,7 @@ export async function startServer(
 				clearInterval(heartbeat);
 				unsubscribe();
 				clients.delete(res);
+				options.onViewerCountChange?.(clients.size);
 			});
 			return;
 		}
@@ -70,6 +82,37 @@ export async function startServer(
 		if (url.pathname === "/api/state") {
 			res.writeHead(200, { "content-type": MIME[".json"] });
 			res.end(JSON.stringify(state.snapshot()));
+			return;
+		}
+
+		if (controls && url.pathname === "/api/client/status" && req.method === "GET") {
+			json(res, 200, controls.status());
+			return;
+		}
+
+		if (controls && url.pathname.startsWith("/api/client/") && req.method === "POST") {
+			if (req.headers["x-agent-live-token"] !== controls.token) {
+				json(res, 403, { error: "forbidden" });
+				return;
+			}
+			void readJson(req).then(async (body) => {
+				if (url.pathname === "/api/client/model") return controls.selectModel(String(body.model ?? ""));
+				if (url.pathname === "/api/client/prompt") {
+					return controls.prompt(String(body.text ?? ""), typeof body.model === "string" ? body.model : undefined);
+				}
+				if (url.pathname === "/api/client/interrupt") return controls.interrupt();
+				if (url.pathname === "/api/client/approval") {
+					return controls.resolveApproval(
+						body.id as number | string,
+						Boolean(body.allow),
+						Boolean(body.forSession),
+					);
+				}
+				throw new Error("unknown client endpoint");
+			}).then(
+				(result) => json(res, 200, result ?? { ok: true }),
+				(error) => json(res, 400, { error: (error as Error).message }),
+			);
 			return;
 		}
 
@@ -91,6 +134,30 @@ export async function startServer(
 			await new Promise<void>((resolve) => server.close(() => resolve()));
 		},
 	};
+}
+
+function json(res: http.ServerResponse, status: number, value: unknown): void {
+	res.writeHead(status, { "content-type": MIME[".json"], "cache-control": "no-store" });
+	res.end(JSON.stringify(value));
+}
+
+function readJson(req: http.IncomingMessage): Promise<Record<string, unknown>> {
+	return new Promise((resolve, reject) => {
+		let body = "";
+		req.setEncoding("utf8");
+		req.on("data", (chunk) => {
+			body += chunk;
+			if (body.length > 1_000_000) reject(new Error("request body is too large"));
+		});
+		req.on("end", () => {
+			try {
+				resolve(body ? JSON.parse(body) : {});
+			} catch {
+				reject(new Error("invalid JSON"));
+			}
+		});
+		req.on("error", reject);
+	});
 }
 
 function write(res: http.ServerResponse, event: OfficeEvent): void {

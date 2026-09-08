@@ -2,17 +2,17 @@
  * Serves the office UI without pi attached, for iterating on the visuals.
  * Open the printed URL with ?demo=1 to play the scripted scene.
  */
-import { startServer } from "../src/server.ts";
-import { OfficeState } from "../src/state.ts";
+import { startServer } from "../src/runtime/server.ts";
+import { OfficeState } from "../src/core/state.ts";
 
 const state = new OfficeState(process.cwd());
 state.join("main", { name: "阿派", role: "preview" });
 
 const server = await startServer(state, {
-	port: Number(process.env.PI_OFFICE_PORT ?? 7788),
+	port: Number(process.env.AGENT_LIVE_PORT ?? 7788),
 });
 
-console.log(`Agent Office preview: ${server.url}/v2.html?demo=1`);
+console.log(`Agent Live preview: ${server.url}/v2.html?demo=1`);
 console.log(`Product page: ${server.url}/product.html`);
 console.log(`Original demo baseline: ${server.url}/?demo=1`);
 console.log(`Activity Hub prototype: ${server.url}/activity-hub.html`);

@@ -1,14 +1,14 @@
-# Agent Office 自定义能力边界
+# Agent Live 自定义能力边界
 
 > 状态：Creator v1 产品合同 · 2026-09-07
 
 ## 1. 适用范围
 
-普通用户只选择官方只读 Preset。只有用户在 Coding Agent 中主动运行 `/office customize` 时，才进入多轮自定义流程。
+普通用户只选择官方只读 Preset。只有用户在 Coding Agent 中主动运行 `/agent-live customize` 时，才进入多轮自定义流程。
 
-自定义使用 Coding Agent 已经配置的模型与 Provider。Agent Office 不要求用户再次填写 API Key，不保存 Provider 凭证，也不自行调用云端模型。
+自定义使用 Coding Agent 已经配置的模型与 Provider。Agent Live 不要求用户再次填写 API Key，不保存 Provider 凭证，也不自行调用云端模型。
 
-自定义模式的目标是：**把用户的自然语言稳定映射到 Agent Office 已经实现的声明式能力，而不是让模型自由修改产品源码。**
+自定义模式的目标是：**把用户的自然语言稳定映射到 Agent Live 已经实现的声明式能力，而不是让模型自由修改产品源码。**
 
 ## 2. 三种内容状态
 
@@ -20,7 +20,7 @@
 
 Custom Office 可以基于一个 Official Preset 保存允许的变化，也可以从 [Component Library](COMPONENT-LIBRARY.md) 中从头组装；两条路径最终都生成相同的 Office Spec，不覆盖安装目录中的官方文件。产品升级、校验失败或用户取消时，最后一个有效版本必须仍可恢复。
 
-运行 `/office customize` 后，Agent 必须先询问创作起点：三个 Official Preset 或“从头自定义”。选择“从头自定义”时仍需从已登记的 Layout Template 和基础组件开始，不能生成空白坐标或任意代码。
+运行 `/agent-live customize` 后，Agent 必须先询问创作起点：三个 Official Preset 或“从头自定义”。选择“从头自定义”时仍需从已登记的 Layout Template 和基础组件开始，不能生成空白坐标或任意代码。
 
 ## 3. Creator v1 可以映射的能力
 
@@ -90,13 +90,13 @@ Agent 必须先把一次输入拆成独立需求，再逐项分类：
 
 | 超出边界的需求 | 建议查看的源码 |
 | --- | --- |
-| 新家具、新区域视觉或新天气特效 | `web/v2/office-renderer.js`、`web/v2/content/props/` |
-| 新人物画法或动画 | `web/v2/sprite-renderer.js`、`web/v2/content/agent-skins/` |
-| 新生活行为机制或 step | `web/app.js`、`web/v2/content/life-activities/` |
-| 新工作语义或工具映射 | `src/protocol.ts`、`src/mapping.ts`、`web/app.js` |
-| 新宿主事件或 Connector | `src/index.ts`、`src/protocol.ts` |
-| 新空间合同、寻路或碰撞规则 | `web/v2/office-renderer.js`、`docs/OFFICE-THEMES.md` |
-| 新时间、天气或班次机制 | `web/v2/environment-runtime.js`、`web/v2/content/environments/` |
+| 新家具、新区域视觉或新天气特效 | `plugins/agent-live/web/v2/office-renderer.js`、`plugins/agent-live/web/v2/content/props/` |
+| 新人物画法或动画 | `plugins/agent-live/web/v2/sprite-renderer.js`、`plugins/agent-live/web/v2/content/agent-skins/` |
+| 新生活行为机制或 step | `plugins/agent-live/web/app.js`、`plugins/agent-live/web/v2/content/life-activities/` |
+| 新工作语义或工具映射 | `plugins/agent-live/src/core/protocol.ts`、`plugins/agent-live/src/core/mapping.ts`、`plugins/agent-live/web/app.js` |
+| 新宿主事件或 Connector | `plugins/agent-live/src/adapters/pi/adapter.ts`、`plugins/agent-live/src/core/protocol.ts` |
+| 新空间合同、寻路或碰撞规则 | `plugins/agent-live/web/v2/office-renderer.js`、`docs/OFFICE-THEMES.md` |
+| 新时间、天气或班次机制 | `plugins/agent-live/web/v2/environment-runtime.js`、`plugins/agent-live/web/v2/content/environments/` |
 
 查看源码意味着退出受约束的 Creator 流程，进入正常的软件开发流程。Creator Agent 只能解释入口，不能自动获得修改这些机制的权限。
 
@@ -133,7 +133,7 @@ Agent 必须先把一次输入拆成独立需求，再逐项分类：
 ## 8. 安全边界
 
 - 模型输出只是候选数据，不能直接作为可信配置运行。
-- Creator 只允许调用 Agent Office 提供的受限工具，不直接写官方 Preset。
+- Creator 只允许调用 Agent Live 提供的受限工具，不直接写官方 Preset。
 - API Key 和 Provider 配置始终由 Coding Agent 管理。
 - Custom Office 不得包含密钥、会话内容、真实代码或绝对文件路径。
 - 外部天气等数据由宿主标准化后注入，内容配置不主动联网。

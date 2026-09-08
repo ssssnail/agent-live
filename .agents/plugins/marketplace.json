@@ -1,0 +1,20 @@
+{
+  "name": "agent-live-marketplace",
+  "interface": {
+    "displayName": "Agent Live"
+  },
+  "plugins": [
+    {
+      "name": "agent-live",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agent-live"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-# Agent Office 产品文档
+# Agent Live 产品文档
 
 > 版本 0.1.0（原型）· 最后更新 2026-09-07
 
@@ -148,7 +148,7 @@ vibe coding 的体验断层在于：你把需求丢出去之后，屏幕上只�
 
 ```
 ┌────────────────────────────────────────────┬──────────────┐
-│ AGENT OFFICE  ●已连接  model  turn  usage  │              │
+│ AGENT LIVE  ●已连接  model  turn  usage  │              │
 ├────────────────────────────────────────────┤     员工     │
 │                                            │  ┌────────┐  │
 │            ▓ 白板 ▓        ▢窗▢ ▢窗▢       │  │阿派 主管│  │
@@ -181,9 +181,9 @@ ln -sfn /Users/snail/projects/agent-office ~/.pi/agent/extensions/agent-office
 
 | 命令 | 作用 |
 | --- | --- |
-| `/office` | 打开办公室页面 |
-| `/office demo` | 打开演示场景（不消耗 token） |
-| `/office status` | 打印当前地址（多会话时用来确认端口） |
+| `/agent-live` | 打开办公室页面 |
+| `/agent-live demo` | 打开演示场景（不消耗 token） |
+| `/agent-live status` | 打印当前地址（多会话时用来确认端口） |
 
 **不启动 pi 单独看画面**
 

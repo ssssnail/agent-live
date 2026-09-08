@@ -12,7 +12,7 @@ import { createEnvironmentRuntime } from "./environment-runtime.js";
 
 const CONTENT_ROOT = "/v2/content";
 const DEFAULT_PRESET = "tech-open-office";
-const PRESET_STORAGE_KEY = "agent-office:selected-preset";
+const PRESET_STORAGE_KEY = "agent-live:selected-preset";
 
 function savedPreset() {
 	try {
@@ -156,7 +156,7 @@ function installEnvironmentAdapter(content, query) {
 	if (query.has("weather")) overrides.weather = query.get("weather");
 	if (Object.keys(overrides).length) runtime.update(overrides);
 	window.OfficeEnvironment = runtime;
-	window.addEventListener("agent-office:environment", (event) => {
+	window.addEventListener("agent-live:environment", (event) => {
 		try {
 			runtime.update(event.detail ?? {});
 		} catch (error) {
@@ -205,6 +205,12 @@ function loadRuntime() {
 	});
 }
 
+async function loadCodexControls(query) {
+	if (query.get("client") !== "codex") return;
+	const module = await import("./codex-controls.js");
+	module.installCodexControls(query.get("token") ?? "");
+}
+
 function showBootError(error) {
 	console.error(error);
 	const pill = document.getElementById("conn");
@@ -237,6 +243,7 @@ try {
 	installOfficeAdapter(content, environment);
 	installSpriteAdapter(content);
 	await loadRuntime();
+	await loadCodexControls(query);
 } catch (error) {
 	showBootError(error);
 }

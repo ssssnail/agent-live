@@ -1,5 +1,5 @@
 /**
- * Agent Office renderer.
+ * Agent Live renderer.
  *
  * Consumes the office event stream (SSE) and drives one pixel character per
  * agent: where it walks, what it does, and what it is thinking out loud.
@@ -57,6 +57,7 @@
 			name: view.name,
 			role: view.role,
 			title: view.role,
+			model: view.model,
 			isLead,
 			isNpc: false,
 			seat,
@@ -399,7 +400,16 @@
 				}
 				break;
 			case "agent_join": {
-				if (!actors.has(ev.agent.id)) {
+				const existing = actors.get(ev.agent.id);
+				if (existing) {
+					existing.name = ev.agent.name ?? existing.name;
+					existing.role = ev.agent.role ?? existing.role;
+					existing.title = ev.agent.role ?? existing.title;
+					existing.model = ev.agent.model ?? existing.model;
+					existing.task = ev.agent.task ?? existing.task;
+					existing.detail = ev.agent.detail ?? existing.detail;
+					renderCrew();
+				} else {
 					const actor = makeActor(ev.agent);
 					actors.set(ev.agent.id, actor);
 					if (!actor.isLead) {

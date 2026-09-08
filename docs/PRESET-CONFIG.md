@@ -6,10 +6,10 @@
 
 ## 1. 配置在哪里
 
-所有内容都在 `web/v2/content/`，不依赖后端服务：
+所有内容都在 `plugins/agent-live/web/v2/content/`，不依赖后端服务：
 
 ```text
-web/v2/content/
+plugins/agent-live/web/v2/content/
 ├── catalog.json                 # 顶部选择器中显示哪些 Preset
 ├── presets/                     # Preset：只负责组合其他模块
 ├── styles/                      # 整体美术风格与 UI / Canvas tokens
@@ -61,7 +61,7 @@ web/v2/content/
 
 ## 4. Preset：组合入口
 
-文件位置：`web/v2/content/presets/<文件名>.json`
+文件位置：`plugins/agent-live/web/v2/content/presets/<文件名>.json`
 
 ```json
 {
@@ -100,7 +100,7 @@ web/v2/content/
 
 ## 5. Style：整体美术风格
 
-文件位置：`web/v2/content/styles/`
+文件位置：`plugins/agent-live/web/v2/content/styles/`
 
 Style 当前分为四组 token：
 
@@ -129,7 +129,7 @@ Style 只改变“怎么画”，不要在这里放座位、坐标、NPC 或行�
 
 ## 6. Layout：办公室空间
 
-文件位置：`web/v2/content/layouts/`
+文件位置：`plugins/agent-live/web/v2/content/layouts/`
 
 第一版必须遵守 `single-office-v1`：
 
@@ -183,7 +183,7 @@ Style 只改变“怎么画”，不要在这里放座位、坐标、NPC 或行�
 
 ## 7. Props：物件类型
 
-文件位置：`web/v2/content/props/`
+文件位置：`plugins/agent-live/web/v2/content/props/`
 
 ```json
 {
@@ -201,7 +201,7 @@ Style 只改变“怎么画”，不要在这里放座位、坐标、NPC 或行�
 - `capabilities`：该物件能承载的行为，例如 `research`、`compute`、`water`。
 - `renderer`：`office-renderer.js` 中已有的绘制类型。
 
-只增加同类型物件实例时，修改 Layout 即可。增加全新的 `renderer` 名称时，还必须在 `web/v2/office-renderer.js` 实现一次画法。
+只增加同类型物件实例时，修改 Layout 即可。增加全新的 `renderer` 名称时，还必须在 `plugins/agent-live/web/v2/office-renderer.js` 实现一次画法。
 
 当前已有 renderer：
 
@@ -220,7 +220,7 @@ lounge-sofa, dumbbell, restroom-door, boss-desk
 
 ## 8. Agent Skin：真实 Agent 外观
 
-文件位置：`web/v2/content/agent-skins/`
+文件位置：`plugins/agent-live/web/v2/content/agent-skins/`
 
 ```json
 {
@@ -249,7 +249,7 @@ lounge-sofa, dumbbell, restroom-door, boss-desk
 
 ## 9. NPC：办公室角色
 
-文件位置：`web/v2/content/npcs/`
+文件位置：`plugins/agent-live/web/v2/content/npcs/`
 
 ```json
 {
@@ -282,7 +282,7 @@ NPC 只存在于本地办公室，不会进入真实 Agent、工具、任务、T
 
 ## 10. Life Activities：办公室生活
 
-文件位置：`web/v2/content/life-activities/`
+文件位置：`plugins/agent-live/web/v2/content/life-activities/`
 
 Agent 接水示例：
 
@@ -339,7 +339,7 @@ Life Activity 只产生画面行为和绿色生活气泡，不写入动态日志
 
 ## 11. Environment：公共运行环境
 
-文件位置：`web/v2/content/environments/`
+文件位置：`plugins/agent-live/web/v2/content/environments/`
 
 Environment 统一管理所有 Preset 都会用到的运行规则：
 
@@ -360,7 +360,7 @@ Environment 统一管理所有 Preset 都会用到的运行规则：
 
 ```js
 window.OfficeEnvironment.update({ weather: "snow" });
-window.dispatchEvent(new CustomEvent("agent-office:environment", {
+window.dispatchEvent(new CustomEvent("agent-live:environment", {
   detail: { weather: "cloudy" }
 }));
 ```
@@ -369,7 +369,7 @@ window.dispatchEvent(new CustomEvent("agent-office:environment", {
 
 ## 12. Atmosphere：环境视觉
 
-文件位置：`web/v2/content/atmospheres/`
+文件位置：`plugins/agent-live/web/v2/content/atmospheres/`
 
 ```json
 {

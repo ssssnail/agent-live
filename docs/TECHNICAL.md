@@ -1,40 +1,20 @@
-# Agent Office 技术文档
+# Agent Live 技术文档
 
 > 版本 0.1.0 · 最后更新 2026-09-07 · 对应 pi 0.84.2 / Node 22.23.2
 
 ## 1. 架构总览
 
-```
-┌─────────────────────── pi 进程 ───────────────────────┐
-│                                                       │
-│  pi 事件总线                                          │
-│      │ session_start / message_update / tool_*        │
-│      ▼                                                │
-│  src/index.ts  ── 翻译层 ──▶ OfficeState (src/state.ts)│
-│      │                            │                   │
-│      │ mapping.ts                 │ subscribe()       │
-│      │ (工具名→工位/中文标签)      ▼                   │
-│      │                      src/server.ts             │
-│      │                      http://127.0.0.1:7788     │
-│      └──────────────────────────  │                   │
-└───────────────────────────────────┼───────────────────┘
-                                    │ SSE (text/event-stream)
-                                    ▼
-                   ┌────────── 浏览器 ───────────┐
-                   │ app.js 事件状态机与动画循环  │
-                   │          ▲                  │
-                   │ 原版      │      V2          │
-                   │ office.js │ office-renderer │
-                   │ sprites.js│ sprite-renderer │
-                   │           │ ▲               │
-                   │           │ Preset + 八类内容│
-                   └─────────────────────────────┘
+当前公共架构、依赖方向和 Adapter Contract 以 [ARCHITECTURE.md](ARCHITECTURE.md) 为准。本文件继续记录协议、Pi 映射和渲染实现细节。
+
+```text
+Pi / Codex → Adapter → Core → Runtime → Browser Renderer
+                                      ↕ optional host controls
 ```
 
 关键点：
 
-- 服务**跑在 pi 进程内**，会话结束即关闭。没有独立守护进程，没有持久化。
-- 数据流**严格单向**。浏览器只监听，不回传，所以 SSE 足够，不需要 WebSocket。
+- Pi 的服务跑在 Pi 进程内；Codex 使用随页面生命周期运行的轻量客户端。两者都没有守护进程。
+- 画面事件通过 SSE 单向传输；Codex 的 Prompt、模型、停止和授权通过本地 HTTP 控制接口回传。
 - 前后端共享 `protocol.ts` 定义的事件词汇，但前端是纯 JS（无构建步骤），靠约定而非类型检查保持一致。
 - 原版和 V2 共用 `app.js` 的事件状态机；V2 的地图、角色、导航和视觉 token 由内容配置与两个原生 renderer 提供，不加载原版 `office.js` / `sprites.js`。
 
@@ -55,21 +35,19 @@
 
 ```
 agent-office/
-├── index.ts              # 根入口，re-export src/index.ts（pi 要求扩展目录根有 index.ts）
+├── index.ts              # Pi 兼容入口，re-export 官方 Pi Adapter
 ├── package.json          # type: module；pi.extensions 声明入口
 ├── README.md
 ├── docs/                 # 产品、愿景、内容模型、平台能力与技术文档
-├── scripts/
+├── plugins/agent-live/scripts/
 │   ├── preview.ts        # 脱离 pi 单独起服务，用于调视觉
 │   ├── validate-content.ts # 校验 V2 内容合同
 │   └── validate-environment.ts # 校验时间、天气与 NPC 班次
-├── src/
-│   ├── index.ts          # 扩展主体：订阅 pi 事件，翻译成办公室动作
-│   ├── protocol.ts       # 前后端共享的事件协议
-│   ├── state.ts          # 状态机：员工、日志、节流、广播
-│   ├── server.ts         # HTTP + SSE 服务
-│   └── mapping.ts        # 工具名 → 工位 / 中文标签 / 委派参数解析
-└── web/
+├── plugins/agent-live/src/
+│   ├── core/             # 标准协议、状态与工具语义
+│   ├── runtime/          # 共享本地服务和生命周期
+│   └── adapters/         # Adapter Contract、Pi 与 Codex 实现
+└── plugins/agent-live/web/
     ├── index.html        # 原版入口（冻结回归基线）
     ├── style.css         # 原版深色像素风 UI
     ├── sprites.js        # 原版程序化角色与粒子
@@ -89,17 +67,17 @@ agent-office/
 
 | 阶段 | 触发 | 行为 |
 | --- | --- | --- |
-| 启动 | `session_start` 或首次 `/office` | `boot()` 建 `OfficeState`、主管上班、起 HTTP 服务、状态栏显示地址 |
+| 启动 | `session_start` 或首次 `/agent-live` | `boot()` 建 `OfficeState`、主管上班、起 HTTP 服务、状态栏显示地址 |
 | 运行 | 各类 pi 事件 | 翻译成 `OfficeEvent` 广播给所有连接的浏览器 |
 | 关闭 | `session_shutdown` | 关服务、断开所有 SSE 客户端、`dispose()` 清空状态 |
 
-`boot()` 幂等（`if (state) return`），所以 `/office` 命令在 `session_start` 之前被调用也安全。
+`boot()` 幂等（`if (state) return`），所以 `/agent-live` 命令在 `session_start` 之前被调用也安全。
 
 启动失败时：有 UI 就 `ctx.ui.notify(..., "error")`，无 UI（如 `pi -p` 打印模式）落到 `console.error`，避免静默失败。
 
 ## 5. 事件协议
 
-定义在 `src/protocol.ts`，被两侧共享。
+定义在 `plugins/agent-live/src/core/protocol.ts`，被两侧共享。
 
 ### 5.1 事件表
 
@@ -139,7 +117,7 @@ interface AgentView {
 
 ## 6. pi 事件 → 办公室事件
 
-`src/index.ts` 的翻译规则：
+`plugins/agent-live/src/adapters/pi/adapter.ts` 的翻译规则：
 
 | pi 事件 | 处理 |
 | --- | --- |
@@ -183,7 +161,7 @@ if (thinking.length > thinkingCursor) {
 
 ## 7. 工具 → 工位映射
 
-`src/mapping.ts`。按工具名正则匹配，**不硬编码具体工具**，所以自定义工具也能自动归位：
+`plugins/agent-live/src/core/mapping.ts`。按工具名正则匹配，**不硬编码具体工具**，所以自定义工具也能自动归位：
 
 | 正则 | 工位 |
 | --- | --- |
@@ -227,7 +205,7 @@ if (thinking.length > thinkingCursor) {
 
 ## 9. 服务端
 
-`src/server.ts`，约 170 行。
+`plugins/agent-live/src/runtime/server.ts`，约 170 行。
 
 ### 9.1 路由
 
@@ -241,12 +219,12 @@ if (thinking.length > thinkingCursor) {
 
 ### 9.2 端口探测
 
-从 `PI_OFFICE_PORT`（默认 7788）开始，遇 `EADDRINUSE` 递增，最多尝试 12 次（7788–7800）。这样多个 pi 会话可以并存，各占一个端口，互不干扰。
+从 `AGENT_LIVE_PI_PORT`（默认 7788）开始，遇 `EADDRINUSE` 递增，最多尝试 12 次（7788–7800）。这样多个 pi 会话可以并存，各占一个端口，互不干扰。
 
 ### 9.3 静态文件与安全
 
 - `WEB_ROOT = path.resolve(moduleDir(), "..", "web")`。`moduleDir()` 优先用 `import.meta.url`，失败回退 `__dirname` / `cwd`。
-  - **软链接接入时仍然正确**：根 `index.ts` 只做 re-export，`import.meta.url` 解析到真实的 `src/`，`../web` 因此指向真实项目目录。
+  - **软链接接入时仍然正确**：根 `index.ts` 只做 re-export，`import.meta.url` 解析到真实的 `plugins/agent-live/src/`，`../web` 因此指向真实项目目录。
 - 解析后校验 `filePath.startsWith(WEB_ROOT)`，否则 403，防目录穿越。
 - MIME 白名单，未知扩展名回落 `application/octet-stream`。
 - **只绑 `127.0.0.1`，无鉴权**。这是刻意的：内容包含代码路径与推理片段，不应暴露到局域网。
@@ -257,7 +235,7 @@ if (thinking.length > thinkingCursor) {
 
 ## 10. 状态机
 
-`src/state.ts`，`OfficeState` 类。
+`plugins/agent-live/src/core/state.ts`，`OfficeState` 类。
 
 | 常量 | 值 | 作用 |
 | --- | --- | --- |
@@ -272,7 +250,7 @@ if (thinking.length > thinkingCursor) {
 
 ## 11. 前端渲染
 
-`web/app.js`。
+`plugins/agent-live/web/app.js`。
 
 ### 11.1 分辨率与缩放
 
@@ -334,7 +312,7 @@ ctx.setTransform(1, 0, 0, 1, 0, 0);                // 第二层：名牌、气�
 
 ## 12. 地图与寻路
 
-原版实现在 `web/office.js`；V2 的同一组导航数据来自 `web/v2/content/layouts/demo-office.json`，由 `web/v2/office-renderer.js` 暴露给 Runtime。二者都使用 8px 网格和整数像素绘制。
+原版实现在 `plugins/agent-live/web/office.js`；V2 的同一组导航数据来自 `plugins/agent-live/web/v2/content/layouts/demo-office.json`，由 `plugins/agent-live/web/v2/office-renderer.js` 暴露给 Runtime。二者都使用 8px 网格和整数像素绘制。
 
 导航靠固定走道而非通用寻路算法：
 
@@ -374,13 +352,13 @@ endMeeting()     清 inMeeting，各自 retarget()
 
 ## 14. 演示模式
 
-`runDemo()` 在 `web/app.js` 内，通过 `apply()` 灌入伪造事件，与真实 SSE 走完全相同的渲染路径。
+`runDemo()` 在 `plugins/agent-live/web/app.js` 内，通过 `apply()` 灌入伪造事件，与真实 SSE 走完全相同的渲染路径。
 
 **演示脚本不额外发 `log` 事件**，只在委派处发一条（因为服务端确实会为委派单独广播日志），其余动态条目全由 §11.7 的 `feed()` 产生。这条约束必须保持：早期演示脚本给每条思考 / 汇报 / 工具都手工补了一条 `log`，正好掩盖住了前端漏写日志的缺口，代价是演示成了唯一“好使”的模式。
 
 `?demo=1` 自动播放，否则 `connect()` 建立 SSE。演示只播一遍，不循环。
 
-后端曾有一份对称的 `runDemo()`，已删除：两份脚本会各自漂移，留前端这份就够，`/office demo` 只负责用 `?demo=1` 打开浏览器。
+后端曾有一份对称的 `runDemo()`，已删除：两份脚本会各自漂移，留前端这份就够，`/agent-live demo` 只负责用 `?demo=1` 打开浏览器。
 
 ## 15. 安装与部署
 
@@ -388,10 +366,10 @@ endMeeting()     清 inMeeting，各自 retarget()
 ln -sfn /Users/snail/projects/agent-office ~/.pi/agent/extensions/agent-office
 ```
 
-pi 要求扩展位于 `~/.pi/agent/extensions/` 下的子目录，且入口是该目录根的 `index.ts`。项目的实际代码在 `src/`，所以根 `index.ts` 只有一行：
+pi 要求扩展位于 `~/.pi/agent/extensions/` 下的子目录，且入口是该目录根的 `index.ts`。项目的实际代码在 `plugins/agent-live/src/`，所以根 `index.ts` 只有一行：
 
 ```ts
-export { default } from "./src/index.ts";
+export { default } from "./src/adapters/pi/adapter.ts";
 ```
 
 这样既满足 pi 的发现规则，又不必把源码平铺到根目录，也不用改用户的 `settings.json`。
@@ -400,8 +378,8 @@ export { default } from "./src/index.ts";
 
 | 环境变量 | 默认 | 作用 |
 | --- | --- | --- |
-| `PI_OFFICE_PORT` | 7788 | 起始端口，冲突时向后探测 12 次 |
-| `PI_OFFICE_AUTO_OPEN` | 未设置 | 设为 `1` 则会话启动时自动打开浏览器 |
+| `AGENT_LIVE_PI_PORT` | 7788 | 起始端口，冲突时向后探测 12 次 |
+| `AGENT_LIVE_AUTO_OPEN` | 未设置 | 设为 `1` 则会话启动时自动打开浏览器 |
 
 ## 17. 验证记录
 
@@ -448,13 +426,13 @@ export { default } from "./src/index.ts";
 
 ## 19. 扩展指南
 
-新功能只扩展 V2；`web/office.js` 和 `web/sprites.js` 保持冻结。
+新功能只扩展 V2；`plugins/agent-live/web/office.js` 和 `plugins/agent-live/web/sprites.js` 保持冻结。
 
-**加一个角色外观**：在 `web/v2/content/agent-skins/tiny-developers.json` 增加角色名、上衣与滚边配色。若它还是宿主传来的新职位名，再在 `src/index.ts` 的 `ROLE_NAMES` 增加中文名。名字匹配走小写。
+**加一个角色外观**：在 `plugins/agent-live/web/v2/content/agent-skins/tiny-developers.json` 增加角色名、上衣与滚边配色。若它还是宿主传来的新职位名，再在 `plugins/agent-live/src/adapters/pi/adapter.ts` 的 `ROLE_NAMES` 增加中文名。名字匹配走小写。
 
 **加一个已有类别的 Prop**：先在 Props registry 声明类型、尺寸、能力与 renderer，再在 Layout 的 `propInstances` 中放置实例。功能锚点必须位于可达通道上。
 
-**加一种全新的 Prop 表现或能力**：除内容声明外，还要在 `web/v2/office-renderer.js` 增加绘制逻辑；若它承载新的真实工作事件，再同步扩展 `src/protocol.ts`、`src/mapping.ts` 与 `web/app.js` 的动作和特效分支。纯生活设施不应伪装成 Work Event。
+**加一种全新的 Prop 表现或能力**：除内容声明外，还要在 `plugins/agent-live/web/v2/office-renderer.js` 增加绘制逻辑；若它承载新的真实工作事件，再同步扩展 `plugins/agent-live/src/core/protocol.ts`、`plugins/agent-live/src/core/mapping.ts` 与 `plugins/agent-live/web/app.js` 的动作和特效分支。纯生活设施不应伪装成 Work Event。
 
 **加一个 Layout**：创建新的 Layout JSON，保持 `single-office-v1`、384×216、8 个座位、连通导航，并为六种必需 Work Semantic 提供落点。随后新增或更新一个 Preset 引用它。座位默认使用 `workstation`，也可通过 `seats[].renderer` 选择内置的 `cubicle-workstation`、`executive-seat` 或 `boardroom-seat`。
 
@@ -462,7 +440,7 @@ export { default } from "./src/index.ts";
 
 **接新的委派工具**：若参数结构不是现有三种形态，扩展 `describeDelegation()`；若进度回传结构不同，扩展 `syncDelegationProgress()` 的 results 提取逻辑。
 
-**换成精灵图**：`web/v2/sprite-renderer.js` 的 `drawCharacter(c, actor, t)` 是角色绘制入口，保持 Runtime 需要的返回接口不变即可整体替换为贴图绘制。
+**换成精灵图**：`plugins/agent-live/web/v2/sprite-renderer.js` 的 `drawCharacter(c, actor, t)` 是角色绘制入口，保持 Runtime 需要的返回接口不变即可整体替换为贴图绘制。
 
 ## 20. 性能与资源
 
@@ -501,8 +479,8 @@ Environment 也是本地模块：核心不主动请求天气服务。宿主可�
 新增目录：
 
 ```text
-web/v2.html
-web/v2/
+plugins/agent-live/web/v2.html
+plugins/agent-live/web/v2/
   bootstrap.js
   environment-runtime.js
   office-renderer.js

@@ -1,10 +1,10 @@
-# Agent Office 基础组件库
+# Agent Live 基础组件库
 
 > 状态：目标内容架构 · 2026-09-07
 
 ## 1. 核心定义
 
-Agent Office 只维护一套基础组件全集，称为 **Component Library**。Official Preset 和 Custom Office 都不能私自定义另一套运行能力，只能从组件库中选择、实例化和覆盖允许的参数。
+Agent Live 只维护一套基础组件全集，称为 **Component Library**。Official Preset 和 Custom Office 都不能私自定义另一套运行能力，只能从组件库中选择、实例化和覆盖允许的参数。
 
 ```text
 Office Engine
@@ -177,7 +177,7 @@ Office Spec 是 Preset 与 Custom Office 共用的最终组装合同。目标形
 
 ## 7. Preset 与纯自定义
 
-运行 `/office customize` 后，用户选择创作起点：
+运行 `/agent-live customize` 后，用户选择创作起点：
 
 ```text
 Tech 开放式办公室
@@ -210,7 +210,7 @@ Tech 开放式办公室
 
 ## 9. 从当前实现迁移
 
-当前 `web/v2/content/` 是过渡形态：Preset 每类只引用一个整包文件，Props、NPC 和 Life Activities 仍按场景分组。迁移时按以下顺序进行，且不改变三个正式 Preset 的视觉结果：
+当前 `plugins/agent-live/web/v2/content/` 是过渡形态：Preset 每类只引用一个整包文件，Props、NPC 和 Life Activities 仍按场景分组。迁移时按以下顺序进行，且不改变三个正式 Preset 的视觉结果：
 
 1. 合并重复 Prop Type，建立唯一组件 ID。
 2. 把 NPC 条目提取为可复用 NPC Template。
@@ -220,6 +220,6 @@ Tech 开放式办公室
 6. 抽取 Browser、CLI 和 Creator 共用的 Validator。
 7. 定义 Office Spec 的合并、编译、保存和版本迁移规则。
 8. 用同一个 Compiler 重建三个 Official Preset，并通过现有视觉回归。
-9. 最后实现 `/office customize`、Draft、预览、保存和回滚。
+9. 最后实现 `/agent-live customize`、Draft、预览、保存和回滚。
 
 迁移完成前，现有配置手册仍描述当前可运行格式；本文件描述 Creator 所依赖的目标内容架构。

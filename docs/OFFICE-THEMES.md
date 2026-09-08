@@ -178,14 +178,14 @@ Environment 集中管理跨 Preset 的现实规则：
 
 当前已经有两条明确分开的实现路径：
 
-- **原版基线**：`web/office.js`、`web/sprites.js`、`web/style.css` 和 `web/app.js`。只用于保留已验证的 Demo，不再承接新内容开发。
-- **V2 内容入口**：`web/v2.html` 与 `web/v2/bootstrap.js`。Bootstrap 解析 Preset、加载并校验八类内容、创建 Environment Runtime、应用 UI tokens，然后启动 Office Runtime。
-- **V2 原生办公室渲染**：`web/v2/office-renderer.js` 从 Layout、Props 和 Style 配置生成地图、设施、导航与工作特效，不加载原版 `web/office.js`。
-- **V2 原生角色渲染**：`web/v2/sprite-renderer.js` 从 Agent Skin 和 Style 配置生成角色与粒子，不加载原版 `web/sprites.js`。
-- **共享固定 Runtime**：`web/app.js` 仍由原版和 V2 共用，负责 SSE、状态机、移动、气泡、交接、侧栏与动画循环。
-- **工作事实层**：`src/protocol.ts`、`src/mapping.ts` 和 `src/state.ts` 负责 Work Event、工具映射和会话状态，不属于可替换内容。
+- **原版基线**：`plugins/agent-live/web/office.js`、`plugins/agent-live/web/sprites.js`、`plugins/agent-live/web/style.css` 和 `plugins/agent-live/web/app.js`。只用于保留已验证的 Demo，不再承接新内容开发。
+- **V2 内容入口**：`plugins/agent-live/web/v2.html` 与 `plugins/agent-live/web/v2/bootstrap.js`。Bootstrap 解析 Preset、加载并校验八类内容、创建 Environment Runtime、应用 UI tokens，然后启动 Office Runtime。
+- **V2 原生办公室渲染**：`plugins/agent-live/web/v2/office-renderer.js` 从 Layout、Props 和 Style 配置生成地图、设施、导航与工作特效，不加载原版 `plugins/agent-live/web/office.js`。
+- **V2 原生角色渲染**：`plugins/agent-live/web/v2/sprite-renderer.js` 从 Agent Skin 和 Style 配置生成角色与粒子，不加载原版 `plugins/agent-live/web/sprites.js`。
+- **共享固定 Runtime**：`plugins/agent-live/web/app.js` 仍由原版和 V2 共用，负责 SSE、状态机、移动、气泡、交接、侧栏与动画循环。
+- **工作事实层**：`plugins/agent-live/src/core/protocol.ts`、`plugins/agent-live/src/core/mapping.ts` 和 `plugins/agent-live/src/core/state.ts` 负责 Work Event、工具映射和会话状态，不属于可替换内容。
 
-八类内容已经按目录拆分到 `web/v2/content/`。当前对用户开放三套正式 Preset（Tech 开放式办公室、长桌会议室、老式办公室），另保留五套内部回归内容；共有两套 Style 和五套 Layout。当前文件仍是按场景组合的过渡 registry，还没有完成唯一 Component Library、Placement Slot 和 Office Spec Compiler 的迁移。饮水、保洁与支持人员的本地 Life Activity 已经跑通，真实 Work Event 仍可立即打断 Agent 的生活行为。
+八类内容已经按目录拆分到 `plugins/agent-live/web/v2/content/`。当前对用户开放三套正式 Preset（Tech 开放式办公室、长桌会议室、老式办公室），另保留五套内部回归内容；共有两套 Style 和五套 Layout。当前文件仍是按场景组合的过渡 registry，还没有完成唯一 Component Library、Placement Slot 和 Office Spec Compiler 的迁移。饮水、保洁与支持人员的本地 Life Activity 已经跑通，真实 Work Event 仍可立即打断 Agent 的生活行为。
 
 新增的两套空间组织已经进入正式 V2 入口：
 
@@ -490,7 +490,7 @@ Preset 切换只改变表现内容，不能清空当前会话或改写 Agent 状
 
 M0/M1 已完成的验收：
 
-- `/office demo` 的事件顺序、角色移动、工具落点和交接动画与当前版本一致。
+- `/agent-live demo` 的事件顺序、角色移动、工具落点和交接动画与当前版本一致。
 - V2 房间、角色和粒子的 15 个逐像素回归用例均无差异。
 - 内置 Preset 与八类内容通过 schema、引用、座位、时间/天气、班次和必需工作能力校验。
 - V2 原生 renderer 不加载原版 `office.js` / `sprites.js`，原版文件保持冻结。
@@ -503,8 +503,8 @@ M2–M4 新增的验收门：
 
 当前迁移入口：
 
-- 原版：`/?demo=1`，继续由 `web/office.js`、`web/sprites.js`、`web/app.js` 驱动，不在迁移中修改。
-- 新版：`/v2.html?demo=1&preset=<id>`，加载 URL 指定的 Preset（缺省为 `builtin/tech-open-office`），再由 `web/v2/office-renderer.js` 与 `web/v2/sprite-renderer.js` 原生渲染；只与原版共用固定的 `web/app.js` Runtime。
+- 原版：`/?demo=1`，继续由 `plugins/agent-live/web/office.js`、`plugins/agent-live/web/sprites.js`、`plugins/agent-live/web/app.js` 驱动，不在迁移中修改。
+- 新版：`/v2.html?demo=1&preset=<id>`，加载 URL 指定的 Preset（缺省为 `builtin/tech-open-office`），再由 `plugins/agent-live/web/v2/office-renderer.js` 与 `plugins/agent-live/web/v2/sprite-renderer.js` 原生渲染；只与原版共用固定的 `plugins/agent-live/web/app.js` Runtime。
 - 回归：`/v2/parity.html` 对原版和 V2 的房间、角色与粒子做逐像素比较，当前 15 个用例均为 0 channel differences。
 - 后续只在新版内容和 Runtime 上开发；原版作为视觉与行为回归基线保留。
 
@@ -514,4 +514,4 @@ M2–M4 新增的验收门：
 - 不做园区、多建筑、多楼层、房间下钻或自由镜头。
 - 不开放故事规则、工作语义、地图脚本或任意世界编辑。
 - 不立即建设可视化编辑器、内容市场或任意模块组合系统。
-- `web/big-company.*` 只保留为一次视觉探索，不属于当前产品路线。
+- `plugins/agent-live/web/big-company.*` 只保留为一次视觉探索，不属于当前产品路线。

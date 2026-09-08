@@ -8,5 +8,5 @@ First public beta.
 - Real-time thinking, speaking, tool activity, delegation, usage and status updates.
 - Six built-in presets, including Old-School Office and Boardroom Office layouts.
 - Local-only HTTP/SSE viewer with no hosted backend.
-- `/office`, `/office demo`, `/office status` and `/office preset [id]` commands.
+- `/agent-live`, `/agent-live demo`, `/agent-live status` and `/agent-live preset [id]` commands.
 - Preset selection persisted in the browser.

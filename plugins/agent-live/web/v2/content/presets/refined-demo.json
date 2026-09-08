@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"kind": "preset",
 	"id": "builtin/refined-demo",
-	"name": "Agent Office Demo",
+	"name": "Agent Live Demo",
 	"version": "1.0.0",
 	"engine": { "min": "0.2.0" },
 	"contract": "single-office-v1",

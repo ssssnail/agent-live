@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"kind": "preset",
 	"id": "builtin/demo-office",
-	"name": "Agent Office 原版",
+	"name": "Agent Live 原版",
 	"version": "1.0.0",
 	"engine": { "min": "0.2.0" },
 	"contract": "single-office-v1",

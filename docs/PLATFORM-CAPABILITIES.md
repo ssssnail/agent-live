@@ -11,7 +11,7 @@ Pi 的逐项接口审计与演出设计见 [Pi 能力与 Live Agent Show 演出�
 
 三家都足以支撑 Live Agent Show，但适合的接入方式和最终画面不同：
 
-- **Pi** 最适合继续完善 Agent Office 和事件映射。扩展直接运行在 Agent 会话内，文字、思考和工具过程都能实时拿到；短板是多 Agent 没有统一的原生拓扑，需要依赖具体委派工具的返回结构。
+- **Pi** 最适合继续完善 Agent Live 和事件映射。扩展直接运行在 Agent 会话内，文字、思考和工具过程都能实时拿到；短板是多 Agent 没有统一的原生拓扑，需要依赖具体委派工具的返回结构。
 - **Codex** 在“由 Live Agent Show 管理会话”的模式下信息最完整。App Server 已暴露线程、回合、计划、命令、文件修改、MCP、网页搜索、审批、Token、多 Agent 协作和历史回放等结构化事件，最接近完整的制作系统。
 - **Cursor** 有三套不同深度的入口：IDE Hooks 适合无感旁观现有工作流；CLI JSON 流适合由产品启动本地演出；Cloud Agents SSE 适合远程任务和多任务状态汇总。它的优势是落地场景多，但三种入口需要分别适配。
 
@@ -51,7 +51,7 @@ Pi 的 Extension API 和 RPC 事件都非常适合直播：
 - Retry、Compaction、Queue 等运行状态可以转译成“返工”“整理上下文”“等待下一项任务”等剧情节拍。
 - Session JSONL 可以生成 Episode 回放。
 
-这意味着当前 Agent Office 已经能完整表现一个主 Agent 的工作过程：
+这意味着当前 Agent Live 已经能完整表现一个主 Agent 的工作过程：
 
 `收到任务 → 思考 → 说话 → 使用工具 → 遇到问题 → 重试 → 完成 → 下班`
 

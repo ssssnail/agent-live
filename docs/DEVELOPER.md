@@ -1,4 +1,4 @@
-# Agent Office 开发者接入指南
+# Agent Live 开发者接入指南
 
 > 面向 Preset 作者、宿主 Connector 开发者和本地二次开发者
 
@@ -19,11 +19,11 @@ npm run preview
 
 | 目标 | 主要入口 | 通常需要修改 |
 | --- | --- | --- |
-| 新增办公室 Preset | `web/v2/content/` | 只改 JSON |
-| 接入新的 Agent 宿主 | `src/index.ts`、`src/protocol.ts` | 把宿主事件翻译成 `OfficeEvent` |
-| 调整工具语义 | `src/mapping.ts` | 工具名到 `OfficeAction` 的映射 |
-| 新增家具画法 | `web/v2/office-renderer.js` | Renderer + Props 声明 |
-| 新增人物动画 | `web/v2/sprite-renderer.js` | Renderer + Agent Skin 声明 |
+| 新增办公室 Preset | `plugins/agent-live/web/v2/content/` | 只改 JSON |
+| 接入新的 Agent 宿主 | `plugins/agent-live/src/adapters/pi/adapter.ts`、`plugins/agent-live/src/core/protocol.ts` | 把宿主事件翻译成 `OfficeEvent` |
+| 调整工具语义 | `plugins/agent-live/src/core/mapping.ts` | 工具名到 `OfficeAction` 的映射 |
+| 新增家具画法 | `plugins/agent-live/web/v2/office-renderer.js` | Renderer + Props 声明 |
+| 新增人物动画 | `plugins/agent-live/web/v2/sprite-renderer.js` | Renderer + Agent Skin 声明 |
 | 注入真实天气/时间 | `OfficeEnvironment` | 不需要修改 Renderer |
 
 宿主接入与内容制作相互独立：Connector 只报告“谁在做什么”，Preset 决定这件事在当前办公室如何表现。
@@ -44,7 +44,7 @@ Preset
 └── Environment       时钟、天气输入、灯光和 NPC 班次
 ```
 
-完整字段说明见 [Preset 配置手册](PRESET-CONFIG.md)。配置目录内也有一份就近说明：[Content README](../web/v2/content/README.md)。
+完整字段说明见 [Preset 配置手册](PRESET-CONFIG.md)。配置目录内也有一份就近说明：[Content README](../plugins/agent-live/web/v2/content/README.md)。
 
 这仍是按文件打包的过渡形态。Creator 目标架构为：
 
@@ -126,7 +126,7 @@ URL 方式适合调试或启动 WebView：
 window.OfficeEnvironment.update({ weather: "cloudy" });
 window.OfficeEnvironment.update({ time: "18:00" });
 
-window.dispatchEvent(new CustomEvent("agent-office:environment", {
+window.dispatchEvent(new CustomEvent("agent-live:environment", {
   detail: { weather: "rain" }
 }));
 ```
@@ -167,4 +167,4 @@ npm run check
 - Environment 测试覆盖天气覆盖、18:00 下班和跨夜班次。
 - 原版 Demo 由浏览器像素回归页单独保护。
 
-不要在内容 JSON 中加入真实网络请求、密钥或用户数据。Agent Office 的默认安全边界始终是本机 `127.0.0.1`。
+不要在内容 JSON 中加入真实网络请求、密钥或用户数据。Agent Live 的默认安全边界始终是本机 `127.0.0.1`。

@@ -1,5 +1,5 @@
 /**
- * Wire protocol between the pi extension (producer) and the browser office (renderer).
+ * Host-neutral wire protocol between coding-agent adapters and Agent Live renderers.
  * Kept dependency-free so both sides can share the vocabulary without a build step.
  */
 

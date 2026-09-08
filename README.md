@@ -1,4 +1,4 @@
-# Agent Office
+# Agent Live
 
 把 coding agent 的思考过程和协作过程，实时渲染成旁边一间像素办公室。
 
@@ -9,7 +9,7 @@
 pi 会话 ──(扩展订阅事件)──> OfficeState ──(SSE)──> 浏览器 canvas 办公室
 ```
 
-开发入口：[开发者接入指南](docs/DEVELOPER.md) · [基础组件库](docs/COMPONENT-LIBRARY.md) · [Preset 配置手册](docs/PRESET-CONFIG.md) · [自定义能力边界](docs/CUSTOMIZATION.md) · [技术文档](docs/TECHNICAL.md)。产品与研究文档：[产品文档](docs/PRODUCT.md) · [产品愿景](docs/VISION.md) · [Office 内容模型](docs/OFFICE-THEMES.md) · [平台能力分析](docs/PLATFORM-CAPABILITIES.md) · [Pi 能力审计](docs/PI-CAPABILITIES.md) · [产品形态](docs/PRODUCT-FORMS.md)。
+开发入口：[架构](docs/ARCHITECTURE.md) · [开发者接入指南](docs/DEVELOPER.md) · [基础组件库](docs/COMPONENT-LIBRARY.md) · [Preset 配置手册](docs/PRESET-CONFIG.md) · [自定义能力边界](docs/CUSTOMIZATION.md) · [技术文档](docs/TECHNICAL.md)。产品与研究文档：[产品文档](docs/PRODUCT.md) · [产品愿景](docs/VISION.md) · [Office 内容模型](docs/OFFICE-THEMES.md) · [平台能力分析](docs/PLATFORM-CAPABILITIES.md) · [Pi 能力审计](docs/PI-CAPABILITIES.md) · [产品形态](docs/PRODUCT-FORMS.md)。
 
 ## 快速开始
 
@@ -22,7 +22,7 @@ pi install git:github.com/ssssnail/agent-office
 重新启动 Pi 后输入：
 
 ```text
-/office
+/agent-live
 ```
 
 开发时也可以直接安装本地目录：
@@ -35,9 +35,9 @@ pi install /absolute/path/to/agent-office
 
 | 命令 | 作用 |
 | --- | --- |
-| `/office` | 打开办公室页面 |
-| `/office demo` | 打开演示场景（不消耗 token，用来看效果） |
-| `/office status` | 打印当前地址 |
+| `/agent-live` | 打开办公室页面 |
+| `/agent-live demo` | 打开演示场景（不消耗 token，用来看效果） |
+| `/agent-live status` | 打印当前地址 |
 
 不启动 pi 也能看画面：
 
@@ -45,15 +45,15 @@ pi install /absolute/path/to/agent-office
 npm run preview      # 然后打开 http://localhost:7788/?demo=1
 ```
 
-原版 Demo 永久保留在 `/?demo=1`。基于可替换内容架构的入口位于 `/v2.html?demo=1`；顶部 Preset 选择器提供 Tech 开放式办公室、长形会议室和老式办公室，旧原型与回归组合保留为内部内容。V2 使用自己的办公室与角色 renderer，只与原版共用固定的 `web/app.js` Runtime。后续视觉和内容调整只在新版入口继续。
+原版 Demo 永久保留在 `/?demo=1`。基于可替换内容架构的入口位于 `/v2.html?demo=1`；顶部 Preset 选择器提供 Tech 开放式办公室、长形会议室和老式办公室，旧原型与回归组合保留为内部内容。V2 使用自己的办公室与角色 renderer，只与原版共用固定的 `plugins/agent-live/web/app.js` Runtime。后续视觉和内容调整只在新版入口继续。
 
 正式 Preset 共用本地 Environment 配置：时间取用户本地时钟，窗外支持 `clear/cloudy/rain/snow`，室内灯光按时段变化，NPC 默认 06:00 上班、18:00 下班。核心不会主动访问天气服务；宿主可用 `?weather=rain` 或 `window.OfficeEnvironment.update({ weather: "rain" })` 注入外部天气。
 
-`web/big-company.*` 是已停止推进的视觉探索，不属于当前产品入口。
+`plugins/agent-live/web/big-company.*` 是已停止推进的视觉探索，不属于当前产品入口。
 
-环境变量：`PI_OFFICE_PORT` 改端口，`PI_OFFICE_AUTO_OPEN=1` 让会话启动时自动开浏览器。
+环境变量：`AGENT_LIVE_PI_PORT` 改端口，`AGENT_LIVE_AUTO_OPEN=1` 让会话启动时自动开浏览器。
 
-Agent Office 只在本机 `127.0.0.1` 启动 HTTP/SSE 服务，不需要云端后端，也不会主动上传代码、会话日志或使用统计。Pi 扩展会在本地读取当前会话事件并将它们发送给本机浏览器页面。
+Agent Live 只在本机 `127.0.0.1` 启动 HTTP/SSE 服务，不需要云端后端，也不会主动上传代码、会话日志或使用统计。Pi 扩展会在本地读取当前会话事件并将它们发送给本机浏览器页面。
 
 升级或卸载：
 
@@ -75,7 +75,7 @@ pi remove git:github.com/ssssnail/agent-office
 | `agent_settled` | 回工位待命 |
 | `message_end` 的 usage | 顶栏与员工卡上的 token / 成本 |
 
-工具到工位的映射在 `src/mapping.ts`，按工具名正则匹配，所以自定义工具也能自动归位：
+工具到工位的映射在 `plugins/agent-live/src/core/mapping.ts`，按工具名正则匹配，所以自定义工具也能自动归位：
 
 | 工具 | 工位 |
 | --- | --- |
@@ -90,9 +90,9 @@ pi remove git:github.com/ssssnail/agent-office
 
 单 agent 会话里只有"阿派"一个人。要看到真正的多人协作，需要装 pi 自带的 subagent 扩展示例
 （`examples/extensions/subagent`）；装好后 `scout` / `planner` / `reviewer` / `worker`
-会作为独立小人进场，各自带职位、工位和 token 统计。没装的话可以先用 `/office demo` 看效果。
+会作为独立小人进场，各自带职位、工位和 token 统计。没装的话可以先用 `/agent-live demo` 看效果。
 
-V2 角色定义在 `web/v2/content/agent-skins/tiny-developers.json`，同时覆盖 pi 的 subagent 命名和 ChatDev 风格的公司职位（CEO / CTO / 程序员 / 评审员 / 设计师……）。新增角色外观应修改 Agent Skin 内容；原版 `web/sprites.js` 只作为回归基线保留。
+V2 角色定义在 `plugins/agent-live/web/v2/content/agent-skins/tiny-developers.json`，同时覆盖 pi 的 subagent 命名和 ChatDev 风格的公司职位（CEO / CTO / 程序员 / 评审员 / 设计师……）。新增角色外观应修改 Agent Skin 内容；原版 `plugins/agent-live/web/sprites.js` 只作为回归基线保留。
 
 ## 借鉴 ChatDev 的地方
 
@@ -109,13 +109,14 @@ V2 角色定义在 `web/v2/content/agent-skins/tiny-developers.json`，同时覆
 ## 结构
 
 ```
-src/
-  index.ts     pi 扩展入口：订阅事件，翻译成办公室动作
-  state.ts     状态机：员工、日志、思考节流、SSE 广播
-  server.ts    零依赖 HTTP + SSE 服务，托管 web/
-  mapping.ts   工具名 -> 工位 / 中文标签 / 委派参数解析
-  protocol.ts  前后端共用的事件协议
-web/
+plugins/agent-live/src/
+  core/        标准事件、状态机和工具语义
+  runtime/     本地 HTTP/SSE 服务与生命周期
+  adapters/
+    contract.ts  宿主能力声明
+    pi/          Pi 官方 Adapter
+    codex/       Codex 官方 Adapter
+plugins/agent-live/web/
   index.html   原版入口（冻结基线）
   office.js    原版地图、家具与寻路
   sprites.js   原版像素小人和粒子
@@ -128,7 +129,8 @@ web/
     sprite-renderer.js   从 Agent Skin / Style 原生渲染角色与粒子
     content/             八类内容与内置 Preset
     parity.html          原版与 V2 的逐像素回归页
-scripts/
+plugins/agent-live/scripts/
+  codex-client.ts        Codex 轻量客户端入口
   preview.ts             不接 pi 单独预览
   validate-content.ts    校验 V2 内容合同
   validate-environment.ts 校验时间、天气和 NPC 班次
