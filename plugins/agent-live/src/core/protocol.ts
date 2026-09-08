@@ -58,8 +58,7 @@ export interface SessionInfo {
 	startedAt: number;
 }
 
-export type OfficeEvent =
-	| { type: "snapshot"; agents: AgentView[]; log: LogItem[]; session: SessionInfo }
+export type OfficeDelta =
 	| { type: "session"; session: SessionInfo }
 	| { type: "agent_join"; agent: AgentView }
 	| { type: "agent_leave"; id: string; ok: boolean }
@@ -78,3 +77,13 @@ export type OfficeEvent =
 	| { type: "delegate"; from: string; to: string; task: string }
 	| { type: "usage"; id: string; tokens: number; cost: number }
 	| { type: "log"; item: LogItem };
+
+/** One replayable engine event with its original wall-clock timestamp. */
+export interface RecordedOfficeEvent {
+	at: number;
+	event: OfficeDelta;
+}
+
+export type OfficeEvent =
+	| { type: "snapshot"; agents: AgentView[]; log: LogItem[]; session: SessionInfo; history: RecordedOfficeEvent[] }
+	| OfficeDelta;

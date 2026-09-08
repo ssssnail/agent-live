@@ -1,5 +1,6 @@
 /** Build the V2 office renderer and navigation model from content data. */
 export function createOfficeRenderer(content, environment = null) {
+	const localize = (value) => window.AgentLiveI18n?.text(value) ?? value;
 	const layout = content.layout;
 	const propTypes = content.props.types;
 	const C = { ...content.style.tokens.canvas, ...(content.atmosphere.styleOverrides?.canvas ?? {}) };
@@ -741,12 +742,13 @@ export function createOfficeRenderer(content, environment = null) {
 		c.textAlign = "left";
 		c.textBaseline = "top";
 		for (const area of AREAS) {
-			const width = Math.ceil(c.measureText(area.name).width) + 6;
+			const name = localize(area.name);
+			const width = Math.ceil(c.measureText(name).width) + 6;
 			px(c, area.x, area.y, width, 10, C.outline);
 			px(c, area.x + 1, area.y + 1, width - 2, 8, C.wallBase ?? C.woodDark);
 			px(c, area.x + 2, area.y + 2, 1, 6, C.activeAccent);
 			c.fillStyle = C.paper;
-			c.fillText(area.name, area.x + 4, area.y + 1);
+			c.fillText(name, area.x + 4, area.y + 1);
 		}
 		c.restore();
 	}

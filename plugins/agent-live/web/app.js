@@ -6,6 +6,9 @@
  */
 (() => {
 	const { Office, Sprites } = window;
+	const I18n = window.AgentLiveI18n ?? { t: (key) => key, text: (value) => value };
+	const t = (key, vars) => I18n.t(key, vars);
+	const tx = (value) => I18n.text(value);
 	const officeContent = window.OfficeContent ?? null;
 	const lifeActivities = officeContent?.lifeActivities?.entries ?? [];
 	const npcEntries = officeContent?.npcs?.entries ?? [];
@@ -47,6 +50,9 @@
 	const meetQueue = [];
 	let sound = false;
 	let nextNpcShiftCheck = 0;
+	let eventHistory = [];
+	let replay = null;
+	const replayButton = document.getElementById("replay");
 
 	function makeActor(view) {
 		const isLead = !view.parent;
@@ -54,9 +60,9 @@
 		const spawn = isLead ? Office.seatAnchor(seat) : Office.TARGETS.entry;
 		return {
 			id: view.id,
-			name: view.name,
-			role: view.role,
-			title: view.role,
+			name: tx(view.name),
+			role: tx(view.role),
+			title: tx(view.role),
 			model: view.model,
 			isLead,
 			isNpc: false,
@@ -73,7 +79,7 @@
 			path: [],
 			dest: spawn,
 			state: view.state ?? "idle",
-			detail: view.detail ?? "",
+			detail: tx(view.detail ?? ""),
 			task: view.task ?? "",
 			action: view.action ?? null,
 			tokens: view.tokens ?? 0,
@@ -209,7 +215,7 @@
 		actor._lifeAcc = 0;
 		actor.life = { activity, index, step, slot, phase: "walk", until: 0 };
 		goTo(actor, target);
-		if (index === 0 && activity.startBubble) bubble(actor, "life", activity.startBubble);
+		if (index === 0 && activity.startBubble) bubble(actor, "life", tx(activity.startBubble));
 	}
 
 	function startLife(actor, activity, now) {
@@ -256,7 +262,7 @@
 			life.phase = "dwell";
 			life.until = now + Number(life.step.durationMs ?? 1500);
 			if (life.step.hot) lifeHot.add(life.step.hot);
-			if (life.step.bubble) bubble(actor, "life", life.step.bubble);
+			if (life.step.bubble) bubble(actor, "life", tx(life.step.bubble));
 			actor.pose = life.step.pose ?? "stand";
 		}
 		if (life.phase !== "dwell") return;
@@ -280,9 +286,9 @@
 		const spawnPoint = fromEntry ? Office.TARGETS.entry : workPoint;
 		return {
 			id: `npc:${entry.id}`,
-			name: entry.name,
+			name: tx(entry.name),
 			role: entry.role,
-			title: entry.title ?? entry.role,
+			title: tx(entry.title ?? entry.role),
 			isLead: false,
 			isNpc: true,
 			seat: -1,
@@ -322,7 +328,7 @@
 			const npc = makeNpc(entry, fromEntry);
 			actors.set(npc.id, npc);
 			if (fromEntry) {
-				bubble(npc, "life", Office.npcShiftLabel?.("arrival") ?? "上班啦");
+				bubble(npc, "life", tx(Office.npcShiftLabel?.("arrival") ?? t("npc.arrival")));
 				goTo(npc, Office.TARGETS[entry.spawn] ?? Office.TARGETS.entry);
 			}
 		}
@@ -338,7 +344,7 @@
 		actor.leaving = true;
 		actor.pose = "stand";
 		actor.nextLifeAt = 0;
-		bubble(actor, "life", Office.npcShiftLabel?.("departure") ?? "下班啦");
+		bubble(actor, "life", tx(Office.npcShiftLabel?.("departure") ?? t("npc.departure")));
 		goTo(actor, Office.TARGETS.entry);
 	}
 
@@ -347,7 +353,7 @@
 		if (actors.has(id)) return;
 		const npc = makeNpc(entry, true);
 		actors.set(id, npc);
-		bubble(npc, "life", Office.npcShiftLabel?.("arrival") ?? "上班啦");
+		bubble(npc, "life", tx(Office.npcShiftLabel?.("arrival") ?? t("npc.arrival")));
 		goTo(npc, Office.TARGETS[entry.spawn] ?? Office.TARGETS.entry);
 	}
 
@@ -379,6 +385,7 @@
 	function apply(ev) {
 		switch (ev.type) {
 			case "snapshot": {
+				eventHistory = Array.isArray(ev.history) ? ev.history.slice() : eventHistory;
 				actors.clear();
 				particles.length = 0;
 				hot.clear();
@@ -402,21 +409,22 @@
 			case "agent_join": {
 				const existing = actors.get(ev.agent.id);
 				if (existing) {
-					existing.name = ev.agent.name ?? existing.name;
-					existing.role = ev.agent.role ?? existing.role;
-					existing.title = ev.agent.role ?? existing.title;
+					existing.name = tx(ev.agent.name ?? existing.name);
+					existing.role = tx(ev.agent.role ?? existing.role);
+					existing.title = tx(ev.agent.role ?? existing.title);
 					existing.model = ev.agent.model ?? existing.model;
 					existing.task = ev.agent.task ?? existing.task;
-					existing.detail = ev.agent.detail ?? existing.detail;
+					existing.detail = tx(ev.agent.detail ?? existing.detail);
 					renderCrew();
 				} else {
 					const actor = makeActor(ev.agent);
 					actors.set(ev.agent.id, actor);
 					if (!actor.isLead) {
-						bubble(actor, "say", "我来了");
+						bubble(actor, "say", t("agent.joined"));
 						beep(660, 0.06);
 					}
 					retarget(actor);
+					renderCrew();
 				}
 				break;
 			}
@@ -435,7 +443,7 @@
 				if (!actor) break;
 				if (ev.state !== "idle") cancelLife(actor);
 				actor.state = ev.state;
-				actor.detail = ev.detail ?? "";
+				actor.detail = tx(ev.detail ?? "");
 				if (ev.state === "done") spawn("check", actor.x, actor.y - 26, { life: 1.2 });
 				if (ev.state === "error") spawn("cross", actor.x, actor.y - 26, { life: 1.2 });
 				if (!actor.path.length) actor.pose = restPose(actor);
@@ -475,8 +483,8 @@
 				actor.state = "working";
 				actor.detail = ev.label;
 				hot.add(Office.stationKey(ev.action, actor.seat));
-				bubble(actor, "do", ev.label);
-				feed(ev.id, "tool", ev.label);
+				bubble(actor, "do", tx(ev.label));
+				feed(ev.id, "tool", tx(ev.label));
 				retarget(actor);
 				renderCrew();
 				break;
@@ -499,7 +507,7 @@
 					const director = [...actors.values()].find((actor) =>
 						actor.isNpc && actor.role === Office.interactions.directorNpcRole,
 					);
-					if (director) bubble(director, "say", `${to?.name ?? "这位同事"}来负责这块`);
+					if (director) bubble(director, "say", t("delegate.owner", { name: to?.name ?? "Teammate" }));
 					if (from && to) {
 						spawn("paper", from.x + 6, from.y - 14, {
 							life: 0.9,
@@ -547,7 +555,7 @@
 			to.inMeeting = true;
 			goTo(from, Office.TARGETS.meetA);
 			goTo(to, Office.TARGETS.meetB);
-			bubble(from, "do", `派活：${head(next.task, 40)}`);
+			bubble(from, "do", t("delegate.assign", { task: head(next.task, 40) }));
 		}
 		if (!meeting) return;
 
@@ -791,15 +799,7 @@
 
 	// ---------------------------------------------------------------- sidebar
 
-	const STATE_LABEL = {
-		idle: "待命",
-		thinking: "思考",
-		working: "工作",
-		waiting: "等待",
-		talking: "汇报",
-		done: "完成",
-		error: "出错",
-	};
+	const stateLabel = (state) => t(`state.${state}`);
 
 	function renderCrew() {
 		const host = document.getElementById("crew");
@@ -813,14 +813,18 @@
 					<div class="avatar" style="background:${a.palette.shirt}"></div>
 					<div class="body">
 						<div><span class="name">${esc(a.name)}</span>
-						<span class="role">${esc(role ? role.title : a.role ?? "")}</span>
-						<span class="badge ${a.state}">${STATE_LABEL[a.state] ?? a.state}</span></div>
+						<span class="role">${esc(tx(role ? role.title : a.role ?? ""))}</span>
+						<span class="badge ${a.state}">${stateLabel(a.state)}</span></div>
 						<div class="detail">${esc(a.detail || a.task || "—")}</div>
 						<div class="meta">${fmtTokens(a.tokens)} tok · $${(a.cost ?? 0).toFixed(4)}</div>
 					</div>
 				</div>`;
 			})
 			.join("");
+		const lead = list.find((actor) => actor.isLead);
+		replayButton.hidden = !lead;
+		if (lead) replayButton.textContent = replay ? t("replay.playing") : t("replay.day", { name: lead.name });
+		replayButton.disabled = !lead || session.busy || Boolean(replay) || eventHistory.length === 0;
 	}
 
 	function logLine(item) {
@@ -828,7 +832,7 @@
 		const actor = actors.get(item.agentId);
 		const el = document.createElement("div");
 		el.className = `line ${item.kind}`;
-		el.innerHTML = `<span class="who">${esc(actor?.name ?? "·")}</span><span class="txt">${esc(item.text)}</span>`;
+		el.innerHTML = `<span class="who">${esc(actor?.name ?? "·")}</span><span class="txt">${esc(tx(item.text))}</span>`;
 		host.appendChild(el);
 		while (host.childNodes.length > 220) host.removeChild(host.firstChild);
 		host.scrollTop = host.scrollHeight;
@@ -843,12 +847,12 @@
 			cost += a.cost ?? 0;
 		}
 		document.getElementById("model").textContent = `model: ${session.model ?? "—"}`;
-		document.getElementById("turns").textContent = `turn ${session.turns ?? 0}${session.busy ? " ·运行中" : ""}`;
+		document.getElementById("turns").textContent = `turn ${session.turns ?? 0}${session.busy ? ` · ${t("status.running")}` : ""}`;
 		document.getElementById("usage").textContent = `${fmtTokens(tokens)} tok · $${cost.toFixed(4)}`;
 	}
 
 	function setTask(text) {
-		document.getElementById("task").textContent = text || "等待指令…";
+		document.getElementById("task").textContent = text || t("task.empty");
 	}
 
 	// ---------------------------------------------------------------- helpers
@@ -877,22 +881,109 @@
 		}
 	}
 
+	// --------------------------------------------------------------- replay
+
+	function isPriorityLiveEvent(event) {
+		if (event.type === "session") return Boolean(event.session?.busy);
+		return ["task", "thought", "say", "action", "delegate", "agent_join"].includes(event.type) ||
+			(event.type === "agent_state" && !["idle", "done"].includes(event.state));
+	}
+
+	function waitForReplay(ms, run) {
+		return new Promise((resolve) => {
+			run.resolveWait = resolve;
+			run.timer = setTimeout(resolve, Math.max(0, ms));
+		});
+	}
+
+	async function restoreLiveSnapshot() {
+		try {
+			const response = await fetch("/api/state", { cache: "no-store" });
+			if (response.ok) apply(await response.json());
+		} catch {
+			// The live SSE stream will deliver the next authoritative event.
+		}
+	}
+
+	function cancelReplay(restore = false) {
+		const run = replay;
+		if (!run) return;
+		run.cancelled = true;
+		if (run.timer) clearTimeout(run.timer);
+		run.resolveWait?.();
+		replay = null;
+		renderCrew();
+		if (restore) void restoreLiveSnapshot();
+	}
+
+	function finishReplay() {
+		for (const actor of actors.values()) {
+			if (actor.isNpc) continue;
+			cancelLife(actor);
+			actor.action = null;
+			actor.state = "idle";
+			actor.detail = t("state.idle");
+			retarget(actor);
+		}
+		session = { ...session, busy: false };
+		replay = null;
+		renderCrew();
+		renderBar();
+	}
+
+	async function runHistoryReplay() {
+		if (replay || session.busy) return;
+		const response = await fetch("/api/state", { cache: "no-store" });
+		if (!response.ok) return;
+		const latest = await response.json();
+		const history = Array.isArray(latest.history) ? latest.history.slice() : [];
+		if (!history.length) {
+			replayButton.textContent = t("replay.empty");
+			return;
+		}
+		const run = { cancelled: false, timer: null, resolveWait: null };
+		replay = run;
+		apply({
+			type: "snapshot",
+			agents: [],
+			log: [],
+			session: { ...latest.session, busy: false, turns: 0 },
+			history,
+		});
+		renderCrew();
+		let previousAt = history[0].at;
+		for (const entry of history) {
+			if (run.cancelled) return;
+			await waitForReplay((entry.at - previousAt) / 1.5, run);
+			if (run.cancelled) return;
+			apply(entry.event);
+			previousAt = entry.at;
+		}
+		if (!run.cancelled) finishReplay();
+	}
+
 	// ---------------------------------------------------------------- stream
 
 	function connect() {
 		const pill = document.getElementById("conn");
 		const es = new EventSource("/events");
 		es.onopen = () => {
-			pill.textContent = "已连接";
+			pill.textContent = t("connection.connected");
 			pill.className = "pill online";
 		};
 		es.onerror = () => {
-			pill.textContent = "重连中…";
+			pill.textContent = t("connection.reconnecting");
 			pill.className = "pill offline";
 		};
 		es.onmessage = (e) => {
 			try {
-				apply(JSON.parse(e.data));
+				const event = JSON.parse(e.data);
+				if (event.type !== "snapshot") eventHistory.push({ at: Date.now(), event });
+				if (replay) {
+					if (isPriorityLiveEvent(event)) cancelReplay(true);
+					return;
+				}
+				apply(event);
 			} catch (err) {
 				console.error("bad event", err);
 			}
@@ -995,9 +1086,10 @@
 	// ---------------------------------------------------------------- boot
 
 	document.getElementById("demo").addEventListener("click", () => void runDemo());
+	replayButton.addEventListener("click", () => void runHistoryReplay());
 	document.getElementById("mute").addEventListener("click", (e) => {
 		sound = !sound;
-		e.target.textContent = `音效: ${sound ? "开" : "关"}`;
+		e.target.textContent = t(sound ? "nav.soundOn" : "nav.soundOff");
 	});
 
 	resize();

@@ -1,4 +1,5 @@
 export function installCodexControls(token) {
+	const t = (key) => window.AgentLiveI18n?.t(key) ?? key;
 	const form = document.getElementById("clientControls");
 	const input = document.getElementById("promptInput");
 	const model = document.getElementById("clientModel");
@@ -19,7 +20,7 @@ export function installCodexControls(token) {
 			body: JSON.stringify(body),
 		});
 		const result = await response.json();
-		if (!response.ok) throw new Error(result.error ?? `请求失败 (${response.status})`);
+		if (!response.ok) throw new Error(result.error ?? `Request failed (${response.status})`);
 		return result;
 	}
 
@@ -93,8 +94,8 @@ export function installCodexControls(token) {
 			currentApproval = status.approval;
 			approval.hidden = !currentApproval;
 			if (currentApproval) {
-				approvalTitle.textContent = currentApproval.title;
-				approvalDetail.textContent = currentApproval.detail;
+				approvalTitle.textContent = window.AgentLiveI18n?.text(currentApproval.title) ?? currentApproval.title;
+				approvalDetail.textContent = window.AgentLiveI18n?.text(currentApproval.detail) ?? currentApproval.detail;
 			}
 				busy = Boolean(status.busy);
 				stop.disabled = !busy;

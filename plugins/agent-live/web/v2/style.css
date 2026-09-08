@@ -10,6 +10,36 @@
 	display: none;
 }
 
+.panel-title {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.panel-title h2 {
+	margin: 0;
+}
+
+.replay-btn {
+	max-width: 150px;
+	padding: 3px 7px;
+	overflow: hidden;
+	color: var(--accent);
+	background: transparent;
+	border: 1px solid var(--line);
+	font: inherit;
+	font-size: 10px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.replay-btn:disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+
 .client-controls {
 	display: grid;
 	grid-template-columns: 170px minmax(0, 1fr) auto auto;

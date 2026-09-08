@@ -1,6 +1,7 @@
 import { createOfficeRenderer } from "./office-renderer.js";
 import { createSpriteRenderer } from "./sprite-renderer.js";
 import { createEnvironmentRuntime } from "./environment-runtime.js";
+import { loadI18n } from "./i18n.js";
 
 /**
  * Config-driven boot path for the preserved Demo.
@@ -183,7 +184,7 @@ async function installPresetPicker(selectedId) {
 	for (const item of catalog.presets.filter((entry) => entry.visibility !== "internal" || entry.id === selectedId)) {
 		const option = document.createElement("option");
 		option.value = item.id;
-		option.textContent = item.name;
+		option.textContent = window.AgentLiveI18n?.text(item.name) ?? item.name;
 		option.selected = item.id === selectedId;
 		select.appendChild(option);
 	}
@@ -214,7 +215,7 @@ async function loadCodexControls(query) {
 function showBootError(error) {
 	console.error(error);
 	const pill = document.getElementById("conn");
-	pill.textContent = "配置错误";
+	pill.textContent = window.AgentLiveI18n?.t("config.error") ?? "Configuration error";
 	pill.className = "pill offline";
 	const log = document.getElementById("log");
 	log.innerHTML = `<div class="line system"><span class="who">系统</span><span class="txt"></span></div>`;
@@ -223,6 +224,7 @@ function showBootError(error) {
 
 try {
 	const query = new URLSearchParams(location.search);
+	await loadI18n(query);
 	const devControls = document.getElementById("devControls");
 	devControls.hidden = query.get("dev") !== "1" && query.get("demo") !== "1";
 	const requestedPreset = query.get("preset");

@@ -3,11 +3,14 @@ import type {
 	AgentView,
 	LogItem,
 	OfficeAction,
+	OfficeDelta,
 	OfficeEvent,
+	RecordedOfficeEvent,
 	SessionInfo,
 } from "./protocol.ts";
 
 const MAX_LOG = 200;
+const MAX_HISTORY = 4000;
 const THOUGHT_FLUSH_MS = 180;
 /** Avoid emitting one-character bubbles at the start of a reasoning stream. */
 const MIN_THOUGHT_CHARS = 12;
@@ -22,6 +25,7 @@ type Listener = (event: OfficeEvent) => void;
 export class OfficeState {
 	private agents = new Map<string, AgentView>();
 	private log: LogItem[] = [];
+	private history: RecordedOfficeEvent[] = [];
 	private listeners = new Set<Listener>();
 	private session: SessionInfo;
 	private thoughtBuffers = new Map<string, string>();
@@ -42,7 +46,9 @@ export class OfficeState {
 		return () => this.listeners.delete(listener);
 	}
 
-	private emit(event: OfficeEvent): void {
+	private emit(event: OfficeDelta): void {
+		this.history.push({ at: Date.now(), event });
+		if (this.history.length > MAX_HISTORY) this.history.shift();
 		for (const listener of this.listeners) {
 			try {
 				listener(event);
@@ -58,6 +64,7 @@ export class OfficeState {
 			agents: [...this.agents.values()],
 			log: this.log.slice(-60),
 			session: this.session,
+			history: this.history.slice(),
 		};
 	}
 
@@ -224,5 +231,6 @@ export class OfficeState {
 		this.agents.clear();
 		this.seats.clear();
 		this.log = [];
+		this.history = [];
 	}
 }
