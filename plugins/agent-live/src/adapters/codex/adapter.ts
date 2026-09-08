@@ -7,7 +7,7 @@ import type { AdapterDescriptor } from "../contract.ts";
 export const CODEX_ADAPTER: AdapterDescriptor = {
 	id: "codex",
 	name: "Codex",
-	capabilities: { observe: true, prompt: true, interrupt: true, modelSelect: true, approvals: true, subagents: false },
+	capabilities: { observe: true, prompt: true, interrupt: true, modelSelect: true, approvals: true, subagents: true },
 };
 
 const MAIN = "main";
@@ -27,6 +27,8 @@ export interface CodexModelOption {
 }
 
 type Item = JsonObject & { id?: string; type?: string; status?: string; text?: string };
+type ActiveAction = { agentId: string };
+type ReceiverAgent = { threadId?: string; thread_id?: string; agentNickname?: string; agent_nickname?: string };
 
 /** Owns one Codex thread and translates its live App Server stream to OfficeState. */
 export class CodexOfficeSession {
@@ -40,7 +42,9 @@ export class CodexOfficeSession {
 	private turnId = "";
 	private startingTurn = false;
 	private turns = 0;
-	private readonly activeActions = new Set<string>();
+	private readonly activeActions = new Map<string, ActiveAction>();
+	private readonly childAgents = new Map<string, string>();
+	private readonly childLeaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 	private readonly approvals = new Map<number | string, AppServerMessage>();
 	private unsubscribe: (() => void) | null = null;
 	private models: CodexModelOption[] = [];
@@ -122,6 +126,7 @@ export class CodexOfficeSession {
 
 	async interrupt(): Promise<void> {
 		if (!this.threadId || !this.turnId) return;
+		this.state.setState(MAIN, "waiting", "正在停止");
 		await this.client.request("turn/interrupt", { threadId: this.threadId, turnId: this.turnId });
 	}
 
@@ -143,6 +148,9 @@ export class CodexOfficeSession {
 		this.unsubscribe?.();
 		this.unsubscribe = null;
 		this.approvals.clear();
+		for (const timer of this.childLeaveTimers.values()) clearTimeout(timer);
+		this.childLeaveTimers.clear();
+		this.childAgents.clear();
 		await this.client.close();
 	}
 
@@ -174,29 +182,36 @@ export class CodexOfficeSession {
 			return;
 		}
 		const params = message.params ?? {};
+		const agentId = this.agentIdFor(params);
 		switch (message.method) {
 			case "turn/started":
+				if (agentId !== MAIN) {
+					this.state.setState(agentId, "thinking", "开始协作");
+					break;
+				}
 				this.turnId = String((params.turn as JsonObject | undefined)?.id ?? this.turnId);
 				this.state.updateSession({ busy: true });
 				this.state.setState(MAIN, "thinking", "构思中");
 				break;
 			case "item/started":
-				this.itemStarted(params.item as Item | undefined);
+				this.itemStarted(params.item as Item | undefined, agentId);
 				break;
 			case "item/completed":
-				this.itemCompleted(params.item as Item | undefined);
+				this.itemCompleted(params.item as Item | undefined, agentId);
 				break;
 			case "item/reasoning/summaryTextDelta":
-				this.state.pushThought(MAIN, String(params.delta ?? ""));
-				if (!this.activeActions.size) this.state.setState(MAIN, "thinking", "思考中");
+				if (!this.acceptAgentEvent(agentId)) break;
+				this.state.pushThought(agentId, String(params.delta ?? ""));
+				if (!this.hasActiveAction(agentId)) this.state.setState(agentId, "thinking", "思考中");
 				break;
 			case "item/agentMessage/delta":
-				if (!this.activeActions.size) this.state.setState(MAIN, "talking", "汇报中");
+				if (!this.acceptAgentEvent(agentId)) break;
+				if (!this.hasActiveAction(agentId)) this.state.setState(agentId, "talking", "汇报中");
 				break;
 			case "thread/tokenUsage/updated": {
 				const tokenUsage = params.tokenUsage as JsonObject | undefined;
 				const total = tokenUsage?.total as JsonObject | undefined;
-				this.state.addUsage(MAIN, Number(total?.totalTokens ?? 0), 0);
+				this.state.addUsage(agentId, Number(total?.totalTokens ?? 0), 0);
 				break;
 			}
 			case "model/rerouted": {
@@ -206,14 +221,20 @@ export class CodexOfficeSession {
 				break;
 			}
 			case "turn/completed": {
+				if (agentId !== MAIN) {
+					const childStatus = String((params.turn as JsonObject | undefined)?.status ?? "completed");
+					this.finishChild(agentId, childStatus === "completed");
+					break;
+				}
 				this.state.flushThoughts();
-				for (const id of this.activeActions) this.state.endAction(MAIN, id, false);
+				for (const [id, action] of this.activeActions) this.state.endAction(action.agentId, id, false);
 				this.activeActions.clear();
 				const status = String((params.turn as JsonObject | undefined)?.status ?? "completed");
 				this.turnId = "";
 				this.turns += 1;
 				this.state.updateSession({ busy: false, turns: this.turns });
 				this.state.setState(MAIN, status === "failed" ? "error" : "idle", status === "failed" ? "任务失败" : "待命");
+				this.settleChildren(status !== "failed");
 				break;
 			}
 		}
@@ -225,25 +246,91 @@ export class CodexOfficeSession {
 		this.state.join(MAIN, { name: "Codex", role: model, model });
 	}
 
-	private itemStarted(item: Item | undefined): void {
+	private itemStarted(item: Item | undefined, agentId: string): void {
 		if (!item?.id || !item.type) return;
+		if (!this.acceptAgentEvent(agentId)) return;
 		const mapped = mapItem(item);
 		if (!mapped) return;
-		this.activeActions.add(item.id);
-		this.state.startAction(MAIN, item.id, mapped.action, mapped.label);
+		this.activeActions.set(item.id, { agentId });
+		this.state.startAction(agentId, item.id, mapped.action, mapped.label);
 	}
 
-	private itemCompleted(item: Item | undefined): void {
+	private itemCompleted(item: Item | undefined, fallbackAgentId: string): void {
 		if (!item?.id || !item.type) return;
+		if (item.type === "collabAgentToolCall") this.syncCollaboration(item);
+		const agentId = this.activeActions.get(item.id)?.agentId ?? fallbackAgentId;
+		if (!this.acceptAgentEvent(agentId)) return;
 		if (item.type === "agentMessage") {
 			this.state.flushThoughts();
-			if (item.text) this.state.say(MAIN, item.text);
+			if (item.text) this.state.say(agentId, item.text);
 			return;
 		}
 		if (!this.activeActions.delete(item.id)) return;
 		const ok = !["failed", "declined"].includes(String(item.status ?? "completed"));
-		this.state.endAction(MAIN, item.id, ok);
-		this.state.setState(MAIN, "thinking", ok ? "继续推进" : "处理报错");
+		this.state.endAction(agentId, item.id, ok);
+		if (agentId !== MAIN || this.state.snapshot().session.busy) {
+			this.state.setState(agentId, "thinking", ok ? "继续推进" : "处理报错");
+		}
+	}
+
+	private agentIdFor(params: JsonObject): string {
+		const threadId = String(params.threadId ?? params.thread_id ?? "");
+		return this.childAgents.get(threadId) ?? MAIN;
+	}
+
+	private acceptAgentEvent(agentId: string): boolean {
+		return agentId !== MAIN || this.state.snapshot().session.busy;
+	}
+
+	private hasActiveAction(agentId: string): boolean {
+		for (const action of this.activeActions.values()) if (action.agentId === agentId) return true;
+		return false;
+	}
+
+	private syncCollaboration(item: Item): void {
+		const tool = String(item.tool ?? "");
+		const receivers = (item.receiverAgents ?? item.receiver_agents ?? []) as ReceiverAgent[];
+		const prompt = String(item.prompt ?? "协作任务").replace(/\s+/g, " ").trim().slice(0, 300);
+		for (const receiver of receivers) {
+			const threadId = String(receiver.threadId ?? receiver.thread_id ?? "");
+			if (!threadId) continue;
+			const childId = `codex:${threadId}`;
+			const name = String(receiver.agentNickname ?? receiver.agent_nickname ?? "Teammate");
+			this.childAgents.set(threadId, childId);
+			if (!this.state.getAgent(childId)) {
+				this.state.join(childId, { name, role: "Subagent", parent: MAIN, task: prompt });
+				this.state.delegate(MAIN, childId, prompt);
+				this.state.setState(childId, "thinking", "接到协作任务");
+			}
+		}
+
+		const states = (item.agentsStates ?? item.agents_states ?? {}) as Record<string, unknown>;
+		for (const [threadId, rawState] of Object.entries(states)) {
+			const childId = this.childAgents.get(threadId);
+			if (!childId) continue;
+			const state = typeof rawState === "string" ? rawState : Object.keys((rawState ?? {}) as JsonObject)[0] ?? "";
+			if (["completed", "failed", "errored", "cancelled", "shutdown"].includes(state)) {
+				this.finishChild(childId, state === "completed");
+			} else if (tool !== "spawn_agent") {
+				this.state.setState(childId, "working", "协作中");
+			}
+		}
+	}
+
+	private settleChildren(ok: boolean): void {
+		for (const childId of this.childAgents.values()) this.finishChild(childId, ok);
+	}
+
+	private finishChild(childId: string, ok: boolean): void {
+		if (!this.state.getAgent(childId) || this.childLeaveTimers.has(childId)) return;
+		this.state.setState(childId, ok ? "done" : "error", ok ? "已交付" : "未完成");
+		const timer = setTimeout(() => {
+			this.childLeaveTimers.delete(childId);
+			for (const [threadId, id] of this.childAgents) if (id === childId) this.childAgents.delete(threadId);
+			this.state.leave(childId, ok);
+		}, 2600);
+		timer.unref?.();
+		this.childLeaveTimers.set(childId, timer);
 	}
 
 	private handleServerRequest(message: AppServerMessage): void {
