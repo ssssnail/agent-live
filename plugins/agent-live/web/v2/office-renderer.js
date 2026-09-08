@@ -832,11 +832,25 @@ export function createOfficeRenderer(content, environment = null) {
 		return SEATS[(index ?? 0) % SEATS.length].anchor;
 	}
 
-	function anchorFor(action, seatIndex) {
+	function standingAnchor(key = 0) {
+		const slots = [
+			{ x: 278, y: 92, dir: "left", lane: 1 },
+			{ x: 278, y: 152, dir: "left", lane: 2 },
+			{ x: 92, y: 190, dir: "right", lane: 2 },
+			{ x: 242, y: 190, dir: "left", lane: 2 },
+			{ x: 214, y: 46, dir: "down", lane: 0 },
+			{ x: 246, y: 46, dir: "down", lane: 0 },
+			{ x: 278, y: 46, dir: "down", lane: 0 },
+			{ x: 310, y: 46, dir: "down", lane: 0 },
+		];
+		return slots[Math.abs(Number(key) || 0) % slots.length];
+	}
+
+	function anchorFor(action, seatIndex, fallbackKey = 0) {
 		const capability = layout.legacyActions[action ?? "type"] ?? "create";
 		const station = layout.stations[capability];
-		if (!station || station.kind === "seat") return seatAnchor(seatIndex);
-		return TARGETS[station.target] ?? seatAnchor(seatIndex);
+		if (!station || station.kind === "seat") return seatIndex == null ? standingAnchor(fallbackKey) : seatAnchor(seatIndex);
+		return TARGETS[station.target] ?? (seatIndex == null ? standingAnchor(fallbackKey) : seatAnchor(seatIndex));
 	}
 
 	function path(from, target) {
@@ -940,6 +954,7 @@ export function createOfficeRenderer(content, environment = null) {
 		drawRoom,
 		anchorFor,
 		seatAnchor,
+		standingAnchor,
 		path,
 		stationKey,
 		interactions: Object.freeze({ ...(layout.interactions ?? {}) }),

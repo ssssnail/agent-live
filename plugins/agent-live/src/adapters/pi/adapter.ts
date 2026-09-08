@@ -4,6 +4,7 @@ import type { OfficeServer } from "../../runtime/server.ts";
 import { OfficeState } from "../../core/state.ts";
 import { AgentLiveRuntime } from "../../runtime/agent-live-runtime.ts";
 import type { AdapterDescriptor } from "../contract.ts";
+import { AgentRegistry } from "../../core/agents.ts";
 
 export const PI_ADAPTER: AdapterDescriptor = {
 	id: "pi",
@@ -20,19 +21,6 @@ const PRESETS = new Map([
 	["old-school-office", "老式办公室"],
 ]);
 
-const ROLE_NAMES: Record<string, string> = {
-	scout: "侦察员",
-	planner: "规划师",
-	reviewer: "评审员",
-	worker: "工程师",
-	tester: "测试员",
-	writer: "文案",
-};
-
-function roleName(agent: string): string {
-	return ROLE_NAMES[agent.toLowerCase()] ?? "外援";
-}
-
 type Block = { type: string; text?: string; thinking?: string };
 
 function joinBlocks(content: unknown, kind: "text" | "thinking"): string {
@@ -48,6 +36,7 @@ export default function (pi: ExtensionAPI) {
 	let state: OfficeState | null = null;
 	let server: OfficeServer | null = null;
 	let runtime: AgentLiveRuntime | null = null;
+	let agents: AgentRegistry | null = null;
 	/** Streaming cursors so we only forward newly generated thinking text. */
 	let thinkingCursor = 0;
 	let textCursor = 0;
@@ -65,13 +54,14 @@ export default function (pi: ExtensionAPI) {
 		if (state) return;
 		runtime = new AgentLiveRuntime(ctx.cwd ?? process.cwd());
 		state = runtime.state;
+		agents = new AgentRegistry(state);
 		state.updateSession({
 			cwd: ctx.cwd ?? process.cwd(),
 			model: ctx?.model?.id,
 			thinkingLevel: ctx?.thinkingLevel,
 		});
 		const info = mainName(ctx);
-		state.join(MAIN, { ...info, model: ctx?.model?.id });
+		agents.join(MAIN, { ...info, model: ctx?.model?.id });
 		try {
 			server = await runtime.start({ port: DEFAULT_PORT });
 			if (ctx.hasUI) {
@@ -91,10 +81,12 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("session_shutdown", async () => {
+		agents?.dispose();
 		await runtime?.close();
 		server = null;
 		state = null;
 		runtime = null;
+		agents = null;
 		delegated.clear();
 	});
 
@@ -102,7 +94,7 @@ export default function (pi: ExtensionAPI) {
 		if (!state) return;
 		const model = String(event?.model?.id ?? event?.model?.name ?? "pi");
 		state.updateSession({ model });
-		state.join(MAIN, { name: "啊派", role: model, model });
+		agents?.join(MAIN, { name: "啊派", role: model, model });
 	});
 
 	pi.on("thinking_level_select", async (event: any) => {
@@ -187,18 +179,14 @@ export default function (pi: ExtensionAPI) {
 		const children: string[] = [];
 		for (const item of describeDelegation(args)) {
 			const childId = `${toolCallId}:${item.slot}`;
-			state.join(childId, {
+			const child = agents?.spawn({
+				id: childId,
 				name: item.agent,
-				role: roleName(item.agent),
-				parent: MAIN,
 				task: item.task,
 			});
-			state.delegate(MAIN, childId, item.task);
-			state.setState(childId, "thinking", "接活儿");
-			children.push(childId);
+			if (child) children.push(childId);
 		}
 		delegated.set(toolCallId, children);
-		state.setState(MAIN, "waiting", `等待 ${children.length} 位同事`);
 	});
 
 	pi.on("tool_execution_update", async (event: any) => {
@@ -220,13 +208,9 @@ export default function (pi: ExtensionAPI) {
 			for (const childId of children) {
 				const settled = state.getAgent(childId)?.state;
 				if (settled === "done" || settled === "error") continue;
-				state.setState(childId, ok ? "done" : "error", ok ? "交付" : "失败");
+				agents?.complete(childId, ok, ok ? "已交付" : "失败");
 			}
-			const leaving = [...children];
 			delegated.delete(toolCallId);
-			setTimeout(() => {
-				for (const childId of leaving) state?.leave(childId, ok);
-			}, 2600).unref?.();
 		}
 
 		state.endAction(MAIN, toolCallId, ok);
@@ -261,7 +245,7 @@ export default function (pi: ExtensionAPI) {
 			const usage = result?.usage;
 			if (usage) {
 				const tokens = Number(usage.contextTokens ?? 0) || Number(usage.input ?? 0) + Number(usage.output ?? 0);
-				state.addUsage(childId, tokens, Number(usage.cost ?? 0));
+				agents?.usage(childId, tokens, Number(usage.cost ?? 0));
 			}
 
 			// The delegation tool reports exitCode -1 while a worker is still running.
@@ -269,7 +253,7 @@ export default function (pi: ExtensionAPI) {
 			if (exitCode !== -1) {
 				const failed =
 					exitCode !== 0 || result?.stopReason === "error" || result?.stopReason === "aborted";
-				state.setState(childId, failed ? "error" : "done", failed ? "失败" : "已交付");
+				agents?.complete(childId, !failed, failed ? "失败" : "已交付");
 				return;
 			}
 
@@ -281,12 +265,12 @@ export default function (pi: ExtensionAPI) {
 
 			if (toolCall) {
 				const label = labelForTool(String(toolCall.name), toolCall.arguments ?? {});
-				state.startAction(childId, `${childId}:${messages.length}`, actionForTool(String(toolCall.name)), label);
+				agents?.startAction(childId, `${childId}:${messages.length}`, actionForTool(String(toolCall.name)), label);
 			} else if (thinking.trim()) {
-				state.setState(childId, "thinking", "思考中");
-				state.pushThought(childId, thinking.slice(-200));
+				agents?.setState(childId, "thinking", "思考中");
+				agents?.thought(childId, thinking.slice(-200));
 			} else if (text.trim()) {
-				state.setState(childId, "talking", "整理结论");
+				agents?.setState(childId, "talking", "整理结论");
 			}
 		});
 	}
@@ -297,10 +281,12 @@ export default function (pi: ExtensionAPI) {
 			const sub = (args ?? "").trim().toLowerCase();
 			const [command, value, ...rest] = sub.split(/\s+/).filter(Boolean);
 			if (command === "close") {
+				agents?.dispose();
 				await runtime?.close();
 				server = null;
 				state = null;
 				runtime = null;
+				agents = null;
 				delegated.clear();
 				ctx.ui.notify("Agent Live 已关闭", "info");
 				return;

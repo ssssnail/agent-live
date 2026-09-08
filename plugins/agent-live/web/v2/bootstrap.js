@@ -45,7 +45,7 @@ async function readJson(relativePath) {
 	return response.json();
 }
 
-async function loadPreset(presetId) {
+async function loadPreset(presetId, limits) {
 	const preset = await readJson(`presets/${presetId}.json`);
 	assertManifest(preset, "preset");
 	const refs = preset.content ?? {};
@@ -60,8 +60,21 @@ async function loadPreset(presetId) {
 		readJson(`environments/${refs.environment}.json`),
 	]);
 	const registry = { preset, style, layout, agentSkin, props, npcs, lifeActivities, atmosphere, environment };
+	applySceneLimits(registry, limits);
 	validateRegistry(registry);
 	return Object.freeze(registry);
+}
+
+function applySceneLimits(content, limits) {
+	const trim = (owner, key, max, label) => {
+		const list = owner?.[key];
+		if (!Array.isArray(list) || list.length <= max) return;
+		console.warn(`Agent Live: ${label} ${list.length} exceeds ${max}; extra items were ignored.`);
+		owner[key] = list.slice(0, max);
+	};
+	trim(content.layout, "propInstances", limits.props, "props");
+	trim(content.npcs, "entries", limits.npcs, "NPCs");
+	trim(content.lifeActivities, "entries", limits.activities, "life activities");
 }
 
 function assertManifest(value, kind) {
@@ -224,6 +237,9 @@ function showBootError(error) {
 
 try {
 	const query = new URLSearchParams(location.search);
+	const limitsResponse = await fetch("/api/scene-limits", { cache: "no-store" });
+	if (!limitsResponse.ok) throw new Error("无法加载场景容量规则");
+	window.SceneLimits = await limitsResponse.json();
 	await loadI18n(query);
 	const devControls = document.getElementById("devControls");
 	devControls.hidden = query.get("dev") !== "1" && query.get("demo") !== "1";
@@ -232,12 +248,12 @@ try {
 	let presetId = requestedPreset ?? storedPreset ?? DEFAULT_PRESET;
 	let content;
 	try {
-		content = await loadPreset(presetId);
+		content = await loadPreset(presetId, window.SceneLimits);
 	} catch (error) {
 		if (requestedPreset || !storedPreset || presetId === DEFAULT_PRESET) throw error;
 		forgetPreset();
 		presetId = DEFAULT_PRESET;
-		content = await loadPreset(presetId);
+		content = await loadPreset(presetId, window.SceneLimits);
 	}
 	rememberPreset(presetId);
 	window.OfficeContent = content;

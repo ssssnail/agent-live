@@ -60,8 +60,9 @@
 
 	function makeActor(view) {
 		const isLead = !view.parent;
-		const seat = view.seat ?? 0;
-		const spawn = isLead ? Office.seatAnchor(seat) : Office.TARGETS.entry;
+		const seat = view.seat;
+		const placementKey = Sprites.hash(view.id);
+		const spawn = isLead && seat != null ? Office.seatAnchor(seat) : Office.TARGETS.entry;
 		return {
 			id: view.id,
 			name: tx(view.name),
@@ -71,6 +72,7 @@
 			isLead,
 			isNpc: false,
 			seat,
+			placementKey,
 			palette: Sprites.paletteFor(view.id, view.name, isLead),
 			seed: (Sprites.hash(view.id) % 100) / 10,
 			x: spawn.x,
@@ -107,7 +109,7 @@
 	/** Pick where a character should be, given what it is currently doing. */
 	function retarget(actor) {
 		if (actor.inMeeting || actor.leaving) return;
-		goTo(actor, Office.anchorFor(actor.action, actor.seat));
+		goTo(actor, Office.anchorFor(actor.action, actor.seat, actor.placementKey));
 	}
 
 	function restPose(actor) {
@@ -120,12 +122,14 @@
 		if (a === "coffee") return "stand";
 		if (actor.inMeeting) return "talk";
 		if (actor.state === "working" && (!a || a === "type")) return "type";
-		if (!a || a === "type" || a === "delegate") return "sit";
+		if (!a || a === "type" || a === "delegate") return actor.seat == null ? "stand" : "sit";
 		return "stand";
 	}
 
 	function bubble(actor, kind, text) {
 		if (!text) return;
+		const queued = [...actors.values()].filter((candidate) => candidate.bubble).length;
+		if (!actor.bubble && queued >= (window.SceneLimits?.queuedBubbles ?? 8)) return;
 		actor.bubble = {
 			kind,
 			text: String(text),
@@ -135,6 +139,8 @@
 	}
 
 	function spawn(kind, x, y, opts = {}) {
+		const maxEffects = window.SceneLimits?.effects ?? 40;
+		if (particles.length >= maxEffects) particles.shift();
 		particles.push({
 			kind,
 			x,
@@ -711,7 +717,7 @@
 
 		const occupied = new Set();
 		for (const actor of actors.values()) {
-			if (!actor.path.length && !actor.action && !actor.inMeeting) occupied.add(actor.seat);
+			if (actor.seat != null && !actor.path.length && !actor.action && !actor.inMeeting) occupied.add(actor.seat);
 		}
 		Office.drawRoom(ctx, now, new Set([...hot, ...lifeHot]), occupied);
 
@@ -721,7 +727,9 @@
 
 		ctx.setTransform(1, 0, 0, 1, 0, 0);
 		for (const actor of ordered) drawLabel(actor);
-		for (const actor of ordered) drawBubble(actor);
+		for (const actor of ordered.filter((actor) => actor.bubble).slice(0, window.SceneLimits?.visibleBubbles ?? 4)) {
+			drawBubble(actor);
+		}
 	}
 
 	function drawLabel(actor) {

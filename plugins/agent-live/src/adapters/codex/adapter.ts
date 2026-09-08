@@ -3,6 +3,7 @@ import type { OfficeAction } from "../../core/protocol.ts";
 import type { OfficeState } from "../../core/state.ts";
 import { CodexAppServerClient, type AppServerMessage, type JsonObject } from "./app-server-client.ts";
 import type { AdapterDescriptor } from "../contract.ts";
+import { AgentRegistry, roleForAgent } from "../../core/agents.ts";
 
 export const CODEX_ADAPTER: AdapterDescriptor = {
 	id: "codex",
@@ -35,6 +36,7 @@ type ReceiverAgent = { threadId?: string; thread_id?: string; agentNickname?: st
 export class CodexOfficeSession {
 	private readonly state: OfficeState;
 	private readonly client: CodexAppServerClient;
+	private readonly agents: AgentRegistry;
 	private readonly options: {
 		cwd: string;
 		sourceThreadId?: string;
@@ -61,6 +63,7 @@ export class CodexOfficeSession {
 		}) {
 		this.state = state;
 		this.client = client;
+		this.agents = new AgentRegistry(state);
 		this.options = options;
 	}
 
@@ -87,7 +90,7 @@ export class CodexOfficeSession {
 		this.model = model;
 		this.effort = response.thread.reasoningEffort ?? this.effort;
 		this.state.updateSession({ cwd: this.options.cwd, model, thinkingLevel: this.effort || undefined, busy: false });
-		this.state.join(MAIN, { name: "科迪", role: model, model });
+		this.agents.join(MAIN, { name: "科迪", role: model, model });
 		return { threadId: this.threadId, model, models: this.models };
 	}
 
@@ -171,6 +174,7 @@ export class CodexOfficeSession {
 		for (const timer of this.childLeaveTimers.values()) clearTimeout(timer);
 		this.childLeaveTimers.clear();
 		this.childAgents.clear();
+		this.agents.dispose();
 		await this.client.close();
 	}
 
@@ -283,7 +287,7 @@ export class CodexOfficeSession {
 	private updateModel(model: string): void {
 		this.model = model;
 		this.state.updateSession({ model });
-		this.state.join(MAIN, { name: "科迪", role: model, model });
+		this.agents.join(MAIN, { name: "科迪", role: model, model });
 	}
 
 	private itemStarted(item: Item | undefined, agentId: string): void {
@@ -309,7 +313,7 @@ export class CodexOfficeSession {
 		if (!this.activeActions.delete(item.id)) return;
 		const ok = !["failed", "declined"].includes(String(item.status ?? "completed"));
 		this.state.endAction(agentId, item.id, ok);
-		if (agentId !== MAIN || this.state.snapshot().session.busy) {
+		if (agentId !== MAIN || (this.state.snapshot().session.busy && this.agents.activeChildren() === 0)) {
 			this.state.setState(agentId, "thinking", ok ? "继续推进" : "处理报错");
 		}
 	}
@@ -328,12 +332,11 @@ export class CodexOfficeSession {
 		}
 		const existing = this.state.getAgent(childId);
 		if (!existing) {
-			this.state.join(childId, { name, role: "Subagent", parent: MAIN, task: name });
-			this.state.delegate(MAIN, childId, name);
+			this.agents.spawn({ id: childId, name, role: roleForAgent(name), parent: MAIN, task: name });
 		} else if (name !== "Teammate" && existing.name !== name) {
-			this.state.join(childId, { name, role: "Subagent", parent: MAIN, task: existing.task ?? name });
+			this.agents.updateIdentity(childId, { name, role: roleForAgent(name), task: existing.task ?? name });
 		}
-		this.state.setState(childId, kind === "started" ? "thinking" : "working", kind === "started" ? "接到协作任务" : "协作中");
+		this.agents.setState(childId, kind === "started" ? "thinking" : "working", kind === "started" ? "接到协作任务" : "协作中");
 	}
 
 	private agentIdFor(params: JsonObject): string {
@@ -369,9 +372,7 @@ export class CodexOfficeSession {
 			const name = receiver.name;
 			this.childAgents.set(threadId, childId);
 			if (!this.state.getAgent(childId)) {
-				this.state.join(childId, { name, role: "Subagent", parent: MAIN, task: prompt });
-				this.state.delegate(MAIN, childId, prompt);
-				this.state.setState(childId, "thinking", "接到协作任务");
+				this.agents.spawn({ id: childId, name, role: roleForAgent(name), parent: MAIN, task: prompt });
 			}
 		}
 
@@ -389,16 +390,15 @@ export class CodexOfficeSession {
 	}
 
 	private settleChildren(ok: boolean): void {
-		for (const childId of this.childAgents.values()) this.finishChild(childId, ok);
+		this.agents.settleChildren(ok);
 	}
 
 	private finishChild(childId: string, ok: boolean): void {
 		if (!this.state.getAgent(childId) || this.childLeaveTimers.has(childId)) return;
-		this.state.setState(childId, ok ? "done" : "error", ok ? "已交付" : "未完成");
+		this.agents.complete(childId, ok);
 		const timer = setTimeout(() => {
 			this.childLeaveTimers.delete(childId);
 			for (const [threadId, id] of this.childAgents) if (id === childId) this.childAgents.delete(threadId);
-			this.state.leave(childId, ok);
 		}, 2600);
 		timer.unref?.();
 		this.childLeaveTimers.set(childId, timer);

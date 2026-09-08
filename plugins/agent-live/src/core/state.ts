@@ -8,13 +8,13 @@ import type {
 	RecordedOfficeEvent,
 	SessionInfo,
 } from "./protocol.ts";
+import { SCENE_LIMITS } from "./limits.ts";
 
 const MAX_LOG = 200;
 const MAX_HISTORY = 4000;
 const THOUGHT_FLUSH_MS = 180;
 /** Avoid emitting one-character bubbles at the start of a reasoning stream. */
 const MIN_THOUGHT_CHARS = 12;
-const MAX_SEATS = 8;
 
 type Listener = (event: OfficeEvent) => void;
 
@@ -82,25 +82,27 @@ export class OfficeState {
 	}
 
 	private claimSeat(): number {
-		for (let i = 0; i < MAX_SEATS; i++) {
+		for (let i = 0; i < SCENE_LIMITS.seats; i++) {
 			if (!this.seats.has(i)) {
 				this.seats.add(i);
 				return i;
 			}
 		}
-		return MAX_SEATS - 1;
+		return -1;
 	}
 
 	join(
 		id: string,
 		init: { name: string; role: string; parent?: string; model?: string; task?: string },
-	): AgentView {
+	): AgentView | undefined {
 		const existing = this.agents.get(id);
 		if (existing) {
 			Object.assign(existing, init);
 			this.emit({ type: "agent_join", agent: existing });
 			return existing;
 		}
+		if (this.agents.size >= SCENE_LIMITS.agents) return undefined;
+		const seat = this.claimSeat();
 		const agent: AgentView = {
 			id,
 			state: "idle",
@@ -108,7 +110,7 @@ export class OfficeState {
 			cost: 0,
 			toolCalls: 0,
 			joinedAt: Date.now(),
-			seat: this.claimSeat(),
+			...(seat >= 0 ? { seat } : {}),
 			...init,
 		};
 		this.agents.set(id, agent);

@@ -5,6 +5,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { OfficeEvent } from "../core/protocol.ts";
 import type { OfficeState } from "../core/state.ts";
+import { SCENE_LIMITS } from "../core/limits.ts";
 
 const MIME: Record<string, string> = {
 	".html": "text/html; charset=utf-8",
@@ -88,6 +89,11 @@ export async function startServer(
 		if (url.pathname === "/api/state") {
 			res.writeHead(200, { "content-type": MIME[".json"] });
 			res.end(JSON.stringify(state.snapshot()));
+			return;
+		}
+
+		if (url.pathname === "/api/scene-limits") {
+			json(res, 200, SCENE_LIMITS);
 			return;
 		}
 

@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { SCENE_LIMITS } from "../src/core/limits.ts";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const contentRoot = path.join(projectRoot, "web", "v2", "content");
@@ -60,6 +61,9 @@ function validatePreset(filename: string) {
 	}
 
 	const { layout, props, agentSkin, npcs, lifeActivities, environment } = content;
+	ok(layout.propInstances.length <= SCENE_LIMITS.props, `${filename}/layout: too many props`);
+	ok(npcs.entries.length <= SCENE_LIMITS.npcs, `${filename}/npcs: too many NPCs`);
+	ok(lifeActivities.entries.length <= SCENE_LIMITS.activities, `${filename}/life: too many activities`);
 	ok(layout.contract === "single-office-v1", `${filename}/layout: unsupported contract`);
 	ok(layout.canvas.width === 384 && layout.canvas.height === 216, `${filename}/layout: canvas must be 384x216`);
 	ok(layout.seats.length === 8, `${filename}/layout: single-office-v1 must have 8 seats`);
