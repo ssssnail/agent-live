@@ -1,6 +1,6 @@
 {
 	"name": "agent-live",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"type": "module",
 	"description": "Give coding agents a live pixel office",
 	"keywords": ["pi-package", "pi-extension", "codex-plugin", "agent-visualization", "pixel-office"],
@@ -25,7 +25,7 @@
 		"validate:codex-client": "node plugins/agent-live/scripts/validate-codex-client.ts",
 		"validate:codex-session": "node plugins/agent-live/scripts/validate-codex-session.ts",
 		"codex": "node plugins/agent-live/scripts/codex-client.ts",
-		"check": "npm run validate:content && npm run validate:environment && node --check plugins/agent-live/src/core/protocol.ts && node --check plugins/agent-live/src/core/state.ts && node --check plugins/agent-live/src/core/mapping.ts && node --check plugins/agent-live/src/runtime/server.ts && node --check plugins/agent-live/src/runtime/agent-live-runtime.ts && node --check plugins/agent-live/src/adapters/pi/adapter.ts && node --check plugins/agent-live/src/adapters/codex/app-server-client.ts && node --check plugins/agent-live/src/adapters/codex/adapter.ts && node --check plugins/agent-live/scripts/codex-client.ts && node --check plugins/agent-live/web/app.js && node --check plugins/agent-live/web/product.js && node --check plugins/agent-live/web/v2/bootstrap.js && node --check plugins/agent-live/web/v2/codex-controls.js && node --check plugins/agent-live/web/v2/environment-runtime.js && node --check plugins/agent-live/web/v2/office-renderer.js && node --check plugins/agent-live/web/v2/sprite-renderer.js",
+		"check": "npm run validate:content && npm run validate:environment && node --check plugins/agent-live/src/core/protocol.ts && node --check plugins/agent-live/src/core/state.ts && node --check plugins/agent-live/src/core/mapping.ts && node --check plugins/agent-live/src/runtime/server.ts && node --check plugins/agent-live/src/runtime/agent-live-runtime.ts && node --input-type=module -e \"await import('./plugins/agent-live/src/runtime/agent-live-runtime.ts')\" && node --check plugins/agent-live/src/adapters/pi/adapter.ts && node --check plugins/agent-live/src/adapters/codex/app-server-client.ts && node --check plugins/agent-live/src/adapters/codex/adapter.ts && node --check plugins/agent-live/scripts/codex-client.ts && node --check plugins/agent-live/web/app.js && node --check plugins/agent-live/web/product.js && node --check plugins/agent-live/web/v2/bootstrap.js && node --check plugins/agent-live/web/v2/codex-controls.js && node --check plugins/agent-live/web/v2/environment-runtime.js && node --check plugins/agent-live/web/v2/office-renderer.js && node --check plugins/agent-live/web/v2/sprite-renderer.js",
 		"prepack": "npm run check"
 	},
 	"peerDependencies": {

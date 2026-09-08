@@ -3,10 +3,12 @@ import { startServer, type OfficeServer } from "./server.ts";
 
 /** Shared host-neutral owner for state, local HTTP/SSE service, and cleanup. */
 export class AgentLiveRuntime {
+	readonly cwd: string;
 	readonly state: OfficeState;
 	private server: OfficeServer | null = null;
 
-	constructor(readonly cwd: string) {
+	constructor(cwd: string) {
+		this.cwd = cwd;
 		this.state = new OfficeState(cwd);
 	}
 
