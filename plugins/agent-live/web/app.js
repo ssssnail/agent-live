@@ -9,6 +9,7 @@
 	const I18n = window.AgentLiveI18n ?? { t: (key) => key, text: (value) => value };
 	const t = (key, vars) => I18n.t(key, vars);
 	const tx = (value) => I18n.text(value);
+	const isCodexClient = new URLSearchParams(location.search).get("client") === "codex";
 	const officeContent = window.OfficeContent ?? null;
 	const lifeActivities = officeContent?.lifeActivities?.entries ?? [];
 	const npcEntries = officeContent?.npcs?.entries ?? [];
@@ -823,7 +824,7 @@
 			.join("");
 		const lead = list.find((actor) => actor.isLead);
 		replayButton.hidden = !lead;
-		if (lead) replayButton.textContent = replay ? t("replay.playing") : t("replay.day", { name: lead.name });
+		if (lead) replayButton.textContent = replay ? t("replay.playing") : `▶ ${t("replay.day", { name: lead.name })}`;
 		replayButton.disabled = !lead || session.busy || Boolean(replay) || eventHistory.length === 0;
 	}
 
@@ -848,7 +849,7 @@
 		}
 		document.getElementById("model").textContent = `model: ${session.model ?? "—"}`;
 		document.getElementById("turns").textContent = `turn ${session.turns ?? 0}${session.busy ? ` · ${t("status.running")}` : ""}`;
-		document.getElementById("usage").textContent = `${fmtTokens(tokens)} tok · $${cost.toFixed(4)}`;
+		document.getElementById("usage").textContent = isCodexClient ? `${fmtTokens(tokens)} tok` : `${fmtTokens(tokens)} tok · $${cost.toFixed(4)}`;
 	}
 
 	function setTask(text) {
@@ -892,7 +893,7 @@
 	function waitForReplay(ms, run) {
 		return new Promise((resolve) => {
 			run.resolveWait = resolve;
-			run.timer = setTimeout(resolve, Math.max(0, ms));
+			run.timer = setTimeout(resolve, Math.min(5_000, Math.max(350, ms)));
 		});
 	}
 

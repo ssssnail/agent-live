@@ -12,9 +12,13 @@ const option = (name: string, fallback: string) => {
 const port = Number(option("--port", process.env.AGENT_LIVE_CODEX_PORT ?? "7792"));
 const preset = option("--preset", "tech-open-office");
 const cwd = option("--cwd", process.cwd());
-const shouldOpen = !args.includes("--no-open");
+const shouldOpen = args.includes("--open");
+const viewerStartTimeoutMs = Number(process.env.AGENT_LIVE_VIEWER_START_TIMEOUT_MS ?? "60000");
+const viewerCloseGraceMs = Number(process.env.AGENT_LIVE_VIEWER_CLOSE_GRACE_MS ?? "12000");
 
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invalid --port");
+if (!Number.isFinite(viewerStartTimeoutMs) || viewerStartTimeoutMs < 100) throw new Error("Invalid viewer start timeout");
+if (!Number.isFinite(viewerCloseGraceMs) || viewerCloseGraceMs < 0) throw new Error("Invalid viewer close grace");
 
 const token = randomBytes(24).toString("hex");
 const runtime = new AgentLiveRuntime(cwd);
@@ -22,6 +26,7 @@ const state = runtime.state;
 const appServer = new CodexAppServerClient({ cwd });
 let approval: PendingApproval | null = null;
 let viewerCloseTimer: ReturnType<typeof setTimeout> | null = null;
+let viewerStartTimer: ReturnType<typeof setTimeout> | null = null;
 let hasSeenViewer = false;
 let closing = false;
 const session = new CodexOfficeSession(state, appServer, {
@@ -37,12 +42,14 @@ const server = await runtime.start({
 	onViewerCountChange(count) {
 		if (count > 0) {
 			hasSeenViewer = true;
+			if (viewerStartTimer) clearTimeout(viewerStartTimer);
+			viewerStartTimer = null;
 			if (viewerCloseTimer) clearTimeout(viewerCloseTimer);
 			viewerCloseTimer = null;
 			return;
 		}
 		if (!hasSeenViewer || closing || viewerCloseTimer) return;
-		viewerCloseTimer = setTimeout(() => void close(true), 4_000);
+		viewerCloseTimer = setTimeout(() => void close(true), viewerCloseGraceMs);
 		viewerCloseTimer.unref?.();
 	},
 	controls: {
@@ -61,6 +68,10 @@ const server = await runtime.start({
 		},
 	},
 });
+viewerStartTimer = setTimeout(() => {
+	if (!hasSeenViewer) void close(true);
+}, viewerStartTimeoutMs);
+viewerStartTimer.unref?.();
 
 const query = new URLSearchParams({ client: "codex", preset, token });
 const url = `${server.url}/v2.html?${query}`;
@@ -71,6 +82,7 @@ async function close(exitAfter = false) {
 	if (closing) return;
 	closing = true;
 	if (viewerCloseTimer) clearTimeout(viewerCloseTimer);
+	if (viewerStartTimer) clearTimeout(viewerStartTimer);
 	await session.close();
 	await runtime.close();
 	if (exitAfter) process.exit(0);
