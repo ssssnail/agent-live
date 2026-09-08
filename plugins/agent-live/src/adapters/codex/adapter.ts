@@ -298,7 +298,7 @@ export class CodexOfficeSession {
 	private itemCompleted(item: Item | undefined, fallbackAgentId: string): void {
 		if (!item?.id || !item.type) return;
 		if (item.type === "collabAgentToolCall") this.syncCollaboration(item);
-		if (item.type === "SubAgentActivity") this.syncSubAgentActivity(item);
+		if (item.type === "subAgentActivity" || item.type === "SubAgentActivity") this.syncSubAgentActivity(item);
 		const agentId = this.activeActions.get(item.id)?.agentId ?? fallbackAgentId;
 		if (!this.acceptAgentEvent(agentId)) return;
 		if (item.type === "agentMessage") {
@@ -326,9 +326,12 @@ export class CodexOfficeSession {
 			this.finishChild(childId, kind === "completed");
 			return;
 		}
-		if (!this.state.getAgent(childId)) {
+		const existing = this.state.getAgent(childId);
+		if (!existing) {
 			this.state.join(childId, { name, role: "Subagent", parent: MAIN, task: name });
 			this.state.delegate(MAIN, childId, name);
+		} else if (name !== "Teammate" && existing.name !== name) {
+			this.state.join(childId, { name, role: "Subagent", parent: MAIN, task: existing.task ?? name });
 		}
 		this.state.setState(childId, kind === "started" ? "thinking" : "working", kind === "started" ? "接到协作任务" : "协作中");
 	}
@@ -350,12 +353,20 @@ export class CodexOfficeSession {
 	private syncCollaboration(item: Item): void {
 		const tool = String(item.tool ?? "");
 		const receivers = (item.receiverAgents ?? item.receiver_agents ?? []) as ReceiverAgent[];
+		const receiverThreadIds = (item.receiverThreadIds ?? item.receiver_thread_ids ?? []) as string[];
 		const prompt = String(item.prompt ?? "协作任务").replace(/\s+/g, " ").trim().slice(0, 300);
-		for (const receiver of receivers) {
-			const threadId = String(receiver.threadId ?? receiver.thread_id ?? "");
+		const targets = [
+			...receivers.map((receiver) => ({
+				threadId: String(receiver.threadId ?? receiver.thread_id ?? ""),
+				name: String(receiver.agentNickname ?? receiver.agent_nickname ?? "Teammate"),
+			})),
+			...receiverThreadIds.map((threadId) => ({ threadId: String(threadId), name: "Teammate" })),
+		];
+		for (const receiver of targets) {
+			const threadId = receiver.threadId;
 			if (!threadId) continue;
 			const childId = `codex:${threadId}`;
-			const name = String(receiver.agentNickname ?? receiver.agent_nickname ?? "Teammate");
+			const name = receiver.name;
 			this.childAgents.set(threadId, childId);
 			if (!this.state.getAgent(childId)) {
 				this.state.join(childId, { name, role: "Subagent", parent: MAIN, task: prompt });
