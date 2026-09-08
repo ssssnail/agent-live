@@ -223,6 +223,8 @@ function showBootError(error) {
 
 try {
 	const query = new URLSearchParams(location.search);
+	const devControls = document.getElementById("devControls");
+	devControls.hidden = query.get("dev") !== "1" && query.get("demo") !== "1";
 	const requestedPreset = query.get("preset");
 	const storedPreset = savedPreset();
 	let presetId = requestedPreset ?? storedPreset ?? DEFAULT_PRESET;

@@ -1,6 +1,6 @@
 {
 	"name": "agent-live",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"type": "module",
 	"description": "Give coding agents a live pixel office",
 	"keywords": ["pi-package", "pi-extension", "codex-plugin", "agent-visualization", "pixel-office"],

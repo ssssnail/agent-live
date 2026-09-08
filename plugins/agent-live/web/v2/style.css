@@ -1,5 +1,15 @@
 @import url("/style.css");
 
+.dev-controls {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.dev-controls[hidden] {
+	display: none;
+}
+
 .client-controls {
 	display: grid;
 	grid-template-columns: 170px minmax(0, 1fr) auto auto;
