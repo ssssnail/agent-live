@@ -13,7 +13,7 @@ const port = Number(option("--port", process.env.AGENT_LIVE_CODEX_PORT ?? "7792"
 const preset = option("--preset", "tech-open-office");
 const cwd = option("--cwd", process.cwd());
 const shouldOpen = args.includes("--open");
-const viewerStartTimeoutMs = Number(process.env.AGENT_LIVE_VIEWER_START_TIMEOUT_MS ?? "60000");
+const viewerStartTimeoutMs = Number(process.env.AGENT_LIVE_VIEWER_START_TIMEOUT_MS ?? "180000");
 const viewerCloseGraceMs = Number(process.env.AGENT_LIVE_VIEWER_CLOSE_GRACE_MS ?? "12000");
 
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invalid --port");

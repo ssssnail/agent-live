@@ -48,6 +48,26 @@
 	cursor: default;
 }
 
+.replay-status {
+	position: absolute;
+	top: 12px;
+	left: 50%;
+	z-index: 4;
+	padding: 7px 12px;
+	transform: translateX(-50%);
+	color: #17130a;
+	background: var(--accent);
+	border: 2px solid #fff0b8;
+	box-shadow: 0 3px 0 #76570c;
+	font-size: 12px;
+	font-weight: 800;
+	pointer-events: none;
+}
+
+.replay-status[hidden] {
+	display: none;
+}
+
 .client-controls {
 	display: grid;
 	grid-template-columns: 170px minmax(0, 1fr) auto auto;

@@ -54,6 +54,8 @@
 	let eventHistory = [];
 	let replay = null;
 	const replayButton = document.getElementById("replay");
+	const replayStatus = document.getElementById("replayStatus");
+	const isReplayable = (entry) => ["task", "thought", "say", "action", "delegate"].includes(entry?.event?.type);
 
 	function makeActor(view) {
 		const isLead = !view.parent;
@@ -824,8 +826,11 @@
 			.join("");
 		const lead = list.find((actor) => actor.isLead);
 		replayButton.hidden = !lead;
-		if (lead) replayButton.textContent = replay ? t("replay.playing") : `▶ ${t("replay.day", { name: lead.name })}`;
-		replayButton.disabled = !lead || session.busy || Boolean(replay) || eventHistory.length === 0;
+		const hasActivity = eventHistory.some(isReplayable);
+		if (lead) replayButton.textContent = replay
+			? t("replay.playing")
+			: hasActivity ? `▶ ${t("replay.day", { name: lead.name })}` : t("replay.noActivity");
+		replayButton.disabled = !lead || session.busy || Boolean(replay) || !hasActivity;
 	}
 
 	function logLine(item) {
@@ -913,6 +918,7 @@
 		if (run.timer) clearTimeout(run.timer);
 		run.resolveWait?.();
 		replay = null;
+		replayStatus.hidden = true;
 		renderCrew();
 		if (restore) void restoreLiveSnapshot();
 	}
@@ -928,6 +934,9 @@
 		}
 		session = { ...session, busy: false };
 		replay = null;
+		replayStatus.textContent = t("replay.complete");
+		replayStatus.hidden = false;
+		setTimeout(() => { if (!replay) replayStatus.hidden = true; }, 1400);
 		renderCrew();
 		renderBar();
 	}
@@ -938,7 +947,7 @@
 		if (!response.ok) return;
 		const latest = await response.json();
 		const history = Array.isArray(latest.history) ? latest.history.slice() : [];
-		if (!history.length) {
+		if (!history.some(isReplayable)) {
 			replayButton.textContent = t("replay.empty");
 			return;
 		}
@@ -953,10 +962,13 @@
 		});
 		renderCrew();
 		let previousAt = history[0].at;
-		for (const entry of history) {
+		for (let index = 0; index < history.length; index++) {
+			const entry = history[index];
 			if (run.cancelled) return;
 			await waitForReplay((entry.at - previousAt) / 1.5, run);
 			if (run.cancelled) return;
+			replayStatus.textContent = t("replay.progress", { current: index + 1, total: history.length });
+			replayStatus.hidden = false;
 			apply(entry.event);
 			previousAt = entry.at;
 		}

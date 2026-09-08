@@ -18,7 +18,7 @@ Open one self-contained local Agent Live session backed by the Codex App Server.
 ## Rules
 
 - Start a fresh local session for each invocation; do not scan for or attach to another App Server.
-- If no browser viewer connects within 60 seconds, the client exits automatically instead of leaving an orphan service.
+- If no browser viewer connects within 3 minutes, the client exits automatically instead of leaving an orphan service. This window includes a potentially slow first App Server startup and queued panel opening.
 - Never replace the authenticated URL with a tokenless URL.
 - Do not start a daemon, Hub, hook listener, remote server, or cloud backend.
 - Do not claim Creator or Custom Office support; those features are not implemented yet.
