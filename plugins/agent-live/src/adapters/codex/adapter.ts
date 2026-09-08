@@ -7,7 +7,7 @@ import type { AdapterDescriptor } from "../contract.ts";
 export const CODEX_ADAPTER: AdapterDescriptor = {
 	id: "codex",
 	name: "Codex",
-	capabilities: { observe: true, prompt: true, interrupt: true, modelSelect: true, approvals: true, subagents: true },
+	capabilities: { observe: true, prompt: true, interrupt: true, modelSelect: false, approvals: true, subagents: true },
 };
 
 const MAIN = "main";
@@ -24,6 +24,7 @@ export interface CodexModelOption {
 	name: string;
 	description: string;
 	isDefault: boolean;
+	defaultReasoningEffort?: string;
 }
 
 type Item = JsonObject & { id?: string; type?: string; status?: string; text?: string };
@@ -36,6 +37,7 @@ export class CodexOfficeSession {
 	private readonly client: CodexAppServerClient;
 	private readonly options: {
 		cwd: string;
+		sourceThreadId?: string;
 		onApproval?: (approval: PendingApproval) => void;
 	};
 	private threadId = "";
@@ -49,9 +51,11 @@ export class CodexOfficeSession {
 	private unsubscribe: (() => void) | null = null;
 	private models: CodexModelOption[] = [];
 	private model = "";
+	private effort = "";
 
 	constructor(state: OfficeState, client: CodexAppServerClient, options: {
 			cwd: string;
+			sourceThreadId?: string;
 			onApproval?: (approval: PendingApproval) => void;
 		}) {
 		this.state = state;
@@ -63,19 +67,26 @@ export class CodexOfficeSession {
 		this.unsubscribe = this.client.onMessage((message) => this.handleMessage(message));
 		await this.client.start();
 		this.models = await this.listModels();
-		const result = await this.client.request("thread/start", {
+		const inherited = await this.readSourceConfiguration();
+		const fallback = this.models.find((item) => item.isDefault) ?? this.models[0];
+		this.model = inherited.model || fallback?.id || "";
+		this.effort = inherited.effort || fallback?.defaultReasoningEffort || "";
+		const startParams: JsonObject = {
 			cwd: this.options.cwd,
 			approvalPolicy: "on-request",
 			sandbox: "workspace-write",
 			serviceName: "Agent Live",
-		});
-		const response = result as { thread?: { id?: string }; model?: string };
+		};
+		if (this.model) startParams.model = this.model;
+		const result = await this.client.request("thread/start", startParams);
+		const response = result as { thread?: { id?: string; model?: string; reasoningEffort?: string }; model?: string };
 		if (!response.thread?.id) throw new Error("Codex did not return a thread id");
 		this.threadId = response.thread.id;
-		const model = response.model ?? "codex";
+		const model = response.thread.model ?? response.model ?? this.model ?? "codex";
 		this.model = model;
-		this.state.updateSession({ cwd: this.options.cwd, model, busy: false });
-		this.state.join(MAIN, { name: "Codex", role: model, model });
+		this.effort = response.thread.reasoningEffort ?? this.effort;
+		this.state.updateSession({ cwd: this.options.cwd, model, thinkingLevel: this.effort || undefined, busy: false });
+		this.state.join(MAIN, { name: "科迪", role: model, model });
 		return { threadId: this.threadId, model, models: this.models };
 	}
 
@@ -108,6 +119,7 @@ export class CodexOfficeSession {
 			threadId: this.threadId,
 			input: [{ type: "text", text, text_elements: [] }],
 		};
+		if (this.effort) params.effort = this.effort;
 		if (model) params.model = model;
 		try {
 			const result = await this.client.request("turn/start", params);
@@ -169,11 +181,29 @@ export class CodexOfficeSession {
 					name: String(item.displayName ?? id),
 					description: String(item.description ?? ""),
 					isDefault: Boolean(item.isDefault),
+					defaultReasoningEffort: typeof item.defaultReasoningEffort === "string" ? item.defaultReasoningEffort : undefined,
 				});
 			}
 			cursor = page.nextCursor ?? null;
 		} while (cursor);
 		return models;
+	}
+
+	private async readSourceConfiguration(): Promise<{ model: string; effort: string }> {
+		if (!this.options.sourceThreadId) return { model: "", effort: "" };
+		try {
+			const result = await this.client.request("thread/read", {
+				threadId: this.options.sourceThreadId,
+				includeTurns: false,
+			});
+			const thread = (result as { thread?: JsonObject }).thread;
+			return {
+				model: String(thread?.model ?? ""),
+				effort: String(thread?.reasoningEffort ?? thread?.reasoning_effort ?? ""),
+			};
+		} catch {
+			return { model: "", effort: "" };
+		}
 	}
 
 	private handleMessage(message: AppServerMessage): void {
@@ -243,7 +273,7 @@ export class CodexOfficeSession {
 	private updateModel(model: string): void {
 		this.model = model;
 		this.state.updateSession({ model });
-		this.state.join(MAIN, { name: "Codex", role: model, model });
+		this.state.join(MAIN, { name: "科迪", role: model, model });
 	}
 
 	private itemStarted(item: Item | undefined, agentId: string): void {

@@ -58,7 +58,7 @@ export default function (pi: ExtensionAPI) {
 
 	const mainName = (ctx: any): { name: string; role: string } => {
 		const model = ctx?.model?.id ?? ctx?.model?.name ?? "pi";
-		return { name: "阿派", role: String(model) };
+		return { name: "啊派", role: String(model) };
 	};
 
 	async function boot(ctx: any): Promise<void> {
@@ -99,7 +99,10 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("model_select", async (event: any) => {
-		state?.updateSession({ model: event?.model?.id });
+		if (!state) return;
+		const model = String(event?.model?.id ?? event?.model?.name ?? "pi");
+		state.updateSession({ model });
+		state.join(MAIN, { name: "啊派", role: model, model });
 	});
 
 	pi.on("thinking_level_select", async (event: any) => {
@@ -289,11 +292,20 @@ export default function (pi: ExtensionAPI) {
 	}
 
 	pi.registerCommand("agent-live", {
-		description: "打开 Agent Live 可视化 (demo | status | preset [id])",
+		description: "打开 Agent Live 可视化 (demo | status | close | preset [id])",
 		handler: async (args: string, ctx: any) => {
-			await boot(ctx);
 			const sub = (args ?? "").trim().toLowerCase();
 			const [command, value, ...rest] = sub.split(/\s+/).filter(Boolean);
+			if (command === "close") {
+				await runtime?.close();
+				server = null;
+				state = null;
+				runtime = null;
+				delegated.clear();
+				ctx.ui.notify("Agent Live 已关闭", "info");
+				return;
+			}
+			await boot(ctx);
 
 			if (!server) {
 				ctx.ui.notify("Agent Live 服务未启动", "error");
@@ -323,7 +335,7 @@ export default function (pi: ExtensionAPI) {
 				return;
 			}
 			if (command && command !== "open") {
-				ctx.ui.notify("用法：/agent-live [demo | status | preset [id]]", "error");
+				ctx.ui.notify("用法：/agent-live [demo | status | close | preset [id]]", "error");
 				return;
 			}
 			server.open(VIEWER_PATH);

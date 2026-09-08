@@ -823,7 +823,7 @@
 						<span class="role">${esc(tx(role ? role.title : a.role ?? ""))}</span>
 						<span class="badge ${a.state}">${stateLabel(a.state)}</span></div>
 						<div class="detail">${esc(a.detail || a.task || "—")}</div>
-						<div class="meta">${fmtTokens(a.tokens)} tok · $${(a.cost ?? 0).toFixed(4)}</div>
+						<div class="meta">${isCodexClient ? `${fmtTokens(a.tokens)} tok` : `${fmtTokens(a.tokens)} tok · $${(a.cost ?? 0).toFixed(4)}`}</div>
 					</div>
 				</div>`;
 			})
@@ -856,7 +856,8 @@
 			tokens += a.tokens ?? 0;
 			cost += a.cost ?? 0;
 		}
-		document.getElementById("model").textContent = `model: ${session.model ?? "—"}`;
+		const effort = session.thinkingLevel ? ` · ${session.thinkingLevel}` : "";
+		document.getElementById("model").textContent = `model: ${session.model ?? "—"}${effort}`;
 		document.getElementById("turns").textContent = `turn ${session.turns ?? 0}${session.busy ? ` · ${t("status.running")}` : ""}`;
 		document.getElementById("usage").textContent = isCodexClient ? `${fmtTokens(tokens)} tok` : `${fmtTokens(tokens)} tok · $${cost.toFixed(4)}`;
 	}
@@ -1021,7 +1022,7 @@
 			agents: [
 				{
 					id: "main",
-					name: "阿派",
+					name: "啊派",
 					role: "主管",
 					state: "idle",
 					tokens: 0,
@@ -1058,7 +1059,7 @@
 				agent: { id, name, role: "外援", parent: "main", state: "idle", tokens: 0, cost: 0, toolCalls: 0, joinedAt: now(), seat },
 			});
 			apply({ type: "delegate", from: "main", to: id, task });
-			log("main", "delegate", `阿派 → ${name}: ${task}`);
+			log("main", "delegate", `啊派 → ${name}: ${task}`);
 			await wait(4200);
 		}
 		apply({ type: "agent_state", id: "main", state: "waiting", detail: "等待 2 位同事" });

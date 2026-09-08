@@ -1,7 +1,10 @@
 const DEFAULT_LOCALE = "en";
+const LOCALE_STORAGE_KEY = "agent-live:locale";
 
 export async function loadI18n(query) {
-	const requested = query.get("lang") || DEFAULT_LOCALE;
+	let saved = "";
+	try { saved = localStorage.getItem(LOCALE_STORAGE_KEY) ?? ""; } catch {}
+	const requested = query.get("lang") || saved || DEFAULT_LOCALE;
 	const locale = requested.toLowerCase().startsWith("zh") ? "zh-CN" : "en";
 	const response = await fetch(`/v2/locales/${locale}.json`, { cache: "no-cache" });
 	if (!response.ok) throw new Error(`Unable to load locale: ${locale}`);
@@ -34,6 +37,18 @@ export async function loadI18n(query) {
 		const value = api.t(element.dataset.i18nTitle);
 		element.title = value;
 		element.setAttribute("aria-label", value);
+	}
+	const language = document.getElementById("language");
+	if (language) {
+		language.textContent = locale === "en" ? "中文" : "EN";
+		language.setAttribute("aria-label", api.t("nav.language"));
+		language.addEventListener("click", () => {
+			const next = locale === "en" ? "zh-CN" : "en";
+			try { localStorage.setItem(LOCALE_STORAGE_KEY, next); } catch {}
+			const url = new URL(location.href);
+			url.searchParams.set("lang", next);
+			location.href = url.toString();
+		});
 	}
 	return api;
 }

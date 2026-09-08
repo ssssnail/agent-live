@@ -31,6 +31,7 @@ let hasSeenViewer = false;
 let closing = false;
 const session = new CodexOfficeSession(state, appServer, {
 	cwd,
+	sourceThreadId: process.env.CODEX_THREAD_ID,
 	onApproval(value) {
 		approval = value;
 	},
