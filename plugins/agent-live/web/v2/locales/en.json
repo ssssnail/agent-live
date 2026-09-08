@@ -25,6 +25,7 @@
 		"client.loadingModels": "Loading models…",
 		"client.prompt": "Give Codex a task…",
 		"client.stop": "Stop",
+		"client.stopping": "Stopping…",
 		"client.send": "Send",
 		"status.running": "running",
 		"state.idle": "Idle",

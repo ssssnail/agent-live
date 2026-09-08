@@ -70,7 +70,7 @@
 
 .client-controls {
 	display: grid;
-	grid-template-columns: 170px minmax(0, 1fr) auto auto;
+	grid-template-columns: minmax(0, 1fr) auto auto;
 	gap: 8px;
 	padding: 9px 12px;
 	background: var(--panel);

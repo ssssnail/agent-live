@@ -25,6 +25,7 @@
 		"client.loadingModels": "加载模型…",
 		"client.prompt": "给 Codex 一个任务…",
 		"client.stop": "停止",
+		"client.stopping": "正在停止…",
 		"client.send": "发送",
 		"status.running": "运行中",
 		"state.idle": "待命",

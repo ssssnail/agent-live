@@ -9,6 +9,7 @@ export function installCodexControls(token) {
 	const approvalDetail = document.getElementById("approvalDetail");
 	let currentApproval = null;
 	let busy = false;
+	let stopping = false;
 	form.hidden = false;
 
 	async function post(path, body = {}) {
@@ -46,7 +47,19 @@ export function installCodexControls(token) {
 		}
 	});
 
-	stop.addEventListener("click", () => void post("interrupt").catch(() => {}));
+	stop.addEventListener("click", async () => {
+		if (!busy || stopping) return;
+		stopping = true;
+		stop.disabled = true;
+		stop.textContent = t("client.stopping");
+		try {
+			await post("interrupt");
+		} catch {
+			stopping = false;
+			stop.textContent = t("client.stop");
+			stop.disabled = !busy;
+		}
+	});
 	approval.addEventListener("click", (event) => {
 		const decision = event.target.closest("[data-approval]")?.dataset.approval;
 		if (!decision || !currentApproval) return;
@@ -69,7 +82,9 @@ export function installCodexControls(token) {
 				approvalDetail.textContent = window.AgentLiveI18n?.text(currentApproval.detail) ?? currentApproval.detail;
 			}
 				busy = Boolean(status.busy);
-				stop.disabled = !busy;
+				stopping = busy && Boolean(status.interrupting);
+				stop.textContent = t(stopping ? "client.stopping" : "client.stop");
+				stop.disabled = !busy || stopping;
 				send.disabled = busy;
 		} catch {
 			stop.disabled = true;

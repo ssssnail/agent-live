@@ -41,6 +41,12 @@ export interface OfficeControls {
 	resolveApproval(id: number | string, allow: boolean, forSession: boolean): Promise<unknown> | unknown;
 }
 
+export function resolveViewerUrl(baseUrl: string, target = ""): string {
+	if (!target) return baseUrl;
+	const normalizedTarget = target.startsWith("/") ? target : `/${target}`;
+	return new URL(normalizedTarget, baseUrl).toString();
+}
+
 /**
  * Static file host for the office UI plus an SSE endpoint carrying office events.
  * Server-sent events keep this dependency-free: the browser only ever listens.
@@ -125,8 +131,8 @@ export async function startServer(
 	return {
 		url,
 		port,
-		open(query = "") {
-			openInBrowser(query ? `${url}/${query}` : url);
+		open(target = "") {
+			openInBrowser(resolveViewerUrl(url, target));
 		},
 		async close() {
 			for (const client of clients) client.end();
@@ -171,7 +177,8 @@ function write(res: http.ServerResponse, event: OfficeEvent): void {
 function serveStatic(pathname: string, res: http.ServerResponse): void {
 	const rel = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
 	const filePath = path.resolve(WEB_ROOT, rel);
-	if (!filePath.startsWith(WEB_ROOT)) {
+	const relative = path.relative(WEB_ROOT, filePath);
+	if (relative.startsWith("..") || path.isAbsolute(relative)) {
 		res.writeHead(403).end("forbidden");
 		return;
 	}
@@ -227,9 +234,9 @@ function openInBrowser(url: string): void {
 				? "cmd"
 				: "xdg-open";
 	const args = process.platform === "win32" ? ["/c", "start", "", url] : [url];
-	try {
-		spawn(command, args, { stdio: "ignore", detached: true }).unref();
-	} catch {
-		// Headless environment; the user can open the URL manually.
-	}
+	const child = spawn(command, args, { stdio: "ignore", detached: true });
+	child.once("error", () => {
+		// Headless environment or missing opener; the user can open the URL manually.
+	});
+	child.unref();
 }

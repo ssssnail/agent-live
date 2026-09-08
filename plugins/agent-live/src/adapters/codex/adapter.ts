@@ -52,6 +52,7 @@ export class CodexOfficeSession {
 	private models: CodexModelOption[] = [];
 	private model = "";
 	private effort = "";
+	private interrupting = false;
 
 	constructor(state: OfficeState, client: CodexAppServerClient, options: {
 			cwd: string;
@@ -90,12 +91,13 @@ export class CodexOfficeSession {
 		return { threadId: this.threadId, model, models: this.models };
 	}
 
-	getStatus(): { threadId: string; model: string; models: CodexModelOption[]; busy: boolean } {
+	getStatus(): { threadId: string; model: string; models: CodexModelOption[]; busy: boolean; interrupting: boolean } {
 		return {
 			threadId: this.threadId,
 			model: this.model,
 			models: this.models,
 			busy: this.state.snapshot().session.busy,
+			interrupting: this.interrupting,
 		};
 	}
 
@@ -137,9 +139,15 @@ export class CodexOfficeSession {
 	}
 
 	async interrupt(): Promise<void> {
-		if (!this.threadId || !this.turnId) return;
+		if (!this.threadId || !this.turnId || this.interrupting) return;
+		this.interrupting = true;
 		this.state.setState(MAIN, "waiting", "正在停止");
-		await this.client.request("turn/interrupt", { threadId: this.threadId, turnId: this.turnId });
+		try {
+			await this.client.request("turn/interrupt", { threadId: this.threadId, turnId: this.turnId });
+		} catch (error) {
+			this.interrupting = false;
+			throw error;
+		}
 	}
 
 	resolveApproval(id: number | string, allow: boolean, forSession = false): void {
@@ -220,6 +228,7 @@ export class CodexOfficeSession {
 					break;
 				}
 				this.turnId = String((params.turn as JsonObject | undefined)?.id ?? this.turnId);
+				this.interrupting = false;
 				this.state.updateSession({ busy: true });
 				this.state.setState(MAIN, "thinking", "构思中");
 				break;
@@ -261,6 +270,7 @@ export class CodexOfficeSession {
 				this.activeActions.clear();
 				const status = String((params.turn as JsonObject | undefined)?.status ?? "completed");
 				this.turnId = "";
+				this.interrupting = false;
 				this.turns += 1;
 				this.state.updateSession({ busy: false, turns: this.turns });
 				this.state.setState(MAIN, status === "failed" ? "error" : "idle", status === "failed" ? "任务失败" : "待命");
@@ -288,6 +298,7 @@ export class CodexOfficeSession {
 	private itemCompleted(item: Item | undefined, fallbackAgentId: string): void {
 		if (!item?.id || !item.type) return;
 		if (item.type === "collabAgentToolCall") this.syncCollaboration(item);
+		if (item.type === "SubAgentActivity") this.syncSubAgentActivity(item);
 		const agentId = this.activeActions.get(item.id)?.agentId ?? fallbackAgentId;
 		if (!this.acceptAgentEvent(agentId)) return;
 		if (item.type === "agentMessage") {
@@ -301,6 +312,25 @@ export class CodexOfficeSession {
 		if (agentId !== MAIN || this.state.snapshot().session.busy) {
 			this.state.setState(agentId, "thinking", ok ? "继续推进" : "处理报错");
 		}
+	}
+
+	private syncSubAgentActivity(item: Item): void {
+		const threadId = String(item.agentThreadId ?? item.agent_thread_id ?? "");
+		if (!threadId) return;
+		const childId = `codex:${threadId}`;
+		const kind = String(item.kind ?? item.status ?? "").toLowerCase();
+		const agentPath = String(item.agentPath ?? item.agent_path ?? "");
+		const name = agentPath.split("/").filter(Boolean).at(-1) || "Teammate";
+		this.childAgents.set(threadId, childId);
+		if (["completed", "failed", "errored", "cancelled", "shutdown"].includes(kind)) {
+			this.finishChild(childId, kind === "completed");
+			return;
+		}
+		if (!this.state.getAgent(childId)) {
+			this.state.join(childId, { name, role: "Subagent", parent: MAIN, task: name });
+			this.state.delegate(MAIN, childId, name);
+		}
+		this.state.setState(childId, kind === "started" ? "thinking" : "working", kind === "started" ? "接到协作任务" : "协作中");
 	}
 
 	private agentIdFor(params: JsonObject): string {
