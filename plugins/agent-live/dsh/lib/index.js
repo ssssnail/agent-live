@@ -252,17 +252,137 @@ function validateOfficeSeedShape(input) {
   return issues;
 }
 
-// ../src/content/validator.ts
-function add(issues, code, path5, message) {
-  issues.push({ code, path: path5, message });
+// ../src/content/graph-validator.ts
+var WORK_CAPABILITIES = ["research", "create", "compute", "plan", "communicate", "collaborate"];
+function assertManifest(value, kind) {
+  const manifest = value;
+  if (!manifest || manifest.schemaVersion !== 1 || manifest.kind !== kind || !manifest.id || !manifest.version) {
+    throw new Error(`\u65E0\u6548\u7684 ${kind} \u5185\u5BB9\u6E05\u5355`);
+  }
+}
+function manifestKindFor(key) {
+  if (key === "agentSkin") return "agent-skin";
+  if (key === "lifeActivities") return "life-activities";
+  return key;
 }
 function validClock(value) {
   if (typeof value !== "string" || !/^\d{2}:\d{2}$/.test(value)) return false;
   const [hour, minute] = value.split(":").map(Number);
   return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
 }
+function shiftIssue(value, code, path5, label) {
+  if (!value || !validClock(value.start) || !validClock(value.end)) return { code, path: path5, message: `${label} \u5FC5\u987B\u63D0\u4F9B\u6709\u6548\u7684 HH:MM \u8D77\u6B62\u65F6\u95F4` };
+  return null;
+}
+function layoutIssues(layout, propTypeNames) {
+  if (!layout || typeof layout !== "object") return [{ code: "missing-layout", path: "$.layout", message: "Layout \u7F3A\u5931" }];
+  const issues = [];
+  if (layout.contract !== "single-office-v1") issues.push({ code: "invalid-layout-contract", path: "$.layout", message: `\u4E0D\u652F\u6301\u7684 Layout \u5408\u540C\uFF1A${layout.contract}` });
+  if (layout.canvas?.width !== 384 || layout.canvas?.height !== 216) issues.push({ code: "invalid-layout-canvas", path: "$.layout", message: "single-office-v1 \u5FC5\u987B\u4F7F\u7528 384\xD7216 \u903B\u8F91\u753B\u5E03" });
+  if (!Array.isArray(layout.seats) || layout.seats.length !== 8) issues.push({ code: "invalid-layout-seats", path: "$.layout", message: "Demo Layout \u5FC5\u987B\u63D0\u4F9B 8 \u4E2A\u5EA7\u4F4D" });
+  if (!Array.isArray(layout.navigation?.lanes) || !layout.navigation.lanes.length) issues.push({ code: "invalid-layout-navigation", path: "$.layout", message: "Layout \u7F3A\u5C11\u5BFC\u822A\u901A\u9053" });
+  const propTypes = new Set(propTypeNames);
+  const propInstances = /* @__PURE__ */ new Set();
+  for (const instance of layout.propInstances ?? []) {
+    if (!propTypes.has(instance?.type)) issues.push({ code: "unknown-layout-prop", path: "$.layout.propInstances", message: `\u672A\u77E5 Prop Type\uFF1A${instance?.type}` });
+    if (!instance?.id || propInstances.has(instance.id)) issues.push({ code: "invalid-layout-prop", path: "$.layout.propInstances", message: `\u91CD\u590D\u6216\u65E0\u6548\u7684 Prop \u5B9E\u4F8B\uFF1A${instance?.id ?? "\u2014"}` });
+    propInstances.add(instance?.id);
+  }
+  for (const capability of WORK_CAPABILITIES) {
+    if (!layout.stations?.[capability]) issues.push({ code: "missing-layout-station", path: `$.layout.stations.${capability}`, message: `Layout \u7F3A\u5C11\u5DE5\u4F5C\u80FD\u529B\uFF1A${capability}` });
+  }
+  return issues;
+}
+function graphIssues(content) {
+  const issues = [];
+  for (const [key, value] of Object.entries(content ?? {})) {
+    if (key === "preset" || key === "agentProfile") continue;
+    try {
+      assertManifest(value, manifestKindFor(key));
+    } catch (error) {
+      issues.push({ code: "invalid-manifest", path: `$.${key}`, message: error.message });
+    }
+  }
+  const profile = content?.agentProfile;
+  if (!profile || typeof profile !== "object" || typeof profile.template !== "string" || !profile.template || !profile.appearance || typeof profile.appearance !== "object" || Array.isArray(profile.appearance)) {
+    issues.push({ code: "invalid-agent-profile", path: "$.agentProfile", message: "\u65E0\u6548\u7684 Agent Profile" });
+  }
+  const layout = content?.layout;
+  issues.push(...layoutIssues(layout, Object.keys(content?.props?.types ?? {})));
+  const propInstances = new Set((layout?.propInstances ?? []).map((instance) => instance?.id));
+  ;
+  (content?.npcs?.entries ?? []).forEach((npc, index) => {
+    const path5 = `$.npcs.entries[${index}]`;
+    if (!npc?.id || !npc.role || !layout?.targets?.[npc.spawn]) issues.push({ code: "invalid-npc", path: path5, message: `\u65E0\u6548\u7684 NPC\uFF1A${npc?.id ?? "\u2014"}` });
+    const shift = npc?.shift ? shiftIssue(npc.shift, "invalid-npc-shift", path5, `NPC ${npc.id} \u7684 shift`) : null;
+    if (shift) issues.push(shift);
+  });
+  ;
+  (content?.lifeActivities?.entries ?? []).forEach((activity, index) => {
+    const path5 = `$.lifeActivities.entries[${index}]`;
+    if (!activity?.id || !["agent", "npc"].includes(activity.participant?.kind) || !activity.steps?.length) {
+      issues.push({ code: "invalid-activity", path: path5, message: `\u65E0\u6548\u7684 Life Activity\uFF1A${activity?.id ?? "\u2014"}` });
+      return;
+    }
+    if (activity.participant?.minAgents != null && (!Number.isInteger(activity.participant.minAgents) || activity.participant.minAgents < 2)) {
+      issues.push({ code: "invalid-activity-participant", path: path5, message: `${activity.id} \u7684 minAgents \u5FC5\u987B\u662F\u81F3\u5C11 2 \u7684\u6574\u6570` });
+    }
+    for (const requiredProp of activity.requires ?? []) {
+      if (!propInstances.has(requiredProp)) issues.push({ code: "missing-activity-prop", path: path5, message: `${activity.id} \u7F3A\u5C11 Prop\uFF1A${requiredProp}` });
+    }
+    for (const step of activity.steps ?? []) {
+      if (!layout?.targets?.[step?.target]) issues.push({ code: "missing-activity-target", path: path5, message: `${activity.id} \u7F3A\u5C11 Target\uFF1A${step?.target}` });
+      for (const target of step?.targets ?? []) {
+        if (!layout?.targets?.[target]) issues.push({ code: "missing-activity-target", path: path5, message: `${activity.id} \u7F3A\u5C11 Group Target\uFF1A${target}` });
+      }
+    }
+  });
+  const environment = content?.environment;
+  if (!environment || !["local", "fixed"].includes(environment.clock?.mode)) {
+    issues.push({ code: "invalid-environment", path: "$.environment", message: "Environment \u7684 clock.mode \u5FC5\u987B\u662F local \u6216 fixed" });
+  } else {
+    if (environment.clock.mode === "fixed" && !validClock(environment.clock.fixedTime)) issues.push({ code: "invalid-environment", path: "$.environment.clock.fixedTime", message: "Environment \u7684 fixedTime \u65E0\u6548" });
+    if (!Array.isArray(environment.clock?.phases) || !environment.clock.phases.length) issues.push({ code: "invalid-environment", path: "$.environment.clock", message: "Environment \u7F3A\u5C11 day phases" });
+    for (const phase of environment.clock?.phases ?? []) {
+      if (!phase?.id || !validClock(phase.start)) issues.push({ code: "invalid-environment", path: "$.environment.clock.phases", message: "Environment \u5305\u542B\u65E0\u6548\u7684 day phase" });
+    }
+    if (!Array.isArray(environment.weather?.allowedConditions) || !environment.weather.allowedConditions.length) {
+      issues.push({ code: "invalid-environment", path: "$.environment.weather", message: "Environment \u7F3A\u5C11\u5929\u6C14\u7C7B\u578B" });
+    }
+    const allowedWeather = new Set(environment.weather?.allowedConditions ?? []);
+    for (const condition of [environment.weather?.condition, environment.weather?.fallback]) {
+      if (condition != null && !allowedWeather.has(condition)) {
+        issues.push({ code: "invalid-environment", path: "$.environment.weather", message: `Environment \u7684\u5929\u6C14 ${condition} \u4E0D\u5728 allowedConditions \u4E2D` });
+      }
+    }
+    const shift = environment.npcSchedule?.defaultShift ? shiftIssue(environment.npcSchedule.defaultShift, "invalid-environment", "$.environment.npcSchedule", "Environment \u7684 NPC \u9ED8\u8BA4\u73ED\u6B21") : null;
+    if (shift) issues.push(shift);
+    for (const [role, value] of Object.entries(environment.npcSchedule?.roleOverrides ?? {})) {
+      const roleIssue = shiftIssue(value, "invalid-environment", `$.environment.npcSchedule.roleOverrides.${role}`, `Environment \u7684 ${role} \u73ED\u6B21`);
+      if (roleIssue) issues.push(roleIssue);
+    }
+  }
+  return issues;
+}
+function graphIssueMessages(content) {
+  return graphIssues(content).map((issue2) => issue2.message);
+}
+
+// ../src/content/validator.ts
+function add(issues, code, path5, message) {
+  issues.push({ code, path: path5, message });
+}
+function validClock2(value) {
+  if (typeof value !== "string" || !/^\d{2}:\d{2}$/.test(value)) return false;
+  const [hour, minute] = value.split(":").map(Number);
+  return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
+}
 function validateShift2(value, path5, issues) {
-  if (!validClock(value?.start) || !validClock(value?.end)) add(issues, "invalid-shift", path5, "shift must contain valid HH:MM start and end values");
+  if (!validClock2(value?.start) || !validClock2(value?.end)) add(issues, "invalid-shift", path5, "shift must contain valid HH:MM start and end values");
+}
+function validateLayoutContract(layout, library, issues) {
+  const propTypeNames = [...library.props.keys()].map((id) => id.replace(/^(builtin|local)\//, ""));
+  for (const issue2 of layoutIssues(layout, propTypeNames)) add(issues, issue2.code, issue2.path, issue2.message);
 }
 var OFFICE_ID = /^(builtin|local)\/[a-z0-9][a-z0-9-]*(?:\/[a-z0-9][a-z0-9-]*)*$/;
 var INSTANCE_ID = /^[a-z0-9][a-z0-9-]*$/;
@@ -285,6 +405,7 @@ function validateOfficeSpec(spec, library) {
   }
   const layout = library.layouts.get(value.layout);
   if (!layout) return { valid: false, issues };
+  validateLayoutContract(layout, library, issues);
   const slots = new Map((layout.placementSlots ?? []).map((slot) => [slot.id, slot]));
   const placementIds = /* @__PURE__ */ new Set();
   const occupiedSlots = /* @__PURE__ */ new Set();
@@ -343,7 +464,7 @@ function validateOfficeSpec(spec, library) {
   }
   if (value.activities.length > SCENE_LIMITS.activities) add(issues, "too-many-activities", "$.activities", `maximum ${SCENE_LIMITS.activities} activities`);
   const overrides = value.environmentOverrides;
-  if (overrides?.clock?.mode === "fixed" && !validClock(overrides.clock.fixedTime)) add(issues, "invalid-fixed-time", "$.environmentOverrides.clock.fixedTime", "fixed clock requires a valid HH:MM value");
+  if (overrides?.clock?.mode === "fixed" && !validClock2(overrides.clock.fixedTime)) add(issues, "invalid-fixed-time", "$.environmentOverrides.clock.fixedTime", "fixed clock requires a valid HH:MM value");
   if (overrides?.clock?.mode === "local" && overrides.clock.fixedTime !== void 0) add(issues, "unused-fixed-time", "$.environmentOverrides.clock.fixedTime", "local clock cannot include fixedTime");
   if (overrides?.weather && !WEATHER_VALUES.includes(overrides.weather.fallback)) add(issues, "invalid-weather", "$.environmentOverrides.weather.fallback", "unsupported weather");
   if (overrides?.npcSchedule?.defaultShift) validateShift2(overrides.npcSchedule.defaultShift, "$.environmentOverrides.npcSchedule.defaultShift", issues);
@@ -679,7 +800,8 @@ var OfficeRegistry = class {
       try {
         const office = await this.#readCustomFile(path2.join(this.#officeDir(), file));
         entries.push({ id: office.id, name: office.name, origin: "custom", selected: office.id === selected });
-      } catch {
+      } catch (error) {
+        console.warn(`Agent Live ignored invalid custom office ${file}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
     return entries.sort((a, b) => a.origin.localeCompare(b.origin) || a.name.localeCompare(b.name));
@@ -872,7 +994,10 @@ var OfficeContentService = class _OfficeContentService {
     if (!office) throw new Error(`unknown or invalid office ${id}`);
     const compiled = compileOfficeSpec(office, this.library);
     if (!compiled.draft) throw new Error(`office ${id} failed compilation: ${compiled.errors.map((issue2) => issue2.message).join("; ")}`);
-    return resolveRuntimeContent(compiled.draft, this.#contentRoot, this.library);
+    const graph = await resolveRuntimeContent(compiled.draft, this.#contentRoot, this.library);
+    const issues = graphIssueMessages(graph);
+    if (issues.length) throw new Error(`office ${office.id} produced content the viewer cannot render: ${issues.join("; ")}`);
+    return graph;
   }
   subscribe(listener) {
     const stopRegistry = this.registry.onChange((officeId) => listener({ type: "office", officeId }));

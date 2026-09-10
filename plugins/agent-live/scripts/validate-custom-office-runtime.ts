@@ -16,6 +16,9 @@ try {
 	const router = new CreatorCommandRouter(new CreatorService(content.registry, content.library));
 	runtime = new AgentLiveRuntime(process.cwd(), { dataRoot });
 	const server = await runtime.start({ port: 0, host: "127.0.0.1", content, creator: router, creatorToken: "test-token" });
+	assert.equal((await fetch(`${server.url}/api/state`)).status, 403);
+	assert.equal((await fetch(`${server.url}/api/state`, { headers: { "x-agent-live-token": "test-token" } })).status, 200);
+	assert.equal((await fetch(`${server.url}/api/state`, { headers: { origin: "http://attacker.example", "x-agent-live-token": "test-token" } })).status, 403);
 	const unauthorized = await fetch(`${server.url}/api/creator`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ command: "list_offices" }) });
 	assert.equal(unauthorized.status, 403);
 	const request = { command: "customize", patch: { id: "local/browser-test", name: "Browser Test", placements: { remove: ["plant-1"] } } };

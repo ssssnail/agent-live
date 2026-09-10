@@ -58,6 +58,7 @@ export default function (pi: ExtensionAPI) {
 	let runtime: AgentLiveRuntime | null = null;
 	let agents: AgentRegistry | null = null;
 	let creator: CreatorCommandRouter | null = null;
+	let accessToken = "";
 	let closePromise: Promise<void> | null = null;
 	let bootPromise: Promise<void> | null = null;
 	let viewerCloseTimer: ReturnType<typeof setTimeout> | null = null;
@@ -90,6 +91,7 @@ export default function (pi: ExtensionAPI) {
 			const content = await OfficeContentService.create();
 			creator = new CreatorCommandRouter(new CreatorService(content.registry, content.library));
 			const creatorToken = randomBytes(24).toString("hex");
+			accessToken = creatorToken;
 			state.updateSession({
 				cwd: ctx.cwd ?? process.cwd(),
 				model: ctx?.model?.id,
@@ -116,10 +118,10 @@ export default function (pi: ExtensionAPI) {
 				},
 			});
 			if (ctx.hasUI) {
-				ctx.ui.setStatus("agent-live", `agent-live: ${server.url}/${VIEWER_PATH}`);
-				ctx.ui.notify(`Agent Live: ${server.url}/${VIEWER_PATH} (/agent-live 打开)`, "info");
+				ctx.ui.setStatus("agent-live", `agent-live: ${viewerUrl(server.url)}`);
+				ctx.ui.notify(`Agent Live: ${viewerUrl(server.url)} (/agent-live 打开)`, "info");
 			}
-			if (process.env.AGENT_LIVE_AUTO_OPEN === "1") server.open(VIEWER_PATH);
+			if (process.env.AGENT_LIVE_AUTO_OPEN === "1") server.open(viewerTarget());
 		} catch (err) {
 			agents?.dispose();
 			await runtime?.close().catch(() => undefined);
@@ -153,12 +155,22 @@ export default function (pi: ExtensionAPI) {
 		runtime = null;
 		agents = null;
 		creator = null;
+		accessToken = "";
 		delegated.clear();
 		closePromise = (async () => {
 			agentsToDispose?.dispose();
 			await runtimeToClose?.close();
 		})().finally(() => { closePromise = null; });
 		return closePromise;
+	}
+
+	function viewerTarget(params: Record<string, string> = {}): string {
+		const query = new URLSearchParams({ ...params, ...(accessToken ? { token: accessToken } : {}) });
+		return `${VIEWER_PATH}${query.size ? `?${query}` : ""}`;
+	}
+
+	function viewerUrl(base: string, params: Record<string, string> = {}): string {
+		return `${base}/${viewerTarget(params)}`;
 	}
 
 	pi.on("session_start", async (_event, ctx) => {
@@ -392,11 +404,11 @@ export default function (pi: ExtensionAPI) {
 				return;
 			}
 			if (command === "status") {
-				ctx.ui.notify(`Agent Live: ${server.url}/${VIEWER_PATH}`, "info");
+				ctx.ui.notify(`Agent Live: ${viewerUrl(server.url)}`, "info");
 				return;
 			}
 			if (command === "demo") {
-				server.open(`${VIEWER_PATH}?demo=1`);
+				server.open(viewerTarget({ demo: "1" }));
 				ctx.ui.notify("已打开演示场景", "info");
 				return;
 			}
@@ -410,7 +422,7 @@ export default function (pi: ExtensionAPI) {
 					ctx.ui.notify(`未知 Preset：${[value, ...rest].filter(Boolean).join(" ")}。输入 /agent-live preset 查看可用选项。`, "error");
 					return;
 				}
-				server.open(`${VIEWER_PATH}?preset=${encodeURIComponent(value)}`);
+				server.open(viewerTarget({ preset: value }));
 				ctx.ui.notify(`已打开 ${PRESETS.get(value)}；浏览器会记住这次选择`, "info");
 				return;
 			}
@@ -428,8 +440,8 @@ export default function (pi: ExtensionAPI) {
 			ctx.ui.notify("用法：/agent-live [custom | exit | demo | status | close | preset [id]]", "error");
 				return;
 			}
-			server.open(VIEWER_PATH);
-			ctx.ui.notify(`已打开 ${server.url}/${VIEWER_PATH}`, "info");
+			server.open(viewerTarget());
+			ctx.ui.notify(`已打开 ${viewerUrl(server.url)}`, "info");
 		},
 	});
 }

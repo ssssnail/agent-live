@@ -10,6 +10,11 @@
 	const t = (key, vars) => I18n.t(key, vars);
 	const tx = (value) => I18n.text(value);
 	const clientKind = window.AgentLiveClientKind ?? new URLSearchParams(location.search).get("client");
+	const accessToken = new URLSearchParams(location.search).get("token") ?? "";
+	const authenticatedFetch = (path) => fetch(path, {
+		cache: "no-store",
+		headers: accessToken ? { "x-agent-live-token": accessToken } : {},
+	});
 	const hideCost = clientKind === "codex" || clientKind === "dsh";
 	const officeContent = window.OfficeContent ?? null;
 	const lifeActivities = officeContent?.lifeActivities?.entries ?? [];
@@ -979,7 +984,7 @@
 			return;
 		}
 		try {
-			const response = await fetch("/api/state", { cache: "no-store" });
+			const response = await authenticatedFetch("/api/state");
 			if (response.ok) apply(await response.json());
 		} catch {
 			// The live SSE stream will deliver the next authoritative event.
@@ -1022,7 +1027,7 @@
 		if (replay || session.busy) return;
 		const latest = typeof window.AgentLiveGetSnapshot === "function"
 			? await window.AgentLiveGetSnapshot()
-			: await fetch("/api/state", { cache: "no-store" }).then((response) => response.ok ? response.json() : null);
+			: await authenticatedFetch("/api/state").then((response) => response.ok ? response.json() : null);
 		if (!latest) return;
 		const history = Array.isArray(latest.history) ? latest.history.slice() : [];
 		if (!history.some(isReplayable)) {
@@ -1075,7 +1080,7 @@
 			});
 			return;
 		}
-		const es = new EventSource("/events");
+		const es = new EventSource(accessToken ? `/events?token=${encodeURIComponent(accessToken)}` : "/events");
 		es.onopen = () => {
 			pill.textContent = t("connection.connected");
 			pill.className = "pill online";

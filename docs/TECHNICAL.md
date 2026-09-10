@@ -227,7 +227,7 @@ if (thinking.length > thinkingCursor) {
   - **软链接接入时仍然正确**：根 `index.ts` 只做 re-export，`import.meta.url` 解析到真实的 `plugins/agent-live/src/`，`../web` 因此指向真实项目目录。
 - 解析后校验 `filePath.startsWith(WEB_ROOT)`，否则 403，防目录穿越。
 - MIME 白名单，未知扩展名回落 `application/octet-stream`。
-- **只绑 `127.0.0.1`，无鉴权**。这是刻意的：内容包含代码路径与推理片段，不应暴露到局域网。
+- **只绑 `127.0.0.1`**。事件流、完整状态和宿主控制状态使用本地访问令牌，并拒绝非本机 `Host` / `Origin`；仍不得暴露到局域网或公网。
 
 ### 9.4 广播容错
 

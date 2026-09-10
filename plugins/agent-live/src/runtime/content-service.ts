@@ -6,6 +6,7 @@ import { loadComponentLibrary, loadOfficialOffices } from "../content/library.ts
 import { OfficeRegistry } from "../content/registry.ts";
 import { resolveRuntimeContent } from "../content/runtime-content.ts";
 import { compileOfficeSpec } from "../content/compiler.ts";
+import { graphIssueMessages } from "../content/graph-validator.ts";
 
 function pluginRoot() {
 	return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -47,7 +48,12 @@ export class OfficeContentService {
 		if (!office) throw new Error(`unknown or invalid office ${id}`);
 		const compiled = compileOfficeSpec(office, this.library);
 		if (!compiled.draft) throw new Error(`office ${id} failed compilation: ${compiled.errors.map((issue) => issue.message).join("; ")}`);
-		return resolveRuntimeContent(compiled.draft, this.#contentRoot, this.library);
+		const graph = await resolveRuntimeContent(compiled.draft, this.#contentRoot, this.library);
+		// The viewer applies the same rules; refusing here keeps "saved" and
+		// "renderable" the same thing instead of failing in the browser.
+		const issues = graphIssueMessages(graph);
+		if (issues.length) throw new Error(`office ${office.id} produced content the viewer cannot render: ${issues.join("; ")}`);
+		return graph;
 	}
 
 	subscribe(listener: (change: unknown) => void) {

@@ -8,6 +8,8 @@ import {
 	validateOfficeSpecShape,
 } from "./schema.ts";
 
+import { layoutIssues } from "./graph-validator.ts";
+
 export interface ComponentLibraryView {
 	descriptors: {
 		styles: any[];
@@ -53,6 +55,12 @@ function validateShift(value: any, path: string, issues: ValidationIssue[]) {
 	if (!validClock(value?.start) || !validClock(value?.end)) add(issues, "invalid-shift", path, "shift must contain valid HH:MM start and end values");
 }
 
+/** Delegates to the shared rules so saving and rendering can never disagree. */
+function validateLayoutContract(layout: any, library: ComponentLibraryView, issues: ValidationIssue[]) {
+	const propTypeNames = [...library.props.keys()].map((id) => id.replace(/^(builtin|local)\//, ""));
+	for (const issue of layoutIssues(layout, propTypeNames)) add(issues, issue.code, issue.path, issue.message);
+}
+
 const OFFICE_ID = /^(builtin|local)\/[a-z0-9][a-z0-9-]*(?:\/[a-z0-9][a-z0-9-]*)*$/;
 const INSTANCE_ID = /^[a-z0-9][a-z0-9-]*$/;
 const COLOR = /^#[0-9a-f]{6}$/i;
@@ -77,6 +85,7 @@ export function validateOfficeSpec(spec: unknown, library: ComponentLibraryView)
 
 	const layout = library.layouts.get(value.layout);
 	if (!layout) return { valid: false, issues };
+	validateLayoutContract(layout, library, issues);
 	const slots = new Map((layout.placementSlots ?? []).map((slot: any) => [slot.id, slot]));
 	const placementIds = new Set<string>();
 	const occupiedSlots = new Set<string>();

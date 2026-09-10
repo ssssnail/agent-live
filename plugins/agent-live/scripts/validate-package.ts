@@ -26,6 +26,7 @@ assert.equal(pkg.exports["."].import, "./dist/index.js");
 assert.equal(pkg.exports["./adapter-sdk"].import, "./dist/adapter-sdk/index.js");
 assert.equal(pkg.scripts.prepare, "npm run build", "Git dependencies must build dist during install");
 assert.equal(pkg.peerDependencies?.["@earendil-works/pi-coding-agent"], undefined, "Pi must not be required by host-neutral SDK users");
+assert.equal(pkg.devDependencies?.["@earendil-works/pi-coding-agent"], "0.85.1", "Pi adapter must typecheck against a pinned official API");
 assert.ok(pkg.files.includes("skills"), "adapter builder skill must be included in the package");
 assert.match(adapterScaffold, /github:ssssnail\/agent-live#main/, "adapter scaffold must use the available GitHub distribution");
 

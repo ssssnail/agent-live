@@ -1,5 +1,6 @@
 import { actionForTool, labelForTool } from "../../core/mapping.ts";
 import type { AgentState, AgentView, LogItem, OfficeDelta, OfficeEvent, RecordedOfficeEvent, SessionInfo } from "../../core/protocol.ts";
+import { SCENE_LIMITS } from "../../core/limits.ts";
 
 export interface DshMessageRecord {
 	key: string;
@@ -144,12 +145,14 @@ export class DshSnapshotAdapter {
 					toolCallId: tool.callId,
 				});
 			} else if (!tool.running) {
+				let emittedStart = false;
 				if (!this.seenTools.has(tool.callId)) {
 					this.seenTools.add(tool.callId);
 					this.trimSeen(this.seenTools);
 					output.push({ type: "action", id: mainId, action: actionForTool(tool.name), label: labelForTool(tool.name, tool.args), toolCallId: tool.callId });
+					emittedStart = true;
 				}
-				if (this.activeTools.delete(tool.callId) || output.at(-1)?.type === "action") {
+				if (this.activeTools.delete(tool.callId) || emittedStart) {
 					output.push({ type: "action_end", id: mainId, toolCallId: tool.callId, ok: tool.ok !== false });
 				}
 			}
@@ -207,7 +210,7 @@ export class DshSnapshotAdapter {
 		this.previousTokens = main.tokens;
 		this.previousState = main.state;
 		const agents = [main];
-		for (const [index, child] of input.children.entries()) {
+		for (const [index, child] of input.children.slice(0, SCENE_LIMITS.agents - 1).entries()) {
 			if (!child.running) continue;
 			this.visibleChildren.add(child.id);
 			agents.push(this.childView(child, main.id, index + 1));
@@ -227,7 +230,7 @@ export class DshSnapshotAdapter {
 
 	private syncChildren(input: DshObservation, mainId: string, output: OfficeEvent[]): void {
 		const current = new Set<string>();
-		for (const [index, child] of input.children.entries()) {
+		for (const [index, child] of input.children.slice(0, SCENE_LIMITS.agents - 1).entries()) {
 			if (!child.running) continue;
 			current.add(child.id);
 			if (this.visibleChildren.has(child.id)) continue;

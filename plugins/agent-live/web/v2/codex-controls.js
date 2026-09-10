@@ -76,7 +76,10 @@ export function installCodexControls(token) {
 	async function refresh() {
 		if (closed || document.hidden) return;
 		try {
-			const response = await fetch("/api/client/status", { cache: "no-store" });
+			const response = await fetch("/api/client/status", {
+				cache: "no-store",
+				headers: { "x-agent-live-token": token },
+			});
 			const status = await response.json();
 			currentApproval = status.approval;
 			approval.hidden = !currentApproval;

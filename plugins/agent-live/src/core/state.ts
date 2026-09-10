@@ -212,8 +212,8 @@ export class OfficeState {
 	addUsage(id: string, tokens: number, cost: number): void {
 		const agent = this.agents.get(id);
 		if (!agent) return;
-		agent.tokens = tokens || agent.tokens;
-		agent.cost = cost || agent.cost;
+		if (Number.isFinite(tokens) && tokens >= 0) agent.tokens = tokens;
+		if (Number.isFinite(cost) && cost >= 0) agent.cost = cost;
 		this.emit({ type: "usage", id, tokens: agent.tokens, cost: agent.cost });
 	}
 

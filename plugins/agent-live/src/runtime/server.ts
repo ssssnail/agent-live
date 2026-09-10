@@ -73,11 +73,20 @@ export async function startServer(
 	const host = options.host ?? "127.0.0.1";
 	const clients = new Set<http.ServerResponse>();
 	const sockets = new Set<Socket>();
+	const accessToken = options.controls?.token ?? options.creatorToken;
 	let closePromise: Promise<void> | null = null;
 
 	const server = http.createServer((req, res) => {
 		const url = new URL(req.url ?? "/", `http://${host}`);
 		const controls = options.controls;
+		if (!isLocalRequest(req)) {
+			json(res, 403, { error: "local requests only" });
+			return;
+		}
+		if (accessToken && ["/events", "/api/state", "/api/client/status"].includes(url.pathname) && !hasToken(req, url, accessToken)) {
+			json(res, 403, { error: "forbidden" });
+			return;
+		}
 
 		if (url.pathname === "/events") {
 			res.writeHead(200, {
@@ -219,6 +228,23 @@ function json(res: http.ServerResponse, status: number, value: unknown): void {
 	res.end(JSON.stringify(value));
 }
 
+function hasToken(req: http.IncomingMessage, url: URL, expected: string): boolean {
+	return req.headers["x-agent-live-token"] === expected || url.searchParams.get("token") === expected;
+}
+
+function isLocalRequest(req: http.IncomingMessage): boolean {
+	const local = new Set(["localhost", "127.0.0.1", "::1"]);
+	try {
+		const hostname = new URL(`http://${req.headers.host ?? ""}`).hostname;
+		if (!local.has(hostname)) return false;
+		const origin = req.headers.origin;
+		if (origin && !local.has(new URL(origin).hostname)) return false;
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 function readJson(req: http.IncomingMessage): Promise<Record<string, unknown>> {
 	return new Promise((resolve, reject) => {
 		let body = "";
@@ -303,9 +329,9 @@ function openInBrowser(url: string): void {
 		process.platform === "darwin"
 			? "open"
 			: process.platform === "win32"
-				? "cmd"
+				? "rundll32"
 				: "xdg-open";
-	const args = process.platform === "win32" ? ["/c", "start", "", url] : [url];
+	const args = process.platform === "win32" ? ["url.dll,FileProtocolHandler", url] : [url];
 	const child = spawn(command, args, { stdio: "ignore", detached: true });
 	child.once("error", () => {
 		// Headless environment or missing opener; the user can open the URL manually.

@@ -63,8 +63,8 @@ export class OfficeRegistry {
 			try {
 				const office = await this.#readCustomFile(path.join(this.#officeDir(), file));
 				entries.push({ id: office.id, name: office.name, origin: "custom", selected: office.id === selected });
-			} catch {
-				// Invalid files never enter the usable registry.
+			} catch (error) {
+				console.warn(`Agent Live ignored invalid custom office ${file}: ${error instanceof Error ? error.message : String(error)}`);
 			}
 		}
 		return entries.sort((a, b) => a.origin.localeCompare(b.origin) || a.name.localeCompare(b.name));

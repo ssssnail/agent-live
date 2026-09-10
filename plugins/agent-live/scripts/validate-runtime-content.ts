@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url";
 import { compileOfficePatch, compileOfficeSeed } from "../src/content/compiler.ts";
 import { loadComponentLibrary, loadOfficialOffices } from "../src/content/library.ts";
 import { resolveRuntimeContent } from "../src/content/runtime-content.ts";
-import { validateRegistry } from "../web/v2/content-validator.js";
+import { graphIssues, validateRegistry } from "../web/v2/graph-validator.js";
+import { validateOfficeSpec } from "../src/content/validator.ts";
 
 const contentRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../web/v2/content");
 const library = await loadComponentLibrary(contentRoot);
@@ -43,4 +44,18 @@ assert.equal(content.environment.clock.fixedTime, "21:30");
 assert.equal(content.environment.weather.fallback, "rain");
 assert.equal(content.agentProfile.name, "Ada");
 assert.equal(content.agentProfile.appearance.shirt, "#112233");
+
+// A layout the browser would refuse must also be refused when saving.
+const structureLibrary = { ...library, layouts: new Map(library.layouts) };
+const techLayout = library.layouts.get("builtin/tech-open-office");
+structureLibrary.layouts.set("builtin/tech-open-office", { ...techLayout, navigation: { ...techLayout.navigation, lanes: [] } });
+const rejected = validateOfficeSpec(base, structureLibrary);
+assert.equal(rejected.valid, false, "a layout without navigation lanes must be rejected server-side");
+assert.ok(rejected.issues.some((issue) => issue.code === "invalid-layout-navigation"), "the shared layout rule must report the navigation problem");
+
+// Serving uses the same rules the browser applies.
+assert.deepEqual(graphIssues(content), [], "a renderable graph must report no issues");
+const brokenGraph = structuredClone(content);
+brokenGraph.layout.navigation.lanes = [];
+assert.ok(graphIssues(brokenGraph).length > 0, "an unrenderable graph must be rejected before it is served");
 console.log("runtime content: three official offices and one customized Office Spec compiled into renderable graphs");

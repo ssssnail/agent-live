@@ -15,6 +15,7 @@
 - Added GitHub Actions CI and tag-based GitHub Release workflows.
 - Added a host-neutral Node entry, compiled public API, Adapter SDK, Adapter Builder Skill, offline consumer-package validation, and community contribution/security templates.
 - Removed the legacy handwritten Adapter capability descriptors; tests now validate actual integrations and event behavior.
+- Unified server and browser content-graph validation, pinned Pi's official API types, protected sensitive local endpoints, and fixed DSH limits, usage resets, diagnostics, and Windows browser launch behavior.
 
 ## 0.1.0 — 2026-09-07
 

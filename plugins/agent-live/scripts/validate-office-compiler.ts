@@ -67,6 +67,15 @@ const base: OfficeSpec = {
 };
 ok(validateOfficeSpec(base, library).valid, "valid base Office Spec was rejected");
 ok(compileOfficeSpec(base, library).draft?.id === base.id, "official Office Spec did not pass the common compiler");
+const validLayout = library.layouts.get(base.layout);
+library.layouts.set(base.layout, { ...validLayout, canvas: { width: 1, height: 1 }, seats: [], navigation: { lanes: [] }, stations: {}, propInstances: [{ type: "missing-prop" }] });
+const invalidLayoutIssues = validateOfficeSpec(base, library).issues;
+ok(invalidLayoutIssues.some((issue) => issue.code === "invalid-layout-canvas"), "invalid layout canvas reached the browser validator");
+ok(invalidLayoutIssues.some((issue) => issue.code === "invalid-layout-seats"), "invalid layout seats reached the browser validator");
+ok(invalidLayoutIssues.some((issue) => issue.code === "invalid-layout-navigation"), "invalid layout navigation reached the browser validator");
+ok(invalidLayoutIssues.some((issue) => issue.code === "missing-layout-station"), "missing layout stations reached the browser validator");
+ok(invalidLayoutIssues.some((issue) => issue.code === "unknown-layout-prop"), "unknown layout prop reached the browser validator");
+library.layouts.set(base.layout, validLayout);
 
 const patch = {
 	schemaVersion: 1,

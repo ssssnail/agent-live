@@ -2,7 +2,7 @@ import { createOfficeRenderer } from "./office-renderer.js";
 import { createSpriteRenderer } from "./sprite-renderer.js";
 import { createEnvironmentRuntime } from "./environment-runtime.js";
 import { loadI18n } from "./i18n.js";
-import { assertManifest, validateRegistry } from "./content-validator.js";
+import { assertManifest, validateRegistry } from "./graph-validator.js";
 
 /**
  * Config-driven boot path for the preserved Demo.

@@ -4,3 +4,5 @@ dist/
 coverage/
 *.log
 *.tgz
+notes/DRAFT-AI-WORKPLACE.md
+prototypes/

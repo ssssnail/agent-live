@@ -109,6 +109,13 @@ const finalObservation: DshObservation = {
   children: [],
 };
 assert.deepEqual(adapter.update(finalObservation), []);
+assert.deepEqual(adapter.update(finalObservation).filter((event) => event.type === "action_end"), [], "completed DSH tools emitted duplicate action_end events");
+
+const crowded = new DshSnapshotAdapter(3000).update({
+	...baseline,
+	children: Array.from({ length: 30 }, (_, index) => ({ id: `child-${index}`, name: `Child ${index}`, running: true })),
+});
+if (crowded[0]?.type === "snapshot") assert.equal(crowded[0].agents.length, 16, "DSH snapshot exceeded the shared agent limit");
 
 const restored = new DshSnapshotAdapter(2000).update(finalObservation);
 assert.equal(restored[0]?.type, "snapshot");
