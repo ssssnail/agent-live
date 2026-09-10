@@ -1,0 +1,697 @@
+{
+	"schemaVersion": 1,
+	"kind": "activity-implementation-library",
+	"id": "builtin/activity-implementation-library",
+	"version": "1.0.0",
+	"contract": "single-office-v1",
+	"entries": [
+		{
+			"layout": "builtin/boardroom-office",
+			"recipe": "builtin/boss-briefing",
+			"definition": {
+				"id": "boss-briefing",
+				"name": "老板主持会议",
+				"participant": {
+					"kind": "npc",
+					"roles": [
+						"boss"
+					]
+				},
+				"requires": [
+					"presentation-main"
+				],
+				"interruptible": false,
+				"initialDelayMs": [
+					500,
+					900
+				],
+				"cooldownMs": [
+					9000,
+					14000
+				],
+				"steps": [
+					{
+						"target": "boss-seat",
+						"durationMs": 4800,
+						"pose": "talk",
+						"bubble": "先看今天的重点"
+					},
+					{
+						"target": "boss-seat",
+						"durationMs": 3200,
+						"pose": "talk",
+						"bubble": "这里需要重点推进",
+						"hot": "whiteboard"
+					},
+					{
+						"target": "boss-seat",
+						"durationMs": 3800,
+						"pose": "talk",
+						"bubble": "负责人按节点同步"
+					}
+				]
+			}
+		},
+		{
+			"layout": "builtin/boardroom-office",
+			"recipe": "builtin/briefing-support",
+			"definition": {
+				"id": "briefing-support",
+				"name": "会前资料",
+				"participant": {
+					"kind": "npc",
+					"roles": [
+						"secretary"
+					]
+				},
+				"requires": [
+					"archive-main"
+				],
+				"interruptible": false,
+				"initialDelayMs": [
+					800,
+					1400
+				],
+				"cooldownMs": [
+					5000,
+					7600
+				],
+				"steps": [
+					{
+						"target": "decision-wall",
+						"durationMs": 2200,
+						"pose": "reach",
+						"bubble": "更新议程",
+						"particle": "paper"
+					},
+					{
+						"target": "table-service-left",
+						"durationMs": 2300,
+						"pose": "reach",
+						"bubble": "资料放桌上了"
+					},
+					{
+						"target": "secretary-entry",
+						"durationMs": 1800,
+						"pose": "stand"
+					}
+				]
+			}
+		},
+		{
+			"layout": "builtin/boardroom-office",
+			"recipe": "builtin/get-water",
+			"definition": {
+				"id": "get-water",
+				"name": "接水",
+				"participant": {
+					"kind": "agent",
+					"states": [
+						"idle"
+					]
+				},
+				"requires": [
+					"water-main"
+				],
+				"onlyWhenSessionIdle": true,
+				"interruptible": true,
+				"startBubble": "去接杯水",
+				"initialDelayMs": [
+					5500,
+					8500
+				],
+				"cooldownMs": [
+					25000,
+					40000
+				],
+				"steps": [
+					{
+						"target": "water",
+						"durationMs": 2800,
+						"pose": "stand",
+						"bubble": "喝口水继续",
+						"hot": "water"
+					}
+				]
+			}
+		},
+		{
+			"layout": "builtin/boardroom-office",
+			"recipe": "builtin/refreshment-round",
+			"definition": {
+				"id": "refreshment-round",
+				"name": "茶水服务",
+				"participant": {
+					"kind": "npc",
+					"roles": [
+						"attendant"
+					]
+				},
+				"requires": [
+					"coffee-main"
+				],
+				"interruptible": false,
+				"initialDelayMs": [
+					1300,
+					1900
+				],
+				"cooldownMs": [
+					4800,
+					7200
+				],
+				"steps": [
+					{
+						"target": "coffee",
+						"durationMs": 1800,
+						"pose": "reach",
+						"bubble": "补充咖啡",
+						"hot": "coffee"
+					},
+					{
+						"target": "table-service-right",
+						"durationMs": 2400,
+						"pose": "reach",
+						"bubble": "请用茶"
+					},
+					{
+						"target": "service-entry",
+						"durationMs": 1800,
+						"pose": "stand"
+					}
+				]
+			}
+		},
+		{
+			"layout": "builtin/lively-office",
+			"recipe": "builtin/cleaning-round",
+			"definition": {
+				"id": "cleaning-round",
+				"name": "清洁巡检",
+				"participant": {
+					"kind": "npc",
+					"roles": [
+						"cleaner"
+					]
+				},
+				"requires": [],
+				"interruptible": false,
+				"initialDelayMs": [
+					700,
+					1200
+				],
+				"cooldownMs": [
+					3500,
+					6000
+				],
+				"steps": [
+					{
+						"target": "clean-north",
+						"durationMs": 2300,
+						"pose": "reach",
+						"bubble": "擦擦桌面",
+						"particle": "spark"
+					},
+					{
+						"target": "clean-south",
+						"durationMs": 2600,
+						"pose": "reach",
+						"bubble": "这边也收拾一下",
+						"particle": "spark"
+					},
+					{
+						"target": "clean-meeting",
+						"durationMs": 2200,
+						"pose": "reach",
+						"bubble": "会议区整理好啦",
+						"particle": "spark"
+					}
+				]
+			}
+		},
+		{
+			"layout": "builtin/lively-office",
+			"recipe": "builtin/get-water",
+			"definition": {
+				"id": "get-water",
+				"name": "接水",
+				"participant": {
+					"kind": "agent",
+					"states": [
+						"idle"
+					]
+				},
+				"requires": [
+					"water-main"
+				],
+				"onlyWhenSessionIdle": true,
+				"interruptible": true,
+				"startBubble": "去接杯水",
+				"initialDelayMs": [
+					4500,
+					7500
+				],
+				"cooldownMs": [
+					22000,
+					36000
+				],
+				"steps": [
+					{
+						"target": "water",
+						"durationMs": 3200,
+						"pose": "stand",
+						"bubble": "接杯水，歇一下",
+						"hot": "water"
+					}
+				]
+			}
+		},
+		{
+			"layout": "builtin/old-school-office",
+			"recipe": "builtin/corridor-chat",
+			"definition": {
+				"id": "corridor-chat",
+				"name": "走廊聊两句",
+				"participant": {
+					"kind": "agent",
+					"states": [
+						"idle",
+						"waiting",
+						"done"
+					],
+					"minAgents": 2
+				},
+				"requires": [],
+				"onlyWhenSessionIdle": true,
+				"interruptible": true,
+				"startBubble": "出去聊两句？",
+				"initialDelayMs": [
+					8000,
+					12000
+				],
+				"cooldownMs": [
+					36000,
+					56000
+				],
+				"steps": [
+					{
+						"target": "corridor-chat-a",
+						"targets": [
+							"corridor-chat-a",
+							"corridor-chat-b"
+						],
+						"durationMs": 4800,
+						"pose": "talk",
+						"bubbles": [
+							"这个文件你看了吗？",
+							"刚送过来，正准备看"
+						]
+					}
+				]
+			}
+		},
+		{
+			"layout": "builtin/old-school-office",
+			"recipe": "builtin/facility-round",
+			"definition": {
+				"id": "facility-round",
+				"name": "后勤巡检",
+				"participant": {
+					"kind": "npc",
+					"roles": [
+						"cleaner"
+					]
+				},
+				"requires": [],
+				"interruptible": false,
+				"initialDelayMs": [
+					1200,
+					1800
+				],
+				"cooldownMs": [
+					4800,
+					7000
+				],
+				"steps": [
+					{
+						"target": "clean-north",
+						"durationMs": 2100,
+						"pose": "reach",
+						"bubble": "看看格子间",
+						"particle": "spark"
+					},
+					{
+						"target": "clean-south",
+						"durationMs": 2200,
+						"pose": "reach",
+						"bubble": "整理一下"
+					},
+					{
+						"target": "check-fan",
+						"durationMs": 1900,
+						"pose": "reach",
+						"bubble": "风扇别忘了关"
+					},
+					{
+						"target": "clean-meeting",
+						"durationMs": 2100,
+						"pose": "reach",
+						"bubble": "会议室收好了"
+					}
+				]
+			}
+		},
+		{
+			"layout": "builtin/old-school-office",
+			"recipe": "builtin/get-water",
+			"definition": {
+				"id": "get-water",
+				"name": "泡茶",
+				"participant": {
+					"kind": "agent",
+					"states": [
+						"idle"
+					]
+				},
+				"requires": [
+					"water-main"
+				],
+				"onlyWhenSessionIdle": true,
+				"interruptible": true,
+				"startBubble": "泡杯茶",
+				"initialDelayMs": [
+					5000,
+					8000
+				],
+				"cooldownMs": [
+					24000,
+					38000
+				],
+				"steps": [
+					{
+						"target": "water",
+						"durationMs": 3000,
+						"pose": "stand",
+						"bubble": "茶缸续上水",
+						"hot": "water"
+					}
+				]
+			}
+		},
+		{
+			"layout": "builtin/old-school-office",
+			"recipe": "builtin/paperwork-round",
+			"definition": {
+				"id": "paperwork-round",
+				"name": "文件流转",
+				"participant": {
+					"kind": "npc",
+					"roles": [
+						"receptionist"
+					]
+				},
+				"requires": [
+					"copy-main"
+				],
+				"interruptible": false,
+				"initialDelayMs": [
+					900,
+					1500
+				],
+				"cooldownMs": [
+					5200,
+					7600
+				],
+				"steps": [
+					{
+						"target": "reception-phone",
+						"durationMs": 2100,
+						"pose": "talk",
+						"bubble": "喂，这里是办公室"
+					},
+					{
+						"target": "archive",
+						"durationMs": 2300,
+						"pose": "reach",
+						"bubble": "复印归档",
+						"hot": "archive",
+						"particle": "paper"
+					},
+					{
+						"target": "reception",
+						"durationMs": 2600,
+						"pose": "reach",
+						"bubble": "盖章登记好了",
+						"particle": "paper"
+					}
+				]
+			}
+		},
+		{
+			"layout": "builtin/tech-open-office",
+			"recipe": "builtin/boss-plan-round",
+			"definition": {
+				"id": "boss-plan-round",
+				"name": "老板巡视规划",
+				"participant": { "kind": "npc", "roles": ["boss"] },
+				"requires": ["whiteboard-main"],
+				"interruptible": false,
+				"initialDelayMs": [3500, 7000],
+				"cooldownMs": [15000, 26000],
+				"steps": [
+					{ "target": "whiteboard", "durationMs": 3600, "pose": "reach", "bubble": "看看今天的计划" },
+					{ "target": "boss-seat", "durationMs": 1800, "pose": "sit" }
+				]
+			}
+		},
+		{
+			"layout": "builtin/tech-open-office",
+			"recipe": "builtin/boss-water-break",
+			"definition": {
+				"id": "boss-water-break",
+				"name": "老板接水",
+				"participant": { "kind": "npc", "roles": ["boss"] },
+				"requires": ["water-main"],
+				"interruptible": false,
+				"initialDelayMs": [6000, 10000],
+				"cooldownMs": [18000, 30000],
+				"steps": [
+					{ "target": "water", "durationMs": 2400, "pose": "stand", "bubble": "接杯水" },
+					{ "target": "boss-seat", "durationMs": 1600, "pose": "sit" }
+				]
+			}
+		},
+		{
+			"layout": "builtin/tech-open-office",
+			"recipe": "builtin/cleaning-round",
+			"definition": {
+				"id": "cleaning-round",
+				"name": "保洁巡回",
+				"participant": {
+					"kind": "npc",
+					"roles": [
+						"cleaner"
+					]
+				},
+				"requires": [],
+				"interruptible": false,
+				"initialDelayMs": [
+					1000,
+					1800
+				],
+				"cooldownMs": [
+					5200,
+					8200
+				],
+				"steps": [
+					{
+						"target": "clean-desks-north",
+						"durationMs": 2200,
+						"pose": "reach",
+						"bubble": "整理一下桌面",
+						"particle": "spark"
+					},
+					{
+						"target": "clean-desks-south",
+						"durationMs": 2300,
+						"pose": "reach",
+						"bubble": "这边也收拾好",
+						"particle": "spark"
+					},
+					{
+						"target": "clean-lounge",
+						"durationMs": 2400,
+						"pose": "reach",
+						"bubble": "休息区整理好了",
+						"particle": "spark"
+					}
+				]
+			}
+		},
+		{
+			"layout": "builtin/tech-open-office",
+			"recipe": "builtin/colleague-chat",
+			"definition": {
+				"id": "colleague-chat",
+				"name": "和同事聊聊天",
+				"participant": {
+					"kind": "agent",
+					"states": [
+						"idle",
+						"waiting",
+						"done"
+					],
+					"minAgents": 2
+				},
+				"requires": [
+					"meeting-main"
+				],
+				"onlyWhenSessionIdle": true,
+				"interruptible": true,
+				"startBubble": "聊两句？",
+				"initialDelayMs": [
+					6500,
+					10000
+				],
+				"cooldownMs": [
+					30000,
+					48000
+				],
+				"steps": [
+					{
+						"target": "chat-a",
+						"targets": [
+							"chat-a",
+							"chat-b"
+						],
+						"durationMs": 5200,
+						"pose": "talk",
+						"bubbles": [
+							"最近进展怎么样？",
+							"刚处理完一块，歇一下"
+						]
+					}
+				]
+			}
+		},
+		{
+			"layout": "builtin/tech-open-office",
+			"recipe": "builtin/outside-walk",
+			"definition": {
+				"id": "outside-walk",
+				"name": "和同事出去溜达",
+				"participant": {
+					"kind": "agent",
+					"states": [
+						"idle",
+						"waiting",
+						"done"
+					],
+					"minAgents": 2
+				},
+				"requires": [
+					"entry-door"
+				],
+				"onlyWhenSessionIdle": true,
+				"interruptible": true,
+				"startBubble": "出去走走？",
+				"initialDelayMs": [
+					10000,
+					16000
+				],
+				"cooldownMs": [
+					46000,
+					72000
+				],
+				"steps": [
+					{
+						"target": "walk-outside-a",
+						"targets": [
+							"walk-outside-a",
+							"walk-outside-b"
+						],
+						"durationMs": 6500,
+						"pose": "stand",
+						"bubbles": [
+							"透口气",
+							"走一圈再回来"
+						]
+					}
+				]
+			}
+		},
+		{
+			"layout": "builtin/tech-open-office",
+			"recipe": "builtin/phone-break",
+			"definition": {
+				"id": "phone-break",
+				"name": "摸鱼玩手机",
+				"participant": {
+					"kind": "agent",
+					"states": [
+						"idle",
+						"waiting",
+						"done"
+					]
+				},
+				"requires": [],
+				"onlyWhenSessionIdle": true,
+				"interruptible": true,
+				"startBubble": "摸会儿鱼",
+				"initialDelayMs": [
+					5500,
+					9000
+				],
+				"cooldownMs": [
+					26000,
+					44000
+				],
+				"steps": [
+					{
+						"target": "phone-break",
+						"durationMs": 4800,
+						"pose": "phone",
+						"bubble": "刷一下手机"
+					}
+				]
+			}
+		},
+		{
+			"layout": "builtin/tech-open-office",
+			"recipe": "builtin/restroom-break",
+			"definition": {
+				"id": "restroom-break",
+				"name": "去洗手间",
+				"participant": {
+					"kind": "agent",
+					"states": [
+						"idle",
+						"waiting",
+						"done"
+					]
+				},
+				"requires": [
+					"restroom-door"
+				],
+				"onlyWhenSessionIdle": true,
+				"interruptible": true,
+				"startBubble": "去趟洗手间",
+				"initialDelayMs": [
+					7000,
+					12000
+				],
+				"cooldownMs": [
+					42000,
+					70000
+				],
+				"steps": [
+					{
+						"target": "restroom",
+						"durationMs": 4200,
+						"pose": "stand",
+						"bubble": "稍等一下"
+					}
+				]
+			}
+		}
+	]
+}

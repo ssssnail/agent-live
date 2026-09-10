@@ -172,7 +172,7 @@ vibe coding 的体验断层在于：你把需求丢出去之后，屏幕上只�
 **第一次接入**
 
 ```bash
-ln -sfn /Users/snail/projects/agent-office ~/.pi/agent/extensions/agent-office
+ln -sfn /absolute/path/to/agent-live ~/.pi/agent/extensions/agent-live
 ```
 
 重启 pi（或 `/reload`），扩展会在会话启动时自动拉起本地服务，状态栏显示地址。
@@ -220,5 +220,5 @@ npm run preview   # 然后打开 http://localhost:7788/?demo=1
 | 已完成 | Office Life 纵向切片 | 已加入饮水机、保洁 / 支持 NPC、接水与巡检，并验证空闲触发和真实工作抢占 |
 | 已完成 | 三套正式 Preset | Tech 开放式办公室、长桌会议室、老式办公室已完成；另保留内部回归 Preset |
 | 已完成 | 公共 Environment | 时间阶段、外部天气、自动照明和 NPC 班次可复用配置，并支持宿主运行时注入 |
-| 后续 | 回放与更多 Connector | 保存标准 Show Event，逐步接入 Codex / Cursor，并按宿主能力明确降级 |
+| 后续 | Agent Diary 与更多 Adapter | 本次运行的回放已完成；继续探索跨会话日记、Cursor 等宿主，并按官方能力明确降级 |
 | 观察项 | 工位竞争、更多单层 Layout、录屏分享 | 根据真实用户反馈决定优先级，不扩展为多楼层或多建筑产品 |

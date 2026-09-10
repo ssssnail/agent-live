@@ -1,0 +1,8 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Agent Live × DSH UI prototypes</title><link rel="stylesheet" href="common.css"></head><body><main class="index-page"><h1>Agent Live × DeepSeek Harness</h1><p>六种不同深度的集成方式。它们共享同一个 Agent Live Engine，区别只在 Office 出现在哪里、复用多少 DSH UI，以及插件需要承担多少客户端责任。</p><section class="prototype-grid">
+<a class="prototype-card" href="standalone.html"><span class="card-number">A</span><span><h2>独立 Viewer</h2><p>和 Pi 一致。DSH 负责工作，Agent Live 在另一个本地页面展示。</p><small>最统一 · 最低耦合</small></span></a>
+<a class="prototype-card" href="session-view.html"><span class="card-number">B</span><span><h2>Session View</h2><p>Office 成为当前会话里的一个原生 Tab，与 Chat 并列。</p><small>最适合 DSH 原生插件</small></span></a>
+<a class="prototype-card" href="overlay.html"><span class="card-number">C</span><span><h2>Overlay / Drawer</h2><p>从 DSH 内打开临时办公室浮层，原对话保留在后面。</p><small>进入快 · 不适合长期观看</small></span></a>
+<a class="prototype-card" href="conversation-replacement.html"><span class="card-number">D</span><span><h2>替换 Conversation</h2><p>Office 接管当前会话主体，插件承担更多原生会话职责。</p><small>沉浸 · 高耦合</small></span></a>
+<a class="prototype-card" href="pixel-skin.html"><span class="card-number">E</span><span><h2>像素 Skin</h2><p>不加入 Office，只把 DSH 原有客户端换成像素视觉语言。</p><small>只是外观，不是 Agent Live 展示</small></span></a>
+<a class="prototype-card" href="custom-profile.html"><span class="card-number">F</span><span><h2>Agent Live Profile</h2><p>以 Office 为主界面，同时复用 DSH Runtime、Session 和输入能力。</p><small>完整产品形态 · 维护成本最高</small></span></a>
+</section></main></body></html>

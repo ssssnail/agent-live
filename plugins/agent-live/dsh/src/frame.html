@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>/*__AGENT_LIVE_CSS__*/</style>
+</head>
+<body>
+  <div id="app">
+    <header id="bar">
+      <span class="brand">AGENT LIVE</span>
+      <span id="conn" class="pill online">Connected</span>
+      <span id="model" class="pill">model: —</span>
+      <span id="turns" class="pill">turn 0</span>
+      <span id="usage" class="pill">0 tok</span>
+      <span class="grow"></span>
+      <button id="mute" class="btn" type="button">Sound: off</button>
+      <button id="demo" class="btn" type="button" hidden>Demo</button>
+    </header>
+    <main>
+      <div id="stageWrap">
+        <canvas id="stage"></canvas>
+        <div id="replayStatus" class="replay-status" hidden></div>
+        <div id="taskbar"><span class="k">Current task</span><span id="task">Waiting for a task…</span></div>
+      </div>
+      <aside id="side">
+        <section class="panel">
+          <div class="panel-title"><h2>Team</h2><button id="replay" class="replay-btn" type="button" hidden></button></div>
+          <div id="crew" class="crew"></div>
+        </section>
+        <section class="panel grow"><h2>Activity</h2><div id="log" class="log"></div></section>
+      </aside>
+    </main>
+  </div>
+  <script>window.AgentLiveInitialContent=JSON.parse(decodeURIComponent("__AGENT_LIVE_CONTENT_URI__"));</script>
+  <script>/*__AGENT_LIVE_SCRIPT__*/</script>
+</body>
+</html>

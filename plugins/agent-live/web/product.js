@@ -18,7 +18,7 @@ if ("IntersectionObserver" in window) {
 
 const copyButton = document.getElementById("copy-command");
 copyButton?.addEventListener("click", async () => {
-	const command = "pi install git:github.com/ssssnail/agent-office";
+	const command = "pi install git:github.com/ssssnail/agent-live";
 	try {
 		await navigator.clipboard.writeText(command);
 		copyButton.textContent = "已复制 ✓";

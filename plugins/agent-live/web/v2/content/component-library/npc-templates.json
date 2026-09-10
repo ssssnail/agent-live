@@ -1,0 +1,41 @@
+{
+	"schemaVersion": 1,
+	"kind": "npc-template-library",
+	"id": "builtin/npc-template-library",
+	"version": "1.0.0",
+	"contract": "single-office-v1",
+	"defaultTemplate": "builtin/colleague",
+	"genderValues": ["female", "male", "nonbinary", "unspecified"],
+	"defaultInstancePolicy": {
+		"selection": "seeded-random-profile",
+		"seedFrom": "instance-id",
+		"persistResolvedProfile": true
+	},
+	"entries": [
+		{ "id": "builtin/boss", "name": "Boss", "description": "Office leader or meeting host.", "tags": ["leadership", "meeting"], "role": "boss", "defaultTitle": "Boss", "defaultGender": "unspecified", "defaultPose": "sit", "defaultAppearance": { "skin": "#d5a47c", "hair": "#2b3039", "shirt": "#465d80", "trim": "#2d405e", "badge": "#ffcc4d" }, "allowedActivities": ["builtin/boss-briefing", "builtin/boss-plan-round", "builtin/boss-water-break"], "allowedOverrides": ["name", "title", "gender", "appearance", "spawn", "shift", "pose"] },
+		{ "id": "builtin/cleaner", "name": "Cleaner", "description": "Office cleaner or general custodian.", "tags": ["service", "cleaning"], "role": "cleaner", "defaultTitle": "Cleaner", "defaultGender": "unspecified", "defaultPose": "stand", "defaultAppearance": { "skin": "#d69f70", "hair": "#30333b", "shirt": "#4f9d88", "trim": "#347264", "badge": "#b7eadb" }, "allowedActivities": ["builtin/cleaning-round", "builtin/facility-round"], "allowedOverrides": ["name", "title", "gender", "appearance", "spawn", "shift", "pose"] },
+		{ "id": "builtin/receptionist", "name": "Receptionist", "description": "Front-desk receptionist and office coordinator.", "tags": ["service", "reception"], "role": "receptionist", "defaultTitle": "Receptionist", "defaultGender": "unspecified", "defaultPose": "stand", "defaultAppearance": { "skin": "#d69f70", "hair": "#3d302a", "shirt": "#718b78", "trim": "#526a59", "badge": "#d7ae5b" }, "allowedActivities": ["builtin/paperwork-round"], "allowedOverrides": ["name", "title", "gender", "appearance", "spawn", "shift", "pose"] },
+		{ "id": "builtin/secretary", "name": "Secretary", "description": "Administrative assistant supporting meetings and paperwork.", "tags": ["service", "administration"], "role": "secretary", "defaultTitle": "Secretary", "defaultGender": "unspecified", "defaultPose": "stand", "defaultAppearance": { "skin": "#e8b98f", "hair": "#30333b", "shirt": "#568c83", "trim": "#37645e", "badge": "#b9dfd5" }, "allowedActivities": ["builtin/briefing-support"], "allowedOverrides": ["name", "title", "gender", "appearance", "spawn", "shift", "pose"] },
+		{ "id": "builtin/attendant", "name": "Meeting attendant", "description": "Meeting-room service and refreshment attendant.", "tags": ["service", "meeting"], "role": "attendant", "defaultTitle": "Meeting attendant", "defaultGender": "unspecified", "defaultPose": "stand", "defaultAppearance": { "skin": "#d69f70", "hair": "#4a4038", "shirt": "#687779", "trim": "#485658", "badge": "#d7b261" }, "allowedActivities": ["builtin/refreshment-round"], "allowedOverrides": ["name", "title", "gender", "appearance", "spawn", "shift", "pose"] },
+		{
+			"id": "builtin/colleague",
+			"name": "Colleague",
+			"description": "The default background NPC identity. It has no coding-agent identity, task state, token usage or tool events.",
+			"tags": ["coworker", "background", "default"],
+			"role": "colleague",
+			"defaultTitle": "Colleague",
+			"defaultGender": "unspecified",
+			"defaultPose": "sit",
+			"defaultAppearance": { "skin": "#e8b98f", "hair": "#40352f", "shirt": "#5b89c2", "trim": "#3c6090", "badge": "#9fc1e8" },
+			"defaultProfiles": [
+				{ "id": "alex", "name": "Alex", "gender": "unspecified", "appearance": { "skin": "#f0cba3", "hair": "#2f2418", "shirt": "#4a78c8", "trim": "#33569a", "badge": "#8fb8ff" } },
+				{ "id": "jordan", "name": "Jordan", "gender": "male", "appearance": { "skin": "#d69f70", "hair": "#1f2430", "shirt": "#4f9d69", "trim": "#37714b", "badge": "#8fd6a6" } },
+				{ "id": "robin", "name": "Robin", "gender": "female", "appearance": { "skin": "#e8b98f", "hair": "#4a2f22", "shirt": "#b8574f", "trim": "#8d3f38", "badge": "#ef9a91" } },
+				{ "id": "casey", "name": "Casey", "gender": "nonbinary", "appearance": { "skin": "#b87a4f", "hair": "#3b3b45", "shirt": "#7b57b8", "trim": "#5b3d8d", "badge": "#b99ae8" } }
+			],
+			"allowedBehaviors": ["work", "restroom", "water", "shift-departure"],
+			"allowedActivities": ["builtin/get-water", "builtin/restroom-break"],
+			"allowedOverrides": ["name", "title", "gender", "appearance", "spawn", "shift", "pose"]
+		}
+	]
+}

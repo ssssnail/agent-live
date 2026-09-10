@@ -1,26 +1,27 @@
 # Agent Live 自定义能力边界
 
-> 状态：Creator v1 产品合同 · 2026-09-07
+> 状态：Creator v1 已实现合同 · 2026-09-09
 
 ## 1. 适用范围
 
-普通用户只选择官方只读 Preset。只有用户在 Coding Agent 中主动运行 `/agent-live customize` 时，才进入多轮自定义流程。
+普通用户只选择官方只读 Preset。支持会话上下文注入的宿主通过 `/agent-live custom` 显式进入多轮自定义，并通过 `/agent-live exit` 明确退出；普通模式下的自然语言不应被误判成办公室修改。
 
 自定义使用 Coding Agent 已经配置的模型与 Provider。Agent Live 不要求用户再次填写 API Key，不保存 Provider 凭证，也不自行调用云端模型。
 
 自定义模式的目标是：**把用户的自然语言稳定映射到 Agent Live 已经实现的声明式能力，而不是让模型自由修改产品源码。**
 
-## 2. 三种内容状态
+## 2. 两种内容状态
 
 | 状态 | 含义 | 是否可直接使用 |
 | --- | --- | --- |
 | Official Preset | 官方发布、只读并经过完整回归的办公室 | 是 |
-| Draft | Agent 根据对话生成的本地草稿 | 只能预览 |
-| Custom Office | Draft 通过全部校验并由用户确认后的本地办公室 | 是 |
+| Custom Office | 由 Creator 原子校验、保存并选择的本地办公室 | 是 |
 
-Custom Office 可以基于一个 Official Preset 保存允许的变化，也可以从 [Component Library](COMPONENT-LIBRARY.md) 中从头组装；两条路径最终都生成相同的 Office Spec，不覆盖安装目录中的官方文件。产品升级、校验失败或用户取消时，最后一个有效版本必须仍可恢复。
+Custom Office 可以基于一个 Official Preset 保存允许的变化，也可以从 [Component Library](COMPONENT-LIBRARY.md) 中从头组装；两条路径最终都生成相同的 Office Spec，不覆盖安装目录中的官方文件。校验或保存失败时，当前有效版本保持不变。
 
-运行 `/agent-live customize` 后，Agent 必须先询问创作起点：三个 Official Preset 或“从头自定义”。选择“从头自定义”时仍需从已登记的 Layout Template 和基础组件开始，不能生成空白坐标或任意代码。
+Creator 优先从最接近的 Official Preset 修改；没有合适基础时才从已登记的 Layout Template 和基础组件开始。用户不需要先理解内部 Schema，也不需要手工选择每个组件。可用的公开发现命令只有 `/agent-live custom list presets` 和 `/agent-live custom list layouts`。
+
+Creator Mode 是会话级模态状态，但不是内容草稿状态。每次合法修改都会经过校验后直接生效；每轮回复都应提示 Creator Mode 仍在运行以及 `/agent-live exit`。模式内出现明显无关或指代不清的项目开发请求时不直接执行，而是让用户选择继续编辑、退出、列出 Preset 或列出 Layout。
 
 ## 3. Creator v1 可以映射的能力
 
@@ -57,23 +58,17 @@ Agent 必须先把一次输入拆成独立需求，再逐项分类：
 
 ### A. 精确映射
 
-现有能力能够直接表达时，说明将使用的基础 Preset、模块、角色、物件或活动，然后生成 Draft。
+现有能力能够直接表达时，映射为一次受限 Office Patch，并原子应用到所选基础 Office。
 
 ### B. 边界内的近似映射
 
-没有同名能力，但已有能力可以形成接近效果时，Agent 必须先明确告诉用户：
-
-1. 原始需求无法被当前能力精确实现。
-2. 准备使用什么现有能力替代。
-3. 两者在视觉或行为上有什么差异。
-
-只有用户接受后，才能把近似方案写入 Draft。禁止静默替换。
+没有同名能力但已有能力可以形成接近效果时，Creator 不在生成过程中逐项打断用户。修改完成后统一说明原始要求、采用的现有能力以及视觉或行为差异；用户可以继续调整。
 
 ### C. 无法映射
 
 需求需要新增代码或运行机制时，Agent 必须：
 
-1. 不把该项写入 Draft。
+1. 不把该项写入 Office Patch。
 2. 明确说明它超出 Creator v1 的声明式能力。
 3. 保留同一输入中其他可以实现的部分。
 4. 告诉用户需要查看或修改源码，并指出最相关的入口。
@@ -107,36 +102,35 @@ Agent 必须先把一次输入拆成独立需求，再逐项分类：
 ```text
 用户输入
 → 能力分类
-→ 映射计划与必要确认
-→ 生成 Draft
+→ 映射与边界内自动修复
+→ 生成受限 Office Patch
 → Schema 校验
 → 内容引用校验
-→ 导航、座位与碰撞校验
+→ 导航引用、座位数量与组件容量校验（当前不做几何碰撞校验）
 → NPC 与 Life Activity 校验
 → Environment 校验
-→ 本地预览
-→ 用户确认
-→ 保存 Custom Office
+→ 原子保存并选择 Custom Office
+→ 页面重新加载有效内容
 ```
 
 任何强制校验失败都不能进入下一步。Agent 可以自动修复仍处于能力边界内的问题；如果修复需要修改源码，则必须停止并按“无法映射”处理。
 
 只有满足以下条件才能说“已经完成”：
 
-- Draft 符合约定 Schema。
+- Office Patch 与生成的 Office Spec 符合约定 Schema。
 - 所有引用的内容能力真实存在。
 - 必需工作语义、座位和主要路线仍然可用。
 - NPC 班次、出生点与 Life Activity 目标有效。
-- 预览可以正常加载，没有运行时配置错误。
-- 用户明确确认保存。
+- 新 Office 可以被 Runtime 解析；失败时旧版本保持有效。
 
 ## 8. 安全边界
 
 - 模型输出只是候选数据，不能直接作为可信配置运行。
 - Creator 只允许调用 Agent Live 提供的受限工具，不直接写官方 Preset。
+- Creator Mode 只保存在当前宿主进程内存中，并按宿主会话隔离；退出命令、宿主会话结束或插件卸载都会清理。
 - API Key 和 Provider 配置始终由 Coding Agent 管理。
 - Custom Office 不得包含密钥、会话内容、真实代码或绝对文件路径。
 - 外部天气等数据由宿主标准化后注入，内容配置不主动联网。
-- 保存前保留上一有效版本，失败时回滚而不是留下半成品。
+- 先在内存中完成校验，再以原子写入替换文件；失败时不写入无效版本。
 
 这份边界同时约束 Creator Skill、模型输出 Schema、校验器和未来的自定义工具实现。

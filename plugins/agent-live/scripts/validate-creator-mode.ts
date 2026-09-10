@@ -1,0 +1,18 @@
+import assert from "node:assert/strict";
+import { CreatorModeRegistry, CREATOR_MODE_CONTEXT } from "../src/creator/mode.ts";
+
+const modes = new CreatorModeRegistry();
+assert.equal(modes.isActive("one"), false);
+modes.enter("one");
+assert.equal(modes.isActive("one"), true);
+assert.equal(modes.isActive("two"), false, "Creator state leaked across host sessions");
+assert.equal(modes.exit("two"), false);
+assert.equal(modes.exit("one"), true);
+modes.enter("one");
+modes.enter("two");
+modes.clear();
+assert.equal(modes.isActive("one"), false);
+assert.equal(modes.isActive("two"), false);
+assert.match(CREATOR_MODE_CONTEXT, /\/agent-live exit/);
+assert.throws(() => modes.enter(""), /session id/);
+console.log("creator mode: isolation, explicit exit and cleanup passed");

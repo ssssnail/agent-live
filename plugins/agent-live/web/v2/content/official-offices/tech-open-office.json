@@ -1,0 +1,25 @@
+{
+	"schemaVersion": 1,
+	"kind": "office-spec",
+	"id": "builtin/tech-open-office",
+	"name": "Tech Open Office",
+	"origin": "official",
+	"layout": "builtin/tech-open-office",
+	"style": "builtin/pixel-classic",
+	"agentSkin": "builtin/tiny-developers",
+	"placements": [
+		{ "id": "dumbbell-1", "component": "builtin/dumbbell", "slot": "lounge-fitness-1" },
+		{ "id": "dumbbell-2", "component": "builtin/dumbbell", "slot": "lounge-fitness-2", "orientation": "vertical" },
+		{ "id": "water-main", "component": "builtin/water-cooler", "slot": "lounge-service-1" },
+		{ "id": "plant-1", "component": "builtin/plant", "slot": "edge-decoration-left" },
+		{ "id": "plant-2", "component": "builtin/plant", "slot": "edge-decoration-middle" },
+		{ "id": "plant-3", "component": "builtin/plant", "slot": "edge-decoration-right" }
+	],
+	"npcs": [
+		{ "id": "boss", "template": "builtin/boss", "name": "老板", "title": "老板", "gender": "unspecified", "appearance": { "skin": "#d5a47c", "hair": "#31333a", "shirt": "#516687", "trim": "#34455f", "badge": "#ffcc4d" }, "spawn": "boss-seat", "pose": "sit" },
+		{ "id": "cleaner-lin", "template": "builtin/cleaner", "name": "林姨", "title": "保洁", "gender": "female", "appearance": { "skin": "#d69f70", "hair": "#3f424a", "shirt": "#4f9d88", "trim": "#347264", "badge": "#b7eadb" }, "spawn": "cleaner-entry", "pose": "stand" }
+	],
+	"activities": ["builtin/boss-plan-round", "builtin/boss-water-break", "builtin/colleague-chat", "builtin/outside-walk", "builtin/phone-break", "builtin/restroom-break", "builtin/cleaning-round"],
+	"atmosphere": "builtin/default-atmosphere",
+	"environment": "builtin/local-office-environment"
+}

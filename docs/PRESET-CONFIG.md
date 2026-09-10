@@ -2,7 +2,7 @@
 
 > 面向直接修改本地内容的开发者 · 2026-09-07
 
-本手册记录当前可运行的过渡配置格式，用于源码维护和官方内容制作，不是普通用户的配置入口。目标架构是统一的 [基础组件库](COMPONENT-LIBRARY.md) 与 Office Spec；普通用户只能选择官方 Preset，自然语言创作必须通过受约束的 Creator 流程，并遵守 [自定义能力边界](CUSTOMIZATION.md)。
+本手册记录浏览器兼容层仍可读取的打包配置格式，用于源码维护、官方内容制作和冻结 Demo 回归，不是普通用户的配置入口。主线内容架构已经统一为 [基础组件库](COMPONENT-LIBRARY.md) 与 Office Spec；普通用户只能选择官方 Preset，自然语言创作必须通过受约束的 Creator 流程，并遵守 [自定义能力边界](CUSTOMIZATION.md)。
 
 ## 1. 配置在哪里
 
@@ -331,7 +331,7 @@ NPC 多步骤巡检示例：
 - `interruptible`：是否允许工作事件打断；Agent Life 必须设置为 `true`。
 - `initialDelayMs` / `cooldownMs`：可以是固定数字，也可以是 `[最小值, 最大值]`。
 - `steps`：按顺序执行的目标点与停留动作。
-- `pose`：当前支持 `stand/reach/talk/sit/type`。
+- `pose`：当前支持 `stand/reach/talk/sit/type/phone`。
 - `hot`：让对应设施进入工作动画状态，例如饮水机使用 `water`。
 - `particle`：当前可使用 `key/paper/spark/check/cross/bang`。
 

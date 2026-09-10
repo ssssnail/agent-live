@@ -1,0 +1,151 @@
+import { SCENE_LIMITS } from "../core/limits.ts";
+import {
+	GENDER_VALUES,
+	POSE_VALUES,
+	WEATHER_VALUES,
+	type OfficeSpec,
+	type SchemaIssue,
+	validateOfficeSpecShape,
+} from "./schema.ts";
+
+export interface ComponentLibraryView {
+	descriptors: {
+		styles: any[];
+		layouts: any[];
+		agentSkins: any[];
+		atmospheres: any[];
+		environments: any[];
+	};
+	styles: Set<string>;
+	layouts: Map<string, any>;
+	agentSkins: Set<string>;
+	props: Map<string, any>;
+	npcTemplates: Map<string, any>;
+	agentProfileTemplates: Map<string, any>;
+	activityRecipes: Map<string, any>;
+	activityImplementations: Map<string, any>;
+	atmospheres: Set<string>;
+	environments: Set<string>;
+	defaultNpcTemplate: string;
+	npcProfilePolicy: { selection: string; seedFrom: string; persistResolvedProfile: boolean };
+}
+
+export interface ValidationIssue extends SchemaIssue {
+	code: string;
+}
+
+export interface ValidationResult {
+	valid: boolean;
+	issues: ValidationIssue[];
+}
+
+function add(issues: ValidationIssue[], code: string, path: string, message: string) {
+	issues.push({ code, path, message });
+}
+
+function validClock(value: unknown) {
+	if (typeof value !== "string" || !/^\d{2}:\d{2}$/.test(value)) return false;
+	const [hour, minute] = value.split(":").map(Number);
+	return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
+}
+
+function validateShift(value: any, path: string, issues: ValidationIssue[]) {
+	if (!validClock(value?.start) || !validClock(value?.end)) add(issues, "invalid-shift", path, "shift must contain valid HH:MM start and end values");
+}
+
+const OFFICE_ID = /^(builtin|local)\/[a-z0-9][a-z0-9-]*(?:\/[a-z0-9][a-z0-9-]*)*$/;
+const INSTANCE_ID = /^[a-z0-9][a-z0-9-]*$/;
+const COLOR = /^#[0-9a-f]{6}$/i;
+
+export function validateOfficeSpec(spec: unknown, library: ComponentLibraryView): ValidationResult {
+	const issues: ValidationIssue[] = validateOfficeSpecShape(spec).map((entry) => ({ ...entry, code: "invalid-shape" }));
+	if (issues.length || !spec || typeof spec !== "object") return { valid: false, issues };
+	const value = spec as OfficeSpec;
+	if (!OFFICE_ID.test(value.id)) add(issues, "invalid-office-id", "$.id", "office id must use a safe builtin/ or local/ identifier");
+	if (value.origin === "official" && !value.id.startsWith("builtin/")) add(issues, "invalid-office-origin", "$.origin", "official offices require a builtin/ id");
+	if (value.origin === "custom" && !value.id.startsWith("local/")) add(issues, "invalid-office-origin", "$.origin", "custom offices require a local/ id");
+
+	if (!library.layouts.has(value.layout)) add(issues, "unknown-layout", "$.layout", `unknown layout ${value.layout}`);
+	if (!library.styles.has(value.style)) add(issues, "unknown-style", "$.style", `unknown style ${value.style}`);
+	if (!library.agentSkins.has(value.agentSkin)) add(issues, "unknown-agent-skin", "$.agentSkin", `unknown agent skin ${value.agentSkin}`);
+	if (!library.atmospheres.has(value.atmosphere)) add(issues, "unknown-atmosphere", "$.atmosphere", `unknown atmosphere ${value.atmosphere}`);
+	if (!library.environments.has(value.environment)) add(issues, "unknown-environment", "$.environment", `unknown environment ${value.environment}`);
+	if (value.agentProfile) {
+		if (!library.agentProfileTemplates.has(value.agentProfile.template)) add(issues, "unknown-agent-profile-template", "$.agentProfile.template", `unknown Agent Profile template ${value.agentProfile.template}`);
+		for (const [field, color] of Object.entries(value.agentProfile.appearance ?? {})) if (!COLOR.test(String(color))) add(issues, "invalid-color", `$.agentProfile.appearance.${field}`, "appearance colors must use #RRGGBB");
+	}
+
+	const layout = library.layouts.get(value.layout);
+	if (!layout) return { valid: false, issues };
+	const slots = new Map((layout.placementSlots ?? []).map((slot: any) => [slot.id, slot]));
+	const placementIds = new Set<string>();
+	const occupiedSlots = new Set<string>();
+	for (let index = 0; index < value.placements.length; index += 1) {
+		const placement = value.placements[index];
+		const path = `$.placements[${index}]`;
+		if (!INSTANCE_ID.test(placement.id)) add(issues, "invalid-placement-id", `${path}.id`, "placement id must be a safe lowercase identifier");
+		if (placementIds.has(placement.id)) add(issues, "duplicate-placement", `${path}.id`, `duplicate placement id ${placement.id}`);
+		placementIds.add(placement.id);
+		const component = library.props.get(placement.component);
+		if (!component) add(issues, "unknown-prop", `${path}.component`, `unknown prop ${placement.component}`);
+		const slot: any = slots.get(placement.slot);
+		if (!slot) add(issues, "unknown-slot", `${path}.slot`, `unknown slot ${placement.slot}`);
+		else {
+			if (occupiedSlots.has(placement.slot)) add(issues, "occupied-slot", `${path}.slot`, `slot ${placement.slot} is already occupied`);
+			occupiedSlots.add(placement.slot);
+			const propType = placement.component.replace(/^builtin\//, "");
+			if (component && !slot.accepts?.includes(propType)) add(issues, "incompatible-slot", path, `${placement.component} is not accepted by ${placement.slot}`);
+			if (component && (component.size.width > slot.maxSize?.width || component.size.height > slot.maxSize?.height)) add(issues, "prop-too-large", path, `${placement.component} exceeds ${placement.slot}`);
+		}
+	}
+	if (value.placements.length > SCENE_LIMITS.props) add(issues, "too-many-props", "$.placements", `maximum ${SCENE_LIMITS.props} props`);
+
+	const npcIds = new Set<string>();
+	for (let index = 0; index < value.npcs.length; index += 1) {
+		const npc = value.npcs[index];
+		const path = `$.npcs[${index}]`;
+		if (!INSTANCE_ID.test(npc.id)) add(issues, "invalid-npc-id", `${path}.id`, "NPC id must be a safe lowercase identifier");
+		if (npcIds.has(npc.id)) add(issues, "duplicate-npc", `${path}.id`, `duplicate NPC id ${npc.id}`);
+		npcIds.add(npc.id);
+		const template = npc.template ? library.npcTemplates.get(npc.template) : undefined;
+		if (!npc.template || !template) add(issues, "unknown-npc-template", `${path}.template`, `unknown NPC template ${npc.template ?? "(missing)"}`);
+		if (npc.profile && (!template?.defaultProfiles || !template.defaultProfiles.some((profile: any) => profile.id === npc.profile))) add(issues, "unknown-npc-profile", `${path}.profile`, `unknown profile ${npc.profile}`);
+		if (npc.gender && !GENDER_VALUES.includes(npc.gender)) add(issues, "invalid-gender", `${path}.gender`, `unsupported gender ${npc.gender}`);
+		if (npc.pose && !POSE_VALUES.includes(npc.pose)) add(issues, "invalid-pose", `${path}.pose`, `unsupported pose ${npc.pose}`);
+		for (const [field, color] of Object.entries(npc.appearance ?? {})) if (!COLOR.test(String(color))) add(issues, "invalid-color", `${path}.appearance.${field}`, "appearance colors must use #RRGGBB");
+		if (!npc.spawn || !layout.npcSpawns?.includes(npc.spawn) || !layout.targets?.[npc.spawn]) add(issues, "invalid-npc-spawn", `${path}.spawn`, `invalid NPC spawn ${npc.spawn ?? "(missing)"}`);
+		if (npc.shift) validateShift(npc.shift, `${path}.shift`, issues);
+	}
+	if (value.npcs.length > SCENE_LIMITS.npcs) add(issues, "too-many-npcs", "$.npcs", `maximum ${SCENE_LIMITS.npcs} NPCs`);
+
+	const activities = new Set<string>();
+	const runtimePropIds = new Set((layout.propInstances ?? []).map((entry: any) => entry.id));
+	for (const placement of value.placements) runtimePropIds.add(placement.id);
+	const npcRoles = new Set(value.npcs.map((npc) => library.npcTemplates.get(npc.template ?? "")?.role).filter(Boolean));
+	for (let index = 0; index < value.activities.length; index += 1) {
+		const activityId = value.activities[index];
+		const path = `$.activities[${index}]`;
+		if (activities.has(activityId)) add(issues, "duplicate-activity", path, `duplicate activity ${activityId}`);
+		activities.add(activityId);
+		const recipe = library.activityRecipes.get(activityId);
+		if (!recipe) add(issues, "unknown-activity", path, `unknown activity ${activityId}`);
+		else if (!library.activityImplementations.has(`${value.layout}|${activityId}`)) add(issues, "unsupported-activity-layout", path, `${activityId} has no implementation for ${value.layout}`);
+		else if ((library.activityImplementations.get(`${value.layout}|${activityId}`)?.definition?.requires ?? []).some((id: string) => !runtimePropIds.has(id))) add(issues, "missing-activity-prop", path, `${activityId} requires a prop that is not present`);
+		else if (recipe.participantKinds?.includes("npc") && recipe.participantKinds.length === 1 && recipe.participantRoles?.length && !recipe.participantRoles.some((role: string) => npcRoles.has(role))) {
+			add(issues, "missing-activity-participant", path, `${activityId} has no compatible NPC in this office`);
+		}
+	}
+	if (value.activities.length > SCENE_LIMITS.activities) add(issues, "too-many-activities", "$.activities", `maximum ${SCENE_LIMITS.activities} activities`);
+
+	const overrides = value.environmentOverrides;
+	if (overrides?.clock?.mode === "fixed" && !validClock(overrides.clock.fixedTime)) add(issues, "invalid-fixed-time", "$.environmentOverrides.clock.fixedTime", "fixed clock requires a valid HH:MM value");
+	if (overrides?.clock?.mode === "local" && overrides.clock.fixedTime !== undefined) add(issues, "unused-fixed-time", "$.environmentOverrides.clock.fixedTime", "local clock cannot include fixedTime");
+	if (overrides?.weather && !WEATHER_VALUES.includes(overrides.weather.fallback)) add(issues, "invalid-weather", "$.environmentOverrides.weather.fallback", "unsupported weather");
+	if (overrides?.npcSchedule?.defaultShift) validateShift(overrides.npcSchedule.defaultShift, "$.environmentOverrides.npcSchedule.defaultShift", issues);
+	for (const [role, shift] of Object.entries(overrides?.npcSchedule?.roleOverrides ?? {})) {
+		if (![...library.npcTemplates.values()].some((template) => template.role === role)) add(issues, "unknown-npc-role", `$.environmentOverrides.npcSchedule.roleOverrides.${role}`, `unknown NPC role ${role}`);
+		validateShift(shift, `$.environmentOverrides.npcSchedule.roleOverrides.${role}`, issues);
+	}
+
+	return { valid: issues.length === 0, issues };
+}

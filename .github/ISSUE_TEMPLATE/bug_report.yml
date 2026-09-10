@@ -1,0 +1,34 @@
+name: Bug report
+description: Report reproducible Agent Live behavior
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include viewer tokens, credentials, private prompts, source code, or session logs without redacting them.
+  - type: dropdown
+    id: host
+    attributes:
+      label: Host
+      options: [Pi, Codex, DeepSeek Harness, Agent Live SDK, Other]
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Agent Live, host, OS and Node.js versions
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Minimal steps, expected result and actual result
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Redacted diagnostics
+      description: Relevant errors or logs with private data removed

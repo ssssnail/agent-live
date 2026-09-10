@@ -137,7 +137,7 @@ export class AgentRegistry {
 		const count = this.activeChildren();
 		if (count > 0) {
 			this.state.setState(this.mainId, "waiting", `等待 ${count} 位同事`);
-		} else if (this.state.snapshot().session.busy) {
+		} else if (this.state.sessionBusy()) {
 			this.state.setState(this.mainId, "thinking", "继续推进");
 		}
 	}

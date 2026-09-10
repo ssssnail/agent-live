@@ -9,6 +9,24 @@
 	"canvas": { "width": 384, "height": 216 },
 	"wallHeight": 36,
 	"camera": { "mode": "fixed", "fit": "contain", "integerScale": true },
+	"zones": [
+		{ "id": "staff", "name": "General Office", "x": 10, "y": 41, "width": 194, "height": 99 },
+		{ "id": "manager", "name": "Manager Office", "x": 212, "y": 41, "width": 78, "height": 92 },
+		{ "id": "meeting", "name": "Meeting Room", "x": 300, "y": 41, "width": 74, "height": 92 },
+		{ "id": "records", "name": "Records Room", "x": 10, "y": 148, "width": 83, "height": 60 },
+		{ "id": "computer", "name": "Computer Room", "x": 100, "y": 148, "width": 78, "height": 60 },
+		{ "id": "reception", "name": "Reception", "x": 185, "y": 148, "width": 82, "height": 60 },
+		{ "id": "break", "name": "Break Room", "x": 274, "y": 140, "width": 100, "height": 68 },
+		{ "id": "circulation", "name": "Office Circulation", "x": 0, "y": 36, "width": 384, "height": 180 }
+	],
+	"placementSlots": [
+		{ "id": "manager-utility-1", "zone": "manager", "x": 280, "y": 103, "accepts": ["floor-fan", "coat-rack"], "maxSize": { "width": 18, "height": 29 }, "required": false, "occupiedBy": "manager-fan" },
+		{ "id": "manager-utility-2", "zone": "circulation", "x": 294, "y": 104, "accepts": ["coat-rack", "floor-fan"], "maxSize": { "width": 18, "height": 29 }, "required": false, "occupiedBy": "coat-rack" },
+		{ "id": "reception-service", "zone": "reception", "x": 190, "y": 166, "accepts": ["reception-desk", "sideboard"], "maxSize": { "width": 64, "height": 20 }, "required": false, "occupiedBy": "reception-main" },
+		{ "id": "break-water", "zone": "break", "x": 280, "y": 170, "accepts": ["water-cooler", "vending-machine"], "maxSize": { "width": 18, "height": 28 }, "required": false, "occupiedBy": "water-main" },
+		{ "id": "break-coffee", "zone": "break", "x": 320, "y": 150, "accepts": ["coffee-machine", "vending-machine"], "maxSize": { "width": 26, "height": 28 }, "required": false, "occupiedBy": "coffee-main" },
+		{ "id": "break-vending", "zone": "break", "x": 352, "y": 174, "accepts": ["vending-machine", "water-cooler"], "maxSize": { "width": 18, "height": 28 }, "required": false, "occupiedBy": "vending-main" }
+	],
 	"areas": [
 		{ "id": "staff", "name": "综合办公区", "x": 13, "y": 42 },
 		{ "id": "manager", "name": "主任室", "x": 215, "y": 42 },
@@ -31,6 +49,16 @@
 		{ "index": 5, "cx": 105, "renderer": "cubicle-workstation", "desk": { "x": 83, "y": 116, "width": 46, "height": 9 }, "anchor": { "x": 105, "y": 139, "dir": "up", "lane": 2 } },
 		{ "index": 6, "cx": 167, "renderer": "cubicle-workstation", "desk": { "x": 145, "y": 116, "width": 46, "height": 9 }, "anchor": { "x": 167, "y": 139, "dir": "up", "lane": 2 } },
 		{ "index": 7, "cx": 338, "renderer": "boardroom-seat", "desk": { "x": 331, "y": 75, "width": 15, "height": 10 }, "anchor": { "x": 338, "y": 103, "dir": "up", "lane": 1 } }
+	],
+	"standingAnchors": [
+		{ "x": 205, "y": 82, "dir": "left", "lane": 1, "zone": "circulation" },
+		{ "x": 205, "y": 138, "dir": "left", "lane": 2, "zone": "circulation" },
+		{ "x": 224, "y": 140, "dir": "right", "lane": 2, "zone": "circulation" },
+		{ "x": 250, "y": 140, "dir": "left", "lane": 2, "zone": "circulation" },
+		{ "x": 75, "y": 146, "dir": "down", "lane": 2, "zone": "circulation" },
+		{ "x": 137, "y": 146, "dir": "down", "lane": 2, "zone": "circulation" },
+		{ "x": 204, "y": 146, "dir": "down", "lane": 2, "zone": "circulation" },
+		{ "x": 270, "y": 146, "dir": "down", "lane": 2, "zone": "circulation" }
 	],
 	"targets": {
 		"archive": { "x": 83, "y": 190, "dir": "left", "lane": 3 },

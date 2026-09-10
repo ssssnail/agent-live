@@ -9,10 +9,19 @@
 	const I18n = window.AgentLiveI18n ?? { t: (key) => key, text: (value) => value };
 	const t = (key, vars) => I18n.t(key, vars);
 	const tx = (value) => I18n.text(value);
-	const isCodexClient = new URLSearchParams(location.search).get("client") === "codex";
+	const clientKind = window.AgentLiveClientKind ?? new URLSearchParams(location.search).get("client");
+	const hideCost = clientKind === "codex" || clientKind === "dsh";
 	const officeContent = window.OfficeContent ?? null;
 	const lifeActivities = officeContent?.lifeActivities?.entries ?? [];
 	const npcEntries = officeContent?.npcs?.entries ?? [];
+
+	function displayAgentName(view, isLead) {
+		const profileName = officeContent?.agentProfile?.name;
+		if (isLead) return tx(profileName ?? view.name);
+		const fallback = /^Teammate(?:\s+(\d+))?$/.exec(String(view.name ?? ""));
+		if (profileName && fallback) return t("agent.teammate", { name: profileName, index: fallback[1] ? " " + fallback[1] : "" });
+		return tx(view.name);
+	}
 	const canvas = document.getElementById("stage");
 	const ctx = canvas.getContext("2d", { alpha: false });
 
@@ -24,9 +33,13 @@
 	let scale = 3;
 	let offX = 0;
 	let offY = 0;
+	let resizeFrame = 0;
 
 	function resize() {
 		const rect = canvas.parentElement.getBoundingClientRect();
+		// A host may keep the view mounted at display:none while another tab is
+		// active. Do not replace a valid backing store with a stretched 1x1 frame.
+		if (rect.width < 2 || rect.height < 2) return;
 		dpr = Math.min(window.devicePixelRatio || 1, 2);
 		const dw = Math.max(1, Math.floor(rect.width * dpr));
 		const dh = Math.max(1, Math.floor(rect.height * dpr));
@@ -36,7 +49,21 @@
 		offX = Math.floor((dw - Office.W * scale) / 2);
 		offY = Math.floor((dh - Office.H * scale) / 2);
 	}
-	window.addEventListener("resize", resize);
+	function scheduleResize() {
+		if (resizeFrame) return;
+		resizeFrame = requestAnimationFrame(() => {
+			resizeFrame = 0;
+			resize();
+		});
+	}
+	window.addEventListener("resize", scheduleResize);
+	document.addEventListener("visibilitychange", () => {
+		if (!document.hidden) scheduleResize();
+	});
+	window.addEventListener("pageshow", scheduleResize);
+	const sizeObserver = typeof ResizeObserver === "function" ? new ResizeObserver(scheduleResize) : null;
+	sizeObserver?.observe(canvas.parentElement);
+	canvas.addEventListener("contextrestored", scheduleResize);
 
 	const toScreen = (wx, wy) => ({ x: offX + wx * scale, y: offY + wy * scale });
 
@@ -56,24 +83,30 @@
 	let replay = null;
 	const replayButton = document.getElementById("replay");
 	const replayStatus = document.getElementById("replayStatus");
+	const MAX_EVENT_HISTORY = 4000;
 	const isReplayable = (entry) => ["task", "thought", "say", "action", "delegate"].includes(entry?.event?.type);
+	function recordEvent(event) {
+		eventHistory.push({ at: Date.now(), event });
+		if (eventHistory.length > MAX_EVENT_HISTORY) eventHistory.splice(0, eventHistory.length - MAX_EVENT_HISTORY);
+	}
 
 	function makeActor(view) {
 		const isLead = !view.parent;
+		const profile = isLead ? officeContent?.agentProfile : null;
 		const seat = view.seat;
 		const placementKey = Sprites.hash(view.id);
 		const spawn = isLead && seat != null ? Office.seatAnchor(seat) : Office.TARGETS.entry;
 		return {
 			id: view.id,
-			name: tx(view.name),
-			role: tx(view.role),
-			title: tx(view.role),
+			name: displayAgentName(view, isLead),
+			role: tx(profile?.title ?? view.role),
+			title: tx(profile?.title ?? view.role),
 			model: view.model,
 			isLead,
 			isNpc: false,
 			seat,
 			placementKey,
-			palette: Sprites.paletteFor(view.id, view.name, isLead),
+			palette: { ...Sprites.paletteFor(view.id, view.name, isLead), ...(profile?.appearance ?? {}) },
 			seed: (Sprites.hash(view.id) % 100) / 10,
 			x: spawn.x,
 			y: spawn.y,
@@ -93,6 +126,7 @@
 			bubble: null,
 			inMeeting: false,
 			leaving: false,
+			actions: new Map(),
 			life: null,
 			lifeCycle: 0,
 			nextLifeAt: 0,
@@ -396,7 +430,7 @@
 	function apply(ev) {
 		switch (ev.type) {
 			case "snapshot": {
-				eventHistory = Array.isArray(ev.history) ? ev.history.slice() : eventHistory;
+				eventHistory = Array.isArray(ev.history) ? ev.history.slice(-MAX_EVENT_HISTORY) : eventHistory;
 				actors.clear();
 				particles.length = 0;
 				hot.clear();
@@ -405,6 +439,14 @@
 				document.getElementById("log").innerHTML = "";
 				for (const view of ev.agents) actors.set(view.id, makeActor(view));
 				restoreNpcs();
+				for (const actor of actors.values()) {
+					if (actor.isNpc) continue;
+					if (actor.action) hot.add(Office.stationKey(actor.action, actor.seat));
+					// Snapshot agents are created at the entrance. Move idle agents to
+					// their seat/standing anchor as well, otherwise a restored child with
+					// no active tool remains parked in the doorway forever.
+					retarget(actor);
+				}
 				for (const item of ev.log) logLine(item);
 				session = ev.session;
 				if (ev.agents[0]?.task) setTask(ev.agents[0].task);
@@ -420,9 +462,9 @@
 			case "agent_join": {
 				const existing = actors.get(ev.agent.id);
 				if (existing) {
-					existing.name = tx(ev.agent.name ?? existing.name);
-					existing.role = tx(ev.agent.role ?? existing.role);
-					existing.title = tx(ev.agent.role ?? existing.title);
+					existing.name = displayAgentName({ ...ev.agent, name: ev.agent.name ?? existing.name }, existing.isLead);
+					existing.role = tx(existing.isLead && officeContent?.agentProfile?.title ? officeContent.agentProfile.title : ev.agent.role ?? existing.role);
+					existing.title = existing.role;
 					existing.model = ev.agent.model ?? existing.model;
 					existing.task = ev.agent.task ?? existing.task;
 					existing.detail = tx(ev.agent.detail ?? existing.detail);
@@ -443,10 +485,19 @@
 				const actor = actors.get(ev.id);
 				if (!actor) break;
 				cancelLife(actor);
+				actor.actions.clear();
+				hot.clear();
+				for (const current of actors.values()) for (const action of current.actions.values()) hot.add(Office.stationKey(action, current.seat));
 				actor.leaving = true;
 				actor.inMeeting = false;
-				spawn(ev.ok ? "check" : "cross", actor.x, actor.y - 26, { life: 1.1 });
+				if (ev.ok !== undefined) spawn(ev.ok ? "check" : "cross", actor.x, actor.y - 26, { life: 1.1 });
 				goTo(actor, Office.TARGETS.entry);
+				// A character may already be at the entrance. An empty route has no
+				// final movement frame, so remove it immediately.
+				if (!actor.path.length) {
+					actors.delete(actor.id);
+					renderCrew();
+				}
 				break;
 			}
 			case "agent_state": {
@@ -491,6 +542,7 @@
 				if (!actor) break;
 				cancelLife(actor);
 				actor.action = ev.action;
+				actor.actions.set(ev.toolCallId, ev.action);
 				actor.state = "working";
 				actor.detail = ev.label;
 				hot.add(Office.stationKey(ev.action, actor.seat));
@@ -503,8 +555,10 @@
 			case "action_end": {
 				const actor = actors.get(ev.id);
 				if (!actor) break;
-				hot.delete(Office.stationKey(actor.action, actor.seat));
-				actor.action = null;
+				actor.actions.delete(ev.toolCallId);
+				actor.action = [...actor.actions.values()].at(-1) ?? null;
+				hot.clear();
+				for (const current of actors.values()) for (const action of current.actions.values()) hot.add(Office.stationKey(action, current.seat));
 				if (!ev.ok) spawn("cross", actor.x, actor.y - 26, { life: 1 });
 				retarget(actor);
 				break;
@@ -831,14 +885,15 @@
 						<span class="role">${esc(tx(role ? role.title : a.role ?? ""))}</span>
 						<span class="badge ${a.state}">${stateLabel(a.state)}</span></div>
 						<div class="detail">${esc(a.detail || a.task || "—")}</div>
-						<div class="meta">${isCodexClient ? `${fmtTokens(a.tokens)} tok` : `${fmtTokens(a.tokens)} tok · $${(a.cost ?? 0).toFixed(4)}`}</div>
+						<div class="meta">${hideCost ? `${fmtTokens(a.tokens)} tok` : `${fmtTokens(a.tokens)} tok · $${(a.cost ?? 0).toFixed(4)}`}</div>
 					</div>
 				</div>`;
 			})
 			.join("");
 		const lead = list.find((actor) => actor.isLead);
+		if (!replayButton) return;
 		replayButton.hidden = !lead;
-		const hasActivity = eventHistory.some(isReplayable);
+		const hasActivity = eventHistory.some(isReplayable) || (session.turns ?? 0) > 0;
 		if (lead) replayButton.textContent = replay
 			? t("replay.playing")
 			: hasActivity ? `▶ ${t("replay.day", { name: lead.name })}` : t("replay.noActivity");
@@ -867,7 +922,7 @@
 		const effort = session.thinkingLevel ? ` · ${session.thinkingLevel}` : "";
 		document.getElementById("model").textContent = `model: ${session.model ?? "—"}${effort}`;
 		document.getElementById("turns").textContent = `turn ${session.turns ?? 0}${session.busy ? ` · ${t("status.running")}` : ""}`;
-		document.getElementById("usage").textContent = isCodexClient ? `${fmtTokens(tokens)} tok` : `${fmtTokens(tokens)} tok · $${cost.toFixed(4)}`;
+		document.getElementById("usage").textContent = hideCost ? `${fmtTokens(tokens)} tok` : `${fmtTokens(tokens)} tok · $${cost.toFixed(4)}`;
 	}
 
 	function setTask(text) {
@@ -916,6 +971,13 @@
 	}
 
 	async function restoreLiveSnapshot() {
+		if (typeof window.AgentLiveGetSnapshot === "function") {
+			const latest = await window.AgentLiveGetSnapshot();
+			if (latest) {
+				apply(latest);
+			}
+			return;
+		}
 		try {
 			const response = await fetch("/api/state", { cache: "no-store" });
 			if (response.ok) apply(await response.json());
@@ -931,7 +993,7 @@
 		if (run.timer) clearTimeout(run.timer);
 		run.resolveWait?.();
 		replay = null;
-		replayStatus.hidden = true;
+		if (replayStatus) replayStatus.hidden = true;
 		renderCrew();
 		if (restore) void restoreLiveSnapshot();
 	}
@@ -947,28 +1009,34 @@
 		}
 		session = { ...session, busy: false };
 		replay = null;
-		replayStatus.textContent = t("replay.complete");
-		replayStatus.hidden = false;
-		setTimeout(() => { if (!replay) replayStatus.hidden = true; }, 1400);
+		if (replayStatus) {
+			replayStatus.textContent = t("replay.complete");
+			replayStatus.hidden = false;
+			setTimeout(() => { if (!replay) replayStatus.hidden = true; }, 1400);
+		}
 		renderCrew();
 		renderBar();
 	}
 
 	async function runHistoryReplay() {
 		if (replay || session.busy) return;
-		const response = await fetch("/api/state", { cache: "no-store" });
-		if (!response.ok) return;
-		const latest = await response.json();
+		const latest = typeof window.AgentLiveGetSnapshot === "function"
+			? await window.AgentLiveGetSnapshot()
+			: await fetch("/api/state", { cache: "no-store" }).then((response) => response.ok ? response.json() : null);
+		if (!latest) return;
 		const history = Array.isArray(latest.history) ? latest.history.slice() : [];
 		if (!history.some(isReplayable)) {
-			replayButton.textContent = t("replay.empty");
+			if (replayButton) replayButton.textContent = t("replay.empty");
 			return;
 		}
 		const run = { cancelled: false, timer: null, resolveWait: null };
 		replay = run;
+		const replayLeads = (latest.agents ?? [])
+			.filter((agent) => !agent.parent)
+			.map((agent) => ({ ...agent, state: "idle", action: undefined, detail: t("state.idle") }));
 		apply({
 			type: "snapshot",
-			agents: [],
+			agents: replayLeads,
 			log: [],
 			session: { ...latest.session, busy: false, turns: 0 },
 			history,
@@ -980,8 +1048,10 @@
 			if (run.cancelled) return;
 			await waitForReplay((entry.at - previousAt) / REPLAY_RATE, run);
 			if (run.cancelled) return;
-			replayStatus.textContent = t("replay.progress", { current: index + 1, total: history.length });
-			replayStatus.hidden = false;
+			if (replayStatus) {
+				replayStatus.textContent = t("replay.progress", { current: index + 1, total: history.length });
+				replayStatus.hidden = false;
+			}
 			apply(entry.event);
 			previousAt = entry.at;
 		}
@@ -992,6 +1062,19 @@
 
 	function connect() {
 		const pill = document.getElementById("conn");
+		if (typeof window.AgentLiveSubscribe === "function") {
+			pill.textContent = t("connection.connected");
+			pill.className = "pill online";
+			window.AgentLiveSubscribe((event) => {
+				if (event.type !== "snapshot") recordEvent(event);
+				if (replay) {
+					if (isPriorityLiveEvent(event)) cancelReplay(true);
+					return;
+				}
+				apply(event);
+			});
+			return;
+		}
 		const es = new EventSource("/events");
 		es.onopen = () => {
 			pill.textContent = t("connection.connected");
@@ -1004,7 +1087,7 @@
 		es.onmessage = (e) => {
 			try {
 				const event = JSON.parse(e.data);
-				if (event.type !== "snapshot") eventHistory.push({ at: Date.now(), event });
+				if (event.type !== "snapshot") recordEvent(event);
 				if (replay) {
 					if (isPriorityLiveEvent(event)) cancelReplay(true);
 					return;
@@ -1112,7 +1195,7 @@
 	// ---------------------------------------------------------------- boot
 
 	document.getElementById("demo").addEventListener("click", () => void runDemo());
-	replayButton.addEventListener("click", () => void runHistoryReplay());
+	replayButton?.addEventListener("click", () => void runHistoryReplay());
 	document.getElementById("mute").addEventListener("click", (e) => {
 		sound = !sound;
 		e.target.textContent = t(sound ? "nav.soundOn" : "nav.soundOff");
@@ -1130,6 +1213,10 @@
 	}
 	requestAnimationFrame(frame);
 
-	if (new URLSearchParams(location.search).has("demo")) void runDemo();
-	else connect();
+	if (new URLSearchParams(location.search).has("demo")) {
+		const pill = document.getElementById("conn");
+		pill.textContent = t("nav.demo");
+		pill.className = "pill online";
+		void runDemo();
+	} else connect();
 })();

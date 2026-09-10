@@ -1,10 +1,10 @@
 {
   "name": "agent-live",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "description": "Watch Codex work in a lightweight local pixel office.",
   "author": {
     "name": "ssssnail",
-    "url": "https://github.com/ssssnail/agent-office"
+    "url": "https://github.com/ssssnail/agent-live"
   },
   "skills": "./skills/",
   "interface": {

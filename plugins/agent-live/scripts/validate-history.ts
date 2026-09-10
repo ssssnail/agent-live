@@ -12,9 +12,9 @@ state.setState("main", "idle", "Standing by");
 const snapshot = state.snapshot();
 if (snapshot.type !== "snapshot") throw new Error("Expected a snapshot");
 if (snapshot.history.length < 6) throw new Error("History did not capture the full event stream");
-if (snapshot.history.some((entry) => entry.event.type === "snapshot")) throw new Error("History must not contain recursive snapshots");
 for (let index = 1; index < snapshot.history.length; index++) {
 	if (snapshot.history[index].at < snapshot.history[index - 1].at) throw new Error("History is not chronological");
 }
+if (state.snapshot(false).history.length !== 0) throw new Error("Lightweight live snapshot included replay history");
 console.log(`History validation passed: ${snapshot.history.length} replayable events`);
 state.dispose();

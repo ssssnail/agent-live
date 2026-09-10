@@ -89,7 +89,7 @@ export class CodexAppServerClient {
 		this.lines.on("line", (line) => this.handleLine(line));
 
 		const result = await this.request("initialize", {
-			clientInfo: { name: "agent-live", title: "Agent Live", version: "0.2.7" },
+			clientInfo: { name: "agent-live", title: "Agent Live", version: "0.3.0" },
 			capabilities: {
 				experimentalApi: true,
 				requestAttestation: false,
@@ -137,16 +137,13 @@ export class CodexAppServerClient {
 		this.lines?.close();
 		this.lines = null;
 		child.stdin.end();
-		await new Promise<void>((resolve) => {
-			const timer = setTimeout(() => {
-				child.kill("SIGTERM");
-				resolve();
-			}, 1_000);
-			child.once("exit", () => {
-				clearTimeout(timer);
-				resolve();
-			});
-		});
+		if (!await waitForExit(child, 1_000)) {
+			child.kill("SIGTERM");
+			if (!await waitForExit(child, 1_000)) {
+				child.kill("SIGKILL");
+				await waitForExit(child, 1_000);
+			}
+		}
 		this.child = null;
 		this.failAll(new Error("Codex App Server closed"));
 	}
@@ -187,4 +184,16 @@ export class CodexAppServerClient {
 		}
 		this.pending.clear();
 	}
+}
+
+function waitForExit(child: ChildProcessWithoutNullStreams, timeoutMs: number): Promise<boolean> {
+	if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve(true);
+	return new Promise((resolve) => {
+		const onExit = () => { clearTimeout(timer); resolve(true); };
+		const timer = setTimeout(() => {
+			child.off("exit", onExit);
+			resolve(child.exitCode !== null || child.signalCode !== null);
+		}, timeoutMs);
+		child.once("exit", onExit);
+	});
 }

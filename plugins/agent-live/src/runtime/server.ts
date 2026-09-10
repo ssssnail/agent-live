@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as http from "node:http";
 import * as path from "node:path";
+import type { Socket } from "node:net";
 import { fileURLToPath } from "node:url";
 import type { OfficeEvent } from "../core/protocol.ts";
 import type { OfficeState } from "../core/state.ts";
@@ -24,7 +25,10 @@ function moduleDir(): string {
 	}
 }
 
-const WEB_ROOT = path.resolve(moduleDir(), "..", "..", "web");
+const WEB_ROOT = [
+	path.resolve(moduleDir(), "..", "..", "web"),
+	path.resolve(moduleDir(), "..", "web"),
+].find((candidate) => fs.existsSync(candidate)) ?? path.resolve(moduleDir(), "..", "..", "web");
 
 export interface OfficeServer {
 	url: string;
@@ -42,6 +46,16 @@ export interface OfficeControls {
 	resolveApproval(id: number | string, allow: boolean, forSession: boolean): Promise<unknown> | unknown;
 }
 
+export interface OfficeContentControls {
+	list(): Promise<unknown>;
+	resolve(id?: string): Promise<unknown>;
+	subscribe?(listener: (change: unknown) => void): () => void;
+}
+
+export interface CreatorControls {
+	execute(command: unknown): Promise<unknown>;
+}
+
 export function resolveViewerUrl(baseUrl: string, target = ""): string {
 	if (!target) return baseUrl;
 	const normalizedTarget = target.startsWith("/") ? target : `/${target}`;
@@ -54,10 +68,12 @@ export function resolveViewerUrl(baseUrl: string, target = ""): string {
  */
 export async function startServer(
 	state: OfficeState,
-	options: { port: number; host?: string; controls?: OfficeControls; onViewerCountChange?: (count: number) => void },
+	options: { port: number; host?: string; controls?: OfficeControls; content?: OfficeContentControls; creator?: CreatorControls; creatorToken?: string; onViewerCountChange?: (count: number) => void },
 ): Promise<OfficeServer> {
 	const host = options.host ?? "127.0.0.1";
 	const clients = new Set<http.ServerResponse>();
+	const sockets = new Set<Socket>();
+	let closePromise: Promise<void> | null = null;
 
 	const server = http.createServer((req, res) => {
 		const url = new URL(req.url ?? "/", `http://${host}`);
@@ -71,7 +87,9 @@ export async function startServer(
 				"x-accel-buffering": "no",
 			});
 			res.write(": connected\n\n");
-			write(res, state.snapshot());
+			// Reconnects need current state, not the full replay log. The browser
+			// fetches complete history on demand from /api/state when replay starts.
+			write(res, state.snapshot(false));
 			clients.add(res);
 			options.onViewerCountChange?.(clients.size);
 			const unsubscribe = state.subscribe((event) => write(res, event));
@@ -94,6 +112,26 @@ export async function startServer(
 
 		if (url.pathname === "/api/scene-limits") {
 			json(res, 200, SCENE_LIMITS);
+			return;
+		}
+
+		if (options.content && url.pathname === "/api/offices" && req.method === "GET") {
+			void options.content.list().then((value) => json(res, 200, value), (error) => json(res, 500, { error: (error as Error).message }));
+			return;
+		}
+
+		if (options.content && url.pathname === "/api/office-content" && req.method === "GET") {
+			void options.content.resolve(url.searchParams.get("id") ?? undefined).then((value) => json(res, 200, value), (error) => json(res, 404, { error: (error as Error).message }));
+			return;
+		}
+
+		if (options.content?.subscribe && url.pathname === "/api/content-events" && req.method === "GET") {
+			res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache, no-transform", connection: "keep-alive", "x-accel-buffering": "no" });
+			res.write(": connected\n\n");
+			const unsubscribe = options.content.subscribe((change) => res.write(`data: ${JSON.stringify(change)}\n\n`));
+			const heartbeat = setInterval(() => res.write(": ping\n\n"), 25_000);
+			heartbeat.unref?.();
+			req.on("close", () => { clearInterval(heartbeat); unsubscribe(); });
 			return;
 		}
 
@@ -128,7 +166,24 @@ export async function startServer(
 			return;
 		}
 
+		if (options.creator && url.pathname === "/api/creator" && req.method === "POST") {
+			const expectedToken = options.creatorToken ?? controls?.token;
+			if (!expectedToken || req.headers["x-agent-live-token"] !== expectedToken) {
+				json(res, 403, { error: "forbidden" });
+				return;
+			}
+			void readJson(req).then((command) => options.creator!.execute(command)).then(
+				(result) => json(res, 200, result),
+				(error) => json(res, 400, { error: (error as Error).message }),
+			);
+			return;
+		}
+
 		serveStatic(url.pathname, res);
+	});
+	server.on("connection", (socket) => {
+		sockets.add(socket);
+		socket.once("close", () => sockets.delete(socket));
 	});
 
 	const port = await listen(server, host, options.port);
@@ -141,9 +196,20 @@ export async function startServer(
 			openInBrowser(resolveViewerUrl(url, target));
 		},
 		async close() {
-			for (const client of clients) client.end();
-			clients.clear();
-			await new Promise<void>((resolve) => server.close(() => resolve()));
+			if (closePromise) return closePromise;
+			closePromise = new Promise<void>((resolve) => {
+				const forceClose = setTimeout(() => {
+					for (const socket of sockets) socket.destroy();
+				}, 2_000);
+				for (const client of clients) client.end();
+				clients.clear();
+				server.close(() => {
+					clearTimeout(forceClose);
+					sockets.clear();
+					resolve();
+				});
+			});
+			return closePromise;
 		},
 	};
 }

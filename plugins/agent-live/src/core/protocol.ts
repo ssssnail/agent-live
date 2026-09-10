@@ -61,7 +61,7 @@ export interface SessionInfo {
 export type OfficeDelta =
 	| { type: "session"; session: SessionInfo }
 	| { type: "agent_join"; agent: AgentView }
-	| { type: "agent_leave"; id: string; ok: boolean }
+	| { type: "agent_leave"; id: string; ok?: boolean }
 	| { type: "agent_state"; id: string; state: AgentState; detail?: string }
 	| { type: "task"; id: string; task: string }
 	| { type: "thought"; id: string; text: string }

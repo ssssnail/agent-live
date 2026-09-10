@@ -2,16 +2,10 @@ import { actionForTool, labelForTool } from "../../core/mapping.ts";
 import type { OfficeAction } from "../../core/protocol.ts";
 import type { OfficeState } from "../../core/state.ts";
 import { CodexAppServerClient, type AppServerMessage, type JsonObject } from "./app-server-client.ts";
-import type { AdapterDescriptor } from "../contract.ts";
 import { AgentRegistry, roleForAgent } from "../../core/agents.ts";
 
-export const CODEX_ADAPTER: AdapterDescriptor = {
-	id: "codex",
-	name: "Codex",
-	capabilities: { observe: true, prompt: true, interrupt: true, modelSelect: false, approvals: true, subagents: true },
-};
-
 const MAIN = "main";
+const APPROVAL_TIMEOUT_MS = 120_000;
 
 export interface PendingApproval {
 	id: number | string;
@@ -50,6 +44,7 @@ export class CodexOfficeSession {
 	private readonly childAgents = new Map<string, string>();
 	private readonly childLeaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 	private readonly approvals = new Map<number | string, AppServerMessage>();
+	private readonly approvalTimers = new Map<number | string, ReturnType<typeof setTimeout>>();
 	private unsubscribe: (() => void) | null = null;
 	private models: CodexModelOption[] = [];
 	private model = "";
@@ -99,7 +94,7 @@ export class CodexOfficeSession {
 			threadId: this.threadId,
 			model: this.model,
 			models: this.models,
-			busy: this.state.snapshot().session.busy,
+			busy: this.state.sessionBusy(),
 			interrupting: this.interrupting,
 		};
 	}
@@ -116,17 +111,17 @@ export class CodexOfficeSession {
 		if (!this.threadId) throw new Error("Codex session has not started");
 		if (this.turnId || this.startingTurn) throw new Error("Codex is already working");
 		this.startingTurn = true;
-		this.state.setTask(MAIN, clean.slice(0, 300));
-		this.state.updateSession({ busy: true });
-		this.state.setState(MAIN, "thinking", "接到新需求");
-		if (model && model !== this.model) this.selectModel(model);
-		const params: JsonObject = {
-			threadId: this.threadId,
-			input: [{ type: "text", text, text_elements: [] }],
-		};
-		if (this.effort) params.effort = this.effort;
-		if (model) params.model = model;
 		try {
+			if (model && model !== this.model) this.selectModel(model);
+			this.state.setTask(MAIN, clean.slice(0, 300));
+			this.state.updateSession({ busy: true });
+			this.state.setState(MAIN, "thinking", "接到新需求");
+			const params: JsonObject = {
+				threadId: this.threadId,
+				input: [{ type: "text", text, text_elements: [] }],
+			};
+			if (this.effort) params.effort = this.effort;
+			if (model) params.model = model;
 			const result = await this.client.request("turn/start", params);
 			const turnId = (result as { turn?: { id?: string } }).turn?.id;
 			if (!turnId) throw new Error("Codex did not return a turn id");
@@ -157,6 +152,9 @@ export class CodexOfficeSession {
 		const request = this.approvals.get(id);
 		if (!request) throw new Error("Approval request is no longer pending");
 		this.approvals.delete(id);
+		const timer = this.approvalTimers.get(id);
+		if (timer) clearTimeout(timer);
+		this.approvalTimers.delete(id);
 		if (request.method === "item/commandExecution/requestApproval") {
 			this.client.respond(id, { decision: allow ? (forSession ? "acceptForSession" : "accept") : "decline" });
 		} else if (request.method === "item/fileChange/requestApproval") {
@@ -170,7 +168,7 @@ export class CodexOfficeSession {
 	async close(): Promise<void> {
 		this.unsubscribe?.();
 		this.unsubscribe = null;
-		this.approvals.clear();
+		this.clearApprovals("Agent Live closed before approval was resolved");
 		for (const timer of this.childLeaveTimers.values()) clearTimeout(timer);
 		this.childLeaveTimers.clear();
 		this.childAgents.clear();
@@ -270,6 +268,7 @@ export class CodexOfficeSession {
 					break;
 				}
 				this.state.flushThoughts();
+				this.clearApprovals("Turn completed before approval was resolved");
 				for (const [id, action] of this.activeActions) this.state.endAction(action.agentId, id, false);
 				this.activeActions.clear();
 				const status = String((params.turn as JsonObject | undefined)?.status ?? "completed");
@@ -292,6 +291,8 @@ export class CodexOfficeSession {
 
 	private itemStarted(item: Item | undefined, agentId: string): void {
 		if (!item?.id || !item.type) return;
+		if (item.type === "collabAgentToolCall") this.syncCollaboration(item);
+		if (item.type === "subAgentActivity" || item.type === "SubAgentActivity") this.syncSubAgentActivity(item);
 		if (!this.acceptAgentEvent(agentId)) return;
 		const mapped = mapItem(item);
 		if (!mapped) return;
@@ -313,7 +314,7 @@ export class CodexOfficeSession {
 		if (!this.activeActions.delete(item.id)) return;
 		const ok = !["failed", "declined"].includes(String(item.status ?? "completed"));
 		this.state.endAction(agentId, item.id, ok);
-		if (agentId !== MAIN || (this.state.snapshot().session.busy && this.agents.activeChildren() === 0)) {
+		if (agentId !== MAIN || (this.state.sessionBusy() && this.agents.activeChildren() === 0)) {
 			this.state.setState(agentId, "thinking", ok ? "继续推进" : "处理报错");
 		}
 	}
@@ -345,7 +346,7 @@ export class CodexOfficeSession {
 	}
 
 	private acceptAgentEvent(agentId: string): boolean {
-		return agentId !== MAIN || this.state.snapshot().session.busy;
+		return agentId !== MAIN || this.state.sessionBusy();
 	}
 
 	private hasActiveAction(agentId: string): boolean {
@@ -411,6 +412,13 @@ export class CodexOfficeSession {
 			return;
 		}
 		this.approvals.set(message.id, message);
+		const timer = setTimeout(() => {
+			if (!this.approvals.delete(message.id!)) return;
+			this.approvalTimers.delete(message.id!);
+			this.client.respond(message.id!, { decision: "decline" });
+		}, APPROVAL_TIMEOUT_MS);
+		timer.unref?.();
+		this.approvalTimers.set(message.id, timer);
 		const params = message.params ?? {};
 		const isCommand = message.method.includes("commandExecution");
 		const detail = String(isCommand ? params.command ?? params.reason ?? "执行命令" : params.reason ?? "修改文件");
@@ -421,6 +429,13 @@ export class CodexOfficeSession {
 			title: isCommand ? "允许执行命令？" : "允许修改文件？",
 			detail: detail.slice(0, 300),
 		});
+	}
+
+	private clearApprovals(reason: string): void {
+		for (const [id] of this.approvals) this.client.respondError(id, -32000, reason);
+		this.approvals.clear();
+		for (const timer of this.approvalTimers.values()) clearTimeout(timer);
+		this.approvalTimers.clear();
 	}
 }
 

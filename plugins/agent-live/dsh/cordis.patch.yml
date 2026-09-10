@@ -1,0 +1,3 @@
+- insert:
+    - id: agent-live
+      name: agent-live-dsh-adapter

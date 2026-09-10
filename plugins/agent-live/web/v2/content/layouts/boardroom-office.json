@@ -9,6 +9,21 @@
 	"canvas": { "width": 384, "height": 216 },
 	"wallHeight": 54,
 	"camera": { "mode": "fixed", "fit": "contain", "integerScale": true },
+	"zones": [
+		{ "id": "presentation", "name": "Presentation Front", "x": 82, "y": 54, "width": 220, "height": 30 },
+		{ "id": "table-left", "name": "Left Work Side", "x": 82, "y": 76, "width": 110, "height": 126 },
+		{ "id": "table-right", "name": "Right Work Side", "x": 192, "y": 76, "width": 110, "height": 126 },
+		{ "id": "service-left", "name": "Document & Refreshment Service", "x": 10, "y": 60, "width": 72, "height": 150 },
+		{ "id": "service-right", "name": "AV & Water Service", "x": 302, "y": 60, "width": 72, "height": 150 },
+		{ "id": "circulation", "name": "Meeting Room Circulation", "x": 0, "y": 54, "width": 384, "height": 162 }
+	],
+	"placementSlots": [
+		{ "id": "front-decoration-left", "zone": "presentation", "x": 91, "y": 69, "accepts": ["plant"], "maxSize": { "width": 14, "height": 22 }, "required": false, "occupiedBy": "plant-front-left" },
+		{ "id": "front-decoration-right", "zone": "presentation", "x": 295, "y": 69, "accepts": ["plant"], "maxSize": { "width": 14, "height": 22 }, "required": false, "occupiedBy": "plant-front-right" },
+		{ "id": "left-refreshment", "zone": "service-left", "x": 48, "y": 105, "accepts": ["coffee-machine"], "maxSize": { "width": 26, "height": 22 }, "required": false, "occupiedBy": "coffee-main" },
+		{ "id": "left-service-storage", "zone": "service-left", "x": 18, "y": 161, "accepts": ["service-cart", "sideboard"], "maxSize": { "width": 55, "height": 30 }, "required": false, "occupiedBy": "archive-main" },
+		{ "id": "right-refreshment", "zone": "service-right", "x": 344, "y": 170, "accepts": ["water-cooler", "vending-machine"], "maxSize": { "width": 18, "height": 28 }, "required": false, "occupiedBy": "water-main" }
+	],
 	"navigation": {
 		"lanes": [60, 112, 146, 198],
 		"connectors": [10, 80, 192, 304, 374],
@@ -24,6 +39,16 @@
 		{ "index": 5, "cx": 273, "renderer": "boardroom-seat", "desk": { "x": 232, "y": 138, "width": 15, "height": 10 }, "anchor": { "x": 273, "y": 151, "dir": "left", "lane": 2, "zone": "right" } },
 		{ "index": 6, "cx": 103, "renderer": "boardroom-seat", "desk": { "x": 133, "y": 164, "width": 15, "height": 10 }, "anchor": { "x": 103, "y": 177, "dir": "right", "lane": 3, "zone": "left" } },
 		{ "index": 7, "cx": 281, "renderer": "boardroom-seat", "desk": { "x": 236, "y": 164, "width": 15, "height": 10 }, "anchor": { "x": 281, "y": 177, "dir": "left", "lane": 3, "zone": "right" } }
+	],
+	"standingAnchors": [
+		{ "x": 82, "y": 86, "dir": "right", "lane": 1, "zone": "circulation" },
+		{ "x": 302, "y": 86, "dir": "left", "lane": 1, "zone": "circulation" },
+		{ "x": 82, "y": 132, "dir": "right", "lane": 2, "zone": "circulation" },
+		{ "x": 302, "y": 132, "dir": "left", "lane": 2, "zone": "circulation" },
+		{ "x": 82, "y": 198, "dir": "right", "lane": 3, "zone": "circulation" },
+		{ "x": 302, "y": 198, "dir": "left", "lane": 3, "zone": "circulation" },
+		{ "x": 112, "y": 60, "dir": "down", "lane": 0, "zone": "circulation" },
+		{ "x": 272, "y": 60, "dir": "down", "lane": 0, "zone": "circulation" }
 	],
 	"targets": {
 		"archive": { "x": 68, "y": 184, "dir": "left", "lane": 3 },

@@ -1,1 +1,1 @@
-export { default } from "./plugins/agent-live/src/adapters/pi/adapter.ts";
+export * from "./plugins/agent-live/src/index.ts";

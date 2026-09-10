@@ -10,6 +10,8 @@ export function installCodexControls(token) {
 	let currentApproval = null;
 	let busy = false;
 	let stopping = false;
+	let refreshTimer = 0;
+	let closed = false;
 	form.hidden = false;
 
 	async function post(path, body = {}) {
@@ -72,6 +74,7 @@ export function installCodexControls(token) {
 	});
 
 	async function refresh() {
+		if (closed || document.hidden) return;
 		try {
 			const response = await fetch("/api/client/status", { cache: "no-store" });
 			const status = await response.json();
@@ -88,8 +91,20 @@ export function installCodexControls(token) {
 				send.disabled = busy;
 		} catch {
 			stop.disabled = true;
+		} finally {
+			if (!closed && !document.hidden) refreshTimer = window.setTimeout(refresh, busy ? 750 : 2000);
 		}
 	}
 	void refresh();
-	setInterval(refresh, 500);
+	document.addEventListener("visibilitychange", () => {
+		if (document.hidden) {
+			clearTimeout(refreshTimer);
+			return;
+		}
+		void refresh();
+	});
+	window.addEventListener("pagehide", () => {
+		closed = true;
+		clearTimeout(refreshTimer);
+	}, { once: true });
 }

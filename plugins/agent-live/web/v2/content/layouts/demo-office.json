@@ -23,6 +23,16 @@
 		{ "index": 6, "cx": 172, "desk": { "x": 148, "y": 118, "width": 48, "height": 16 }, "anchor": { "x": 172, "y": 144, "dir": "up", "lane": 2 } },
 		{ "index": 7, "cx": 236, "desk": { "x": 212, "y": 118, "width": 48, "height": 16 }, "anchor": { "x": 236, "y": 144, "dir": "up", "lane": 2 } }
 	],
+	"standingAnchors": [
+		{ "x": 278, "y": 92, "dir": "left", "lane": 1 },
+		{ "x": 278, "y": 152, "dir": "left", "lane": 2 },
+		{ "x": 92, "y": 190, "dir": "right", "lane": 2 },
+		{ "x": 242, "y": 190, "dir": "left", "lane": 2 },
+		{ "x": 214, "y": 46, "dir": "down", "lane": 0 },
+		{ "x": 246, "y": 46, "dir": "down", "lane": 0 },
+		{ "x": 278, "y": 46, "dir": "down", "lane": 0 },
+		{ "x": 310, "y": 46, "dir": "down", "lane": 0 }
+	],
 	"targets": {
 		"archive": { "x": 318, "y": 100, "dir": "up", "lane": 1 },
 		"server": { "x": 320, "y": 158, "dir": "up", "lane": 2 },

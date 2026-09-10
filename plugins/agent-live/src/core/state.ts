@@ -58,18 +58,22 @@ export class OfficeState {
 		}
 	}
 
-	snapshot(): OfficeEvent {
+	snapshot(includeHistory = true): Extract<OfficeEvent, { type: "snapshot" }> {
 		return {
 			type: "snapshot",
 			agents: [...this.agents.values()],
 			log: this.log.slice(-60),
 			session: this.session,
-			history: this.history.slice(),
+			history: includeHistory ? this.history.slice() : [],
 		};
 	}
 
 	getAgent(id: string): AgentView | undefined {
 		return this.agents.get(id);
+	}
+
+	sessionBusy(): boolean {
+		return this.session.busy;
 	}
 
 	hasClients(): boolean {
@@ -119,13 +123,13 @@ export class OfficeState {
 		return agent;
 	}
 
-	leave(id: string, ok: boolean): void {
+	leave(id: string, ok?: boolean): void {
 		const agent = this.agents.get(id);
 		if (!agent) return;
 		if (agent.seat !== undefined) this.seats.delete(agent.seat);
 		this.agents.delete(id);
 		this.emit({ type: "agent_leave", id, ok });
-		this.addLog(id, "leave", `${agent.name} ${ok ? "交付完成，下班" : "异常退出"}`);
+		this.addLog(id, "leave", `${agent.name} ${ok === true ? "交付完成，下班" : ok === false ? "异常退出" : "结束工作"}`);
 	}
 
 	setState(id: string, state: AgentState, detail?: string): void {

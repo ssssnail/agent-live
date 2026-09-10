@@ -1,0 +1,144 @@
+import assert from "node:assert/strict";
+import { readFile, stat } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { DshSnapshotAdapter, type DshObservation } from "../src/adapters/dsh/adapter.ts";
+
+const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../dsh");
+const json = async (file: string) => JSON.parse(await readFile(file, "utf8"));
+const isFile = (file: string) => stat(file).then(value => value.isFile(), () => false);
+
+const pkg = await json(path.join(pluginRoot, "package.json"));
+const patch = await readFile(path.join(pluginRoot, "cordis.patch.yml"), "utf8");
+const client = await readFile(path.join(pluginRoot, "src/client.tsx"), "utf8");
+const buildScript = await readFile(path.join(pluginRoot, "build.mjs"), "utf8");
+const creator = await readFile(path.join(pluginRoot, "src/creator.ts"), "utf8");
+const renderer = await readFile(path.join(pluginRoot, "../web/app.js"), "utf8");
+
+assert.equal(pkg.dsh.client.platform, "web");
+assert.equal(pkg.dsh.bundle.patch, "./cordis.patch.yml");
+assert.equal(pkg.exports["./client"].default, "./lib/client.js");
+assert.match(patch, /name: agent-live-dsh-adapter/);
+assert.match(client, /slots\.inject\("conversation\.view"/);
+assert.match(client, /useSession\(\(snapshot[^)]*\) => snapshot\.running\)/);
+assert.match(client, /useConversation\(\(snapshot[^)]*\) => snapshot\.views\.get\("chat"\)\)/);
+assert.match(client, /useProjection\("modelSelection"\)/);
+assert.match(client, /useProjection\("subagentCatalog"\)/);
+assert.match(client, /const viewSessions = new Map/);
+assert.match(client, /viewSession\(id\)/);
+assert.doesNotMatch(client, /AgentLiveRuntime|createServer|EventSource|WebSocket|child_process/);
+assert.match(buildScript, /web\/style\.css/);
+assert.match(buildScript, /web\/v2\/style\.css/);
+assert.match(renderer, /new ResizeObserver\(scheduleResize\)/);
+assert.match(renderer, /visibilitychange/);
+assert.match(renderer, /displayAgentName\(view, isLead\)/, "renderer must resolve fallback teammate names after Agent Profile overrides");
+assert.match(client, /name: `Teammate \$\{index \+ 1\}`/, "DSH fallback child names must remain host-neutral");
+assert.match(renderer, /if \(actor\.action\) hot\.add[\s\S]*retarget\(actor\)/, "snapshot agents without an action must leave the entrance");
+assert.match(renderer, /goTo\(actor, Office\.TARGETS\.entry\);[\s\S]*if \(!actor\.path\.length\) \{[\s\S]*actors\.delete\(actor\.id\)/, "an agent already at the entrance must be removed immediately");
+assert.match(creator, /CreatorModeRegistry/);
+assert.match(creator, /input === "custom"/);
+assert.match(creator, /input === "exit"/);
+assert.match(creator, /input === "list preset" \|\| input === "list presets"/, "preset discovery must accept singular and plural commands");
+assert.match(creator, /input === "list layout" \|\| input === "list layouts"/, "layout discovery must accept singular and plural commands");
+assert.match(creator, /rawInput = invocation\.rawInput\.trim\(\)\.replace/, "creator commands must normalize whitespace without destroying selector names");
+assert.match(creator, /input = rawInput\.toLowerCase\(\)/, "creator command verbs must be case-insensitive");
+assert.match(creator, /input\.startsWith\("preset "\)/, "preset discovery must have a selection command");
+assert.match(creator, /input\.startsWith\("layout "\)/, "layout discovery must have a selection command");
+assert.match(creator, /commandOfficeProjections\.get\(String\(event\.data\.commandId\)\)/, "command selection must refresh the exact current session projection");
+assert.match(creator, /commandOfficeProjections\.set\(String\(invocation\.commandId\), selectedOfficeProjection\)/, "selection handlers must publish their projection by command id");
+assert.match(creator, /session\/disposed/, "Creator Mode must be released with its DSH session");
+assert.match(creator, /currentOfficeProjection = selectedOfficeProjection/, "all DSH scopes must share the latest selected Office");
+assert.match(creator, /Custom offices:/, "preset discovery must distinguish custom Offices from official presets");
+assert.match(creator, /systemPrompt\.context/);
+
+const baseline: DshObservation = {
+  sessionId: "session-a",
+  running: false,
+  turns: 2,
+  model: "deepseek-chat",
+  thinkingLevel: "low",
+	tokens: 128,
+  messages: [{ key: "user:1", kind: "user", text: "Inspect the adapter", at: 10 }],
+  tools: [],
+  children: [],
+};
+const adapter = new DshSnapshotAdapter(1000);
+const first = adapter.update(baseline);
+assert.equal(first.length, 1);
+assert.equal(first[0]?.type, "snapshot");
+if (first[0]?.type === "snapshot") {
+  assert.equal(first[0].session.busy, false);
+  assert.equal(first[0].session.model, "deepseek-chat");
+  assert.equal(first[0].agents[0]?.id, "dsh:session-a");
+  assert.equal(first[0].agents[0]?.task, "Inspect the adapter");
+	assert.equal(first[0].agents[0]?.tokens, 128);
+	assert.deepEqual(first[0].history.map((entry) => entry.event.type), ["task"]);
+}
+assert.deepEqual(adapter.update(baseline), [], "unchanged DSH snapshots must not duplicate events");
+
+const working = adapter.update({
+  ...baseline,
+  running: true,
+  turns: 3,
+  messages: [...baseline.messages, { key: "user:2", kind: "user", text: "Run tests", at: 20 }],
+  tools: [{ callId: "call-1", name: "bash", args: { command: "npm test" }, at: 21, running: true }],
+  children: [{ id: "dsh:child-1", name: "Teammate 1", task: "Run focused tests", running: true }],
+});
+assert.equal(working.filter((event) => event.type === "task").length, 1);
+assert.equal(working.filter((event) => event.type === "action").length, 1);
+assert.equal(working.filter((event) => event.type === "agent_join").length, 1);
+assert.equal(working.filter((event) => event.type === "delegate").length, 1);
+assert.equal(working.find((event) => event.type === "delegate")?.task, "Run focused tests");
+
+const completed = adapter.update({
+  ...baseline,
+  turns: 3,
+  messages: [...baseline.messages, { key: "user:2", kind: "user", text: "Run tests", at: 20 }, { key: "assistant:3", kind: "assistant", text: "Tests passed", at: 30, tokens: 42 }],
+  tools: [{ callId: "call-1", name: "bash", args: { command: "npm test" }, at: 21, running: false, ok: true }],
+  children: [{ id: "dsh:child-1", name: "Teammate 1", task: "Run focused tests", running: false }],
+});
+assert.equal(completed.filter((event) => event.type === "action_end").length, 1);
+assert.equal(completed.filter((event) => event.type === "say").length, 1);
+assert.equal(completed.filter((event) => event.type === "usage").length, 1);
+assert.equal(completed.filter((event) => event.type === "agent_leave").length, 1);
+const finalObservation: DshObservation = {
+  ...baseline,
+  turns: 3,
+  messages: [...baseline.messages, { key: "user:2", kind: "user", text: "Run tests", at: 20 }, { key: "assistant:3", kind: "assistant", text: "Tests passed", at: 30, tokens: 42 }],
+  tools: [{ callId: "call-1", name: "bash", args: {}, at: 21, running: false, ok: true }],
+  children: [],
+};
+assert.deepEqual(adapter.update(finalObservation), []);
+
+const restored = new DshSnapshotAdapter(2000).update(finalObservation);
+assert.equal(restored[0]?.type, "snapshot");
+if (restored[0]?.type === "snapshot") {
+	assert.deepEqual(
+		restored[0].history.map((entry) => entry.event.type),
+		["task", "task", "action", "action_end", "say"],
+		"a remounted DSH view must recover replayable work from the host snapshot",
+	);
+	assert.equal(restored[0].history.every((entry, index, all) => index === 0 || entry.at >= all[index - 1].at), true);
+}
+
+for (const file of ["src/index.ts", "src/client.tsx", "build.mjs", "cordis.patch.yml"]) {
+  assert.equal(await isFile(path.join(pluginRoot, file)), true, `missing DSH package file ${file}`);
+}
+
+assert.match(creator, /commands\.register/);
+assert.match(creator, /skills\.register/);
+assert.match(creator, /systemPrompt\.context/);
+assert.match(creator, /tools\.register\(defineTool/);
+assert.match(creator, /new CreatorCommandRouter/);
+assert.match(creator, /sessionProjections\.register/);
+assert.match(creator, /content: sessionEventContent\(await content\.resolve\(\)\)/, "DSH must initialize new sessions from the selected local Office");
+assert.match(creator, /init: \(\) => currentOfficeProjection \?\? selectedOfficeProjection/, "new DSH sessions must inherit the selected local Office");
+assert.match(creator, /selectedOfficeProjection = projection/, "successful customization must update the default for later DSH sessions");
+assert.doesNotMatch(creator, /session\.append\("agent-live\/office"/);
+assert.match(creator, /presentationMeta/);
+assert.match(creator, /event\.type !== "tool\/result"/);
+assert.match(creator, /enum: \["list_offices", "list_components", "customize"\]/);
+assert.match(client, /useProjection\("agentLiveOffice"\)/);
+assert.match(client, /frameDocument\(office\?\.content\)/);
+
+console.log("dsh adapter: native view, snapshot diff, tools, answers and subagent lifecycle passed");

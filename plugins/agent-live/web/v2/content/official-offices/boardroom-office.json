@@ -1,0 +1,25 @@
+{
+	"schemaVersion": 1,
+	"kind": "office-spec",
+	"id": "builtin/boardroom-office",
+	"name": "Boardroom Office",
+	"origin": "official",
+	"layout": "builtin/boardroom-office",
+	"style": "builtin/pixel-classic",
+	"agentSkin": "builtin/tiny-developers",
+	"placements": [
+		{ "id": "plant-front-left", "component": "builtin/plant", "slot": "front-decoration-left" },
+		{ "id": "plant-front-right", "component": "builtin/plant", "slot": "front-decoration-right" },
+		{ "id": "coffee-main", "component": "builtin/coffee-machine", "slot": "left-refreshment" },
+		{ "id": "archive-main", "component": "builtin/service-cart", "slot": "left-service-storage" },
+		{ "id": "water-main", "component": "builtin/water-cooler", "slot": "right-refreshment" }
+	],
+	"npcs": [
+		{ "id": "boardroom-boss", "template": "builtin/boss", "name": "老板", "title": "会议主持", "gender": "unspecified", "appearance": { "skin": "#d5a47c", "hair": "#2b3039", "shirt": "#465d80", "trim": "#2d405e", "badge": "#ffcc4d" }, "spawn": "boss-seat", "pose": "sit" },
+		{ "id": "executive-assistant", "template": "builtin/secretary", "name": "秘书", "title": "行政秘书", "gender": "unspecified", "appearance": { "skin": "#e8b98f", "hair": "#30333b", "shirt": "#568c83", "trim": "#37645e", "badge": "#b9dfd5" }, "spawn": "secretary-entry", "pose": "stand" },
+		{ "id": "room-attendant", "template": "builtin/attendant", "name": "会务", "title": "会议服务", "gender": "unspecified", "appearance": { "skin": "#d69f70", "hair": "#4a4038", "shirt": "#687779", "trim": "#485658", "badge": "#d7b261" }, "spawn": "service-entry", "pose": "stand" }
+	],
+	"activities": ["builtin/boss-briefing", "builtin/get-water", "builtin/briefing-support", "builtin/refreshment-round"],
+	"atmosphere": "builtin/default-atmosphere",
+	"environment": "builtin/local-office-environment"
+}

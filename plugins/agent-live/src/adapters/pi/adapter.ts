@@ -3,17 +3,17 @@ import { actionForTool, describeDelegation, isDelegationTool, labelForTool } fro
 import type { OfficeServer } from "../../runtime/server.ts";
 import { OfficeState } from "../../core/state.ts";
 import { AgentLiveRuntime } from "../../runtime/agent-live-runtime.ts";
-import type { AdapterDescriptor } from "../contract.ts";
 import { AgentRegistry } from "../../core/agents.ts";
-
-export const PI_ADAPTER: AdapterDescriptor = {
-	id: "pi",
-	name: "Pi",
-	capabilities: { observe: true, prompt: false, interrupt: false, modelSelect: true, approvals: false, subagents: true },
-};
+import { randomBytes } from "node:crypto";
+import { OfficeContentService } from "../../runtime/content-service.ts";
+import { CreatorService } from "../../creator/service.ts";
+import { CreatorCommandRouter } from "../../creator/commands.ts";
+import { CreatorModeRegistry, CREATOR_MODE_CONTEXT } from "../../creator/mode.ts";
 
 const MAIN = "main";
+const PI_CREATOR_SESSION = "pi-current-session";
 const DEFAULT_PORT = Number(process.env.AGENT_LIVE_PI_PORT ?? 7788);
+const VIEWER_CLOSE_GRACE_MS = Number(process.env.AGENT_LIVE_VIEWER_CLOSE_GRACE_MS ?? 12_000);
 const VIEWER_PATH = "v2.html";
 const PRESETS = new Map([
 	["tech-open-office", "Tech 开放式办公室"],
@@ -22,6 +22,26 @@ const PRESETS = new Map([
 ]);
 
 type Block = { type: string; text?: string; thinking?: string };
+
+const CREATOR_TOOL_PARAMETERS = {
+	type: "object",
+	additionalProperties: false,
+	properties: {
+		command: {
+			type: "string",
+			enum: ["list_offices", "list_components", "customize"],
+		},
+		base: { type: "string" },
+		patch: { type: "object" },
+	},
+	required: ["command"],
+} as any;
+
+const CREATOR_TOOL_GUIDELINES = [
+	"Use agent_live_creator for office changes only while Agent Live Creator Mode is active. The user enters with /agent-live custom and exits with /agent-live exit.",
+	"Inspect offices and components when needed, then call customize once. It validates, saves and selects the new office atomically.",
+	"Keep schemas, component IDs and patches internal. After applying, summarize defaults, substitutions, ignored requests and source-code-only boundaries.",
+];
 
 function joinBlocks(content: unknown, kind: "text" | "thinking"): string {
 	if (typeof content === "string") return kind === "text" ? content : "";
@@ -37,6 +57,11 @@ export default function (pi: ExtensionAPI) {
 	let server: OfficeServer | null = null;
 	let runtime: AgentLiveRuntime | null = null;
 	let agents: AgentRegistry | null = null;
+	let creator: CreatorCommandRouter | null = null;
+	let closePromise: Promise<void> | null = null;
+	let bootPromise: Promise<void> | null = null;
+	let viewerCloseTimer: ReturnType<typeof setTimeout> | null = null;
+	let hasSeenViewer = false;
 	/** Streaming cursors so we only forward newly generated thinking text. */
 	let thinkingCursor = 0;
 	let textCursor = 0;
@@ -44,36 +69,96 @@ export default function (pi: ExtensionAPI) {
 	let totalCost = 0;
 	/** toolCallId -> child agent ids currently on loan from the delegation tool. */
 	const delegated = new Map<string, string[]>();
+	const creatorModes = new CreatorModeRegistry();
 
 	const mainName = (ctx: any): { name: string; role: string } => {
 		const model = ctx?.model?.id ?? ctx?.model?.name ?? "pi";
 		return { name: "啊派", role: String(model) };
 	};
 
-	async function boot(ctx: any): Promise<void> {
-		if (state) return;
-		runtime = new AgentLiveRuntime(ctx.cwd ?? process.cwd());
-		state = runtime.state;
-		agents = new AgentRegistry(state);
-		state.updateSession({
-			cwd: ctx.cwd ?? process.cwd(),
-			model: ctx?.model?.id,
-			thinkingLevel: ctx?.thinkingLevel,
-		});
-		const info = mainName(ctx);
-		agents.join(MAIN, { ...info, model: ctx?.model?.id });
+	async function bootOnce(ctx: any): Promise<void> {
+		if (closePromise) await closePromise.catch(() => undefined);
+		if (state && server) return;
 		try {
-			server = await runtime.start({ port: DEFAULT_PORT });
+			totalTokens = 0;
+			totalCost = 0;
+			const nextRuntime = new AgentLiveRuntime(ctx.cwd ?? process.cwd());
+			runtime = nextRuntime;
+			state = nextRuntime.state;
+			agents = new AgentRegistry(state);
+			hasSeenViewer = false;
+			const content = await OfficeContentService.create();
+			creator = new CreatorCommandRouter(new CreatorService(content.registry, content.library));
+			const creatorToken = randomBytes(24).toString("hex");
+			state.updateSession({
+				cwd: ctx.cwd ?? process.cwd(),
+				model: ctx?.model?.id,
+				thinkingLevel: ctx?.thinkingLevel,
+			});
+			const info = mainName(ctx);
+			agents.join(MAIN, { ...info, model: ctx?.model?.id });
+			server = await nextRuntime.start({
+				port: DEFAULT_PORT,
+				content,
+				creator,
+				creatorToken,
+				onViewerCountChange(count) {
+					if (runtime !== nextRuntime) return;
+					if (count > 0) {
+						hasSeenViewer = true;
+						if (viewerCloseTimer) clearTimeout(viewerCloseTimer);
+						viewerCloseTimer = null;
+						return;
+					}
+					if (!hasSeenViewer || viewerCloseTimer) return;
+					viewerCloseTimer = setTimeout(() => void shutdown(), VIEWER_CLOSE_GRACE_MS);
+					viewerCloseTimer.unref?.();
+				},
+			});
 			if (ctx.hasUI) {
 				ctx.ui.setStatus("agent-live", `agent-live: ${server.url}/${VIEWER_PATH}`);
 				ctx.ui.notify(`Agent Live: ${server.url}/${VIEWER_PATH} (/agent-live 打开)`, "info");
 			}
 			if (process.env.AGENT_LIVE_AUTO_OPEN === "1") server.open(VIEWER_PATH);
 		} catch (err) {
+			agents?.dispose();
+			await runtime?.close().catch(() => undefined);
+			server = null;
+			state = null;
+			runtime = null;
+			agents = null;
+			creator = null;
 			const message = `Agent Live 启动失败: ${(err as Error).message}`;
 			if (ctx.hasUI) ctx.ui.notify(message, "error");
 			else console.error(message);
 		}
+	}
+
+	async function boot(ctx: any): Promise<void> {
+		if (server && state) return;
+		if (bootPromise) return bootPromise;
+		bootPromise = bootOnce(ctx).finally(() => { bootPromise = null; });
+		return bootPromise;
+	}
+
+	async function shutdown(): Promise<void> {
+		if (closePromise) return closePromise;
+		if (viewerCloseTimer) clearTimeout(viewerCloseTimer);
+		viewerCloseTimer = null;
+		hasSeenViewer = false;
+		const runtimeToClose = runtime;
+		const agentsToDispose = agents;
+		server = null;
+		state = null;
+		runtime = null;
+		agents = null;
+		creator = null;
+		delegated.clear();
+		closePromise = (async () => {
+			agentsToDispose?.dispose();
+			await runtimeToClose?.close();
+		})().finally(() => { closePromise = null; });
+		return closePromise;
 	}
 
 	pi.on("session_start", async (_event, ctx) => {
@@ -81,13 +166,8 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("session_shutdown", async () => {
-		agents?.dispose();
-		await runtime?.close();
-		server = null;
-		state = null;
-		runtime = null;
-		agents = null;
-		delegated.clear();
+		creatorModes.clear();
+		await shutdown();
 	});
 
 	pi.on("model_select", async (event: any) => {
@@ -106,6 +186,26 @@ export default function (pi: ExtensionAPI) {
 		state.updateSession({ busy: true });
 		state.setTask(MAIN, String(event?.prompt ?? "").replace(/\s+/g, " ").slice(0, 300));
 		state.setState(MAIN, "thinking", "接到新需求");
+		if (creatorModes.isActive(PI_CREATOR_SESSION)) {
+			return { systemPrompt: `${event?.systemPrompt ?? ""}\n\n${CREATOR_MODE_CONTEXT}`.trim() };
+		}
+	});
+
+	pi.registerTool({
+		name: "agent_live_creator",
+		label: "Agent Live Creator",
+		description: "Inspect Agent Live capabilities or directly apply a validated Custom Office change.",
+		promptSnippet: "Directly customize an Agent Live office from a natural-language request",
+		promptGuidelines: CREATOR_TOOL_GUIDELINES,
+		parameters: CREATOR_TOOL_PARAMETERS,
+		async execute(_toolCallId: string, params: unknown, _signal: AbortSignal, _onUpdate: unknown, ctx: any) {
+			if (!creator || !server) await boot(ctx);
+			if (!creator) {
+				return { content: [{ type: "text", text: JSON.stringify({ ok: false, error: "Agent Live is not running." }) }], details: { ok: false } };
+			}
+			const result = await creator.execute(params);
+			return { content: [{ type: "text", text: JSON.stringify(result) }], details: result };
+		},
 	});
 
 	pi.on("message_start", async (event: any) => {
@@ -281,13 +381,7 @@ export default function (pi: ExtensionAPI) {
 			const sub = (args ?? "").trim().toLowerCase();
 			const [command, value, ...rest] = sub.split(/\s+/).filter(Boolean);
 			if (command === "close") {
-				agents?.dispose();
-				await runtime?.close();
-				server = null;
-				state = null;
-				runtime = null;
-				agents = null;
-				delegated.clear();
+				await shutdown();
 				ctx.ui.notify("Agent Live 已关闭", "info");
 				return;
 			}
@@ -320,8 +414,18 @@ export default function (pi: ExtensionAPI) {
 				ctx.ui.notify(`已打开 ${PRESETS.get(value)}；浏览器会记住这次选择`, "info");
 				return;
 			}
-			if (command && command !== "open") {
-				ctx.ui.notify("用法：/agent-live [demo | status | close | preset [id]]", "error");
+		if (command === "custom") {
+			creatorModes.enter(PI_CREATOR_SESSION);
+			ctx.ui.notify("Creator Mode 已开启。现在直接描述办公室修改；输入 /agent-live exit 退出。", "info");
+			return;
+		}
+		if (command === "exit") {
+			const exited = creatorModes.exit(PI_CREATOR_SESSION);
+			ctx.ui.notify(exited ? "Creator Mode 已退出。" : "当前未处于 Creator Mode。", "info");
+			return;
+		}
+		if (command && command !== "open") {
+			ctx.ui.notify("用法：/agent-live [custom | exit | demo | status | close | preset [id]]", "error");
 				return;
 			}
 			server.open(VIEWER_PATH);

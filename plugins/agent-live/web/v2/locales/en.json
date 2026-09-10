@@ -38,6 +38,7 @@
 		"npc.arrival": "Starting my shift",
 		"npc.departure": "Heading home",
 		"agent.joined": "I'm here",
+		"agent.teammate": "{name}'s Teammate{index}",
 		"delegate.owner": "{name} will take this",
 		"delegate.assign": "Assign: {task}",
 		"config.error": "Configuration error"

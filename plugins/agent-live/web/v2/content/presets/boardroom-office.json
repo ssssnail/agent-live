@@ -6,6 +6,7 @@
 	"version": "1.0.0",
 	"engine": { "min": "0.2.0" },
 	"contract": "single-office-v1",
+	"officeSpec": "official-offices/boardroom-office.json",
 	"render": { "detail": "rich" },
 	"content": {
 		"style": "pixel-classic",

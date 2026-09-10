@@ -34,7 +34,7 @@ Pi / Codex → Adapter → Core → Runtime → Browser Renderer
 ## 3. 目录结构
 
 ```
-agent-office/
+agent-live/
 ├── index.ts              # Pi 兼容入口，re-export 官方 Pi Adapter
 ├── package.json          # type: module；pi.extensions 声明入口
 ├── README.md
@@ -363,7 +363,7 @@ endMeeting()     清 inMeeting，各自 retarget()
 ## 15. 安装与部署
 
 ```bash
-ln -sfn /Users/snail/projects/agent-office ~/.pi/agent/extensions/agent-office
+ln -sfn /absolute/path/to/agent-live ~/.pi/agent/extensions/agent-live
 ```
 
 pi 要求扩展位于 `~/.pi/agent/extensions/` 下的子目录，且入口是该目录根的 `index.ts`。项目的实际代码在 `plugins/agent-live/src/`，所以根 `index.ts` 只有一行：
@@ -408,9 +408,9 @@ export { default } from "./src/adapters/pi/adapter.ts";
 
 两个 agent 同时去档案柜会站在同一个锚点上重叠。需要给每个工位加候补站位或排队。
 
-### 18.2 座位溢出（P3）
+### 18.2 无座位 Agent 的表现较弱（P3）
 
-超过 8 个 agent 时 `claimSeat()` 返回最后一个座位，多人叠在一起。
+Agent 与座位容量已经解耦：最多显示 16 个 Agent，前 8 个获得固定座位，其余 Agent 不再挤占最后一个座位。无座位 Agent 仍能参与工作动作和协作，但空闲时缺少明确的等待区视觉，这是后续内容优化项。
 
 ### 18.3 成本可能显示为 0（上游字段缺失）
 
@@ -428,7 +428,7 @@ export { default } from "./src/adapters/pi/adapter.ts";
 
 新功能只扩展 V2；`plugins/agent-live/web/office.js` 和 `plugins/agent-live/web/sprites.js` 保持冻结。
 
-**加一个角色外观**：在 `plugins/agent-live/web/v2/content/agent-skins/tiny-developers.json` 增加角色名、上衣与滚边配色。若它还是宿主传来的新职位名，再在 `plugins/agent-live/src/adapters/pi/adapter.ts` 的 `ROLE_NAMES` 增加中文名。名字匹配走小写。
+**加一个角色外观**：在 `plugins/agent-live/web/v2/content/agent-skins/tiny-developers.json` 增加角色名、上衣与滚边配色。若它还是宿主传来的新职位名，再在 `plugins/agent-live/src/core/agents.ts` 的角色映射中增加中文名。名字匹配走小写。
 
 **加一个已有类别的 Prop**：先在 Props registry 声明类型、尺寸、能力与 renderer，再在 Layout 的 `propInstances` 中放置实例。功能锚点必须位于可达通道上。
 
@@ -446,7 +446,7 @@ export { default } from "./src/adapters/pi/adapter.ts";
 
 | 项 | 表现 |
 | --- | --- |
-| 服务端内存 | 上限约 200 条日志 + 8 个 agent 对象，可忽略 |
+| 服务端内存 | 上限约 200 条日志、4000 条内存回放事件和 16 个 Agent 对象 |
 | 广播开销 | 每事件对每客户端一次 `JSON.stringify` + 一次 write |
 | 前端绘制 | 每帧约 200–300 次 `fillRect`，60fps 无压力 |
 | 日志 DOM | 上限 220 节点，超出从头部移除 |

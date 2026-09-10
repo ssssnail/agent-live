@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Live Adapter Builder"
+  short_description: "Build a verified Agent Live adapter"
+  default_prompt: "Build an Agent Live adapter from official host documentation and SDK evidence."

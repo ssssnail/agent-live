@@ -20,9 +20,9 @@
 
 | 层级 | 定义 | 当前对应 |
 | --- | --- | --- |
-| Live Agent Show | 产品品牌 | 整个产品 |
-| Connector | 从不同宿主读取其开放的 Agent 事件 | Pi Extension；未来可有 Codex / Cursor Connector |
-| Show Event | 与宿主无关的真实工作事件 | Pi 事件的转换结果 |
+| Agent Live | 产品品牌 | 整个产品 |
+| Adapter | 从不同宿主读取其开放的 Agent 事实 | 已有 Pi、Codex、DSH；未来可继续接入 Cursor 等宿主 |
+| OfficeEvent | 与宿主无关的真实工作事件 | Pi、Codex、DSH 官方事实的转换结果 |
 | Office Engine | 将事件转成办公室位置、动作和状态 | 当前 `OfficeState`、映射与前端状态机 |
 | Office Runtime | 单层办公室的渲染、移动、寻路、气泡和状态规则 | 当前 Demo 前端状态机 |
 | Component Library | 八类基础组件的唯一全集与 Capability Catalog | 当前内容目录正在迁移为该结构 |

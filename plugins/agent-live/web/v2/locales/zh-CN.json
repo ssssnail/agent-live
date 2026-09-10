@@ -38,6 +38,7 @@
 		"npc.arrival": "上班啦",
 		"npc.departure": "下班啦",
 		"agent.joined": "我来了",
+		"agent.teammate": "{name} 的同事{index}",
 		"delegate.owner": "{name}来负责这块",
 		"delegate.assign": "派活：{task}",
 		"config.error": "配置错误"

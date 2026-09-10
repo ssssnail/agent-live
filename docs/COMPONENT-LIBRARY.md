@@ -52,9 +52,7 @@ Office Spec
   "contract": "single-office-v1",
   "tags": ["service", "water", "floor"],
   "capabilities": ["water"],
-  "compatibility": {
-    "styles": ["pixel-classic", "warm-studio"]
-  }
+  "renderer": "water-cooler"
 }
 ```
 
@@ -156,7 +154,7 @@ Office Spec 是 Preset 与 Custom Office 共用的最终组装合同。目标形
   "agentSkin": "builtin/tiny-developers",
   "placements": [
     { "component": "builtin/water-cooler", "slot": "lounge-service-1" },
-    { "component": "builtin/plant", "slot": "lounge-decoration-1" }
+    { "component": "builtin/dumbbell", "slot": "lounge-fitness-1" }
   ],
   "npcs": [
     {
@@ -167,17 +165,17 @@ Office Spec 是 Preset 与 Custom Office 共用的最终组装合同。目标形
       "shift": { "start": "20:00", "end": "06:00" }
     }
   ],
-  "activities": ["builtin/get-water", "builtin/cleaning-round"],
+  "activities": ["builtin/get-water", "builtin/phone-break"],
   "atmosphere": "builtin/rainy-night",
-  "environment": "builtin/local-office"
+  "environment": "builtin/local-office-environment"
 }
 ```
 
-这是目标合同示例，不代表当前 Runtime 已经读取该格式。正式实现时，Official Preset 和 Custom Office 必须由同一个 Compiler 与 Validator 解析。
+这是当前 Office Seed/Spec 合同的概念示例。实际输入还必须带 `kind`，实例化物件必须带唯一 `id`；最终以 `src/content/schema.ts` 为准。Official Preset 和 Custom Office 已由同一个 Compiler 与 Validator 解析。
 
 ## 7. Preset 与纯自定义
 
-运行 `/agent-live customize` 后，用户选择创作起点：
+运行 `/agent-live custom` 后，宿主 Agent 会根据描述选择最接近的创作起点：
 
 ```text
 Tech 开放式办公室
@@ -193,33 +191,21 @@ Tech 开放式办公室
 
 ## 8. 当前内置能力盘点
 
-当前代码已经具备以下内容基础：
+当前 Component Library 已经具备以下内容基础：
 
 | 组件族 | 当前数量 | 备注 |
 | --- | ---: | --- |
 | Style | 2 | 经典像素、暖调工作室 |
 | Layout | 5 | 其中 3 套为正式用户 Preset |
 | Agent Skin | 2 | 共享程序化像素人物 |
-| Prop Type | 32 种去重类型 | 当前分散在 3 个 registry 中并有重复定义 |
-| NPC | 8 个实例、5 类角色 | 老板、保洁、前台、秘书、会务；尚无保安与办公室猫 |
-| Life Activity | 12 种不重复行为 | 共 15 个按场景配置的定义，存在重复 recipe |
+| Prop Type | 32 | 唯一组件 ID、尺寸、renderer 与能力声明已集中登记 |
+| NPC Template | 6 | 支持默认身份、性别、外观、班次与确定性随机 Profile |
+| Life Activity | 14 | 17 个 Layout 实现共享统一 Activity Recipe |
 | Atmosphere | 2 | 默认、雨夜 |
 | Environment | 3 | 本地动态、静态兼容、固定雨夜 |
 
-这些能力足以制作官方 Preset，也足以验证一条受限 Creator 纵向链路；还不能直接作为安全、可自由组合的 Component Library。
+这些能力已经供三个 Official Office 和 Custom Office 共用。自由组合仍受 Layout 的 Zone、Placement Slot、NPC Spawn、活动实现和全局容量上限约束。
 
-## 9. 从当前实现迁移
+## 9. 当前实现状态
 
-当前 `plugins/agent-live/web/v2/content/` 是过渡形态：Preset 每类只引用一个整包文件，Props、NPC 和 Life Activities 仍按场景分组。迁移时按以下顺序进行，且不改变三个正式 Preset 的视觉结果：
-
-1. 合并重复 Prop Type，建立唯一组件 ID。
-2. 把 NPC 条目提取为可复用 NPC Template。
-3. 把重复 Life Activity 提取为独立 Activity Recipe。
-4. 为三个正式 Layout 增加 Zone 和 Placement Slot。
-5. 从实际 Renderer 与 Runtime 生成 Capability Catalog。
-6. 抽取 Browser、CLI 和 Creator 共用的 Validator。
-7. 定义 Office Spec 的合并、编译、保存和版本迁移规则。
-8. 用同一个 Compiler 重建三个 Official Preset，并通过现有视觉回归。
-9. 最后实现 `/agent-live customize`、Draft、预览、保存和回滚。
-
-迁移完成前，现有配置手册仍描述当前可运行格式；本文件描述 Creator 所依赖的目标内容架构。
+上述迁移已经完成：组件唯一 ID、NPC Template、Activity Recipe、Zone、Placement Slot、统一 Validator、Office Spec 编译、Official Office 重建、Draft 预览、撤销、保存和回滚均已进入主线。新增组件时应扩展 Library 与对应 Renderer/Runtime 能力；Creator 不会生成未登记组件或任意坐标。

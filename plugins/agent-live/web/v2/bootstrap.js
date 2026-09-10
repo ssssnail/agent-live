@@ -2,6 +2,7 @@ import { createOfficeRenderer } from "./office-renderer.js";
 import { createSpriteRenderer } from "./sprite-renderer.js";
 import { createEnvironmentRuntime } from "./environment-runtime.js";
 import { loadI18n } from "./i18n.js";
+import { assertManifest, validateRegistry } from "./content-validator.js";
 
 /**
  * Config-driven boot path for the preserved Demo.
@@ -14,6 +15,17 @@ import { loadI18n } from "./i18n.js";
 const CONTENT_ROOT = "/v2/content";
 const DEFAULT_PRESET = "tech-open-office";
 const PRESET_STORAGE_KEY = "agent-live:selected-preset";
+let officeApiAvailable;
+
+async function hasOfficeApi() {
+	if (officeApiAvailable !== undefined) return officeApiAvailable;
+	try {
+		officeApiAvailable = (await fetch("/api/offices", { cache: "no-store" })).ok;
+	} catch {
+		officeApiAvailable = false;
+	}
+	return officeApiAvailable;
+}
 
 function savedPreset() {
 	try {
@@ -65,6 +77,39 @@ async function loadPreset(presetId, limits) {
 	return Object.freeze(registry);
 }
 
+async function loadOffice(officeId, limits) {
+	const params = new URLSearchParams();
+	if (officeId) params.set("id", officeId);
+	const response = await fetch(`/api/office-content?${params}`, { cache: "no-store" });
+	if (!response.ok) {
+		const body = await response.json().catch(() => ({}));
+		throw new Error(body.error ?? `Unable to load office ${officeId}`);
+	}
+	const registry = await response.json();
+	applySceneLimits(registry, limits);
+	validateRegistry(registry);
+	return Object.freeze(registry);
+}
+
+async function loadOfficialOffice(presetId, limits) {
+	const apiAvailable = await hasOfficeApi();
+	return apiAvailable ? loadOffice(`builtin/${presetId}`, limits) : loadPreset(presetId, limits);
+}
+
+function installContentReload(query) {
+	const officeId = query.get("office");
+	const events = new EventSource("/api/content-events");
+	events.onmessage = (event) => {
+		const change = JSON.parse(event.data);
+		if (change.type !== "office" || !change.officeId) return;
+		if (officeId === change.officeId) return location.reload();
+		const next = new URL(location.href);
+		next.searchParams.set("office", change.officeId);
+		next.searchParams.delete("preset");
+		location.replace(next);
+	};
+}
+
 function applySceneLimits(content, limits) {
 	const trim = (owner, key, max, label) => {
 		const list = owner?.[key];
@@ -77,84 +122,6 @@ function applySceneLimits(content, limits) {
 	trim(content.lifeActivities, "entries", limits.activities, "life activities");
 }
 
-function assertManifest(value, kind) {
-	if (!value || value.schemaVersion !== 1 || value.kind !== kind || !value.id || !value.version) {
-		throw new Error(`无效的 ${kind} 内容清单`);
-	}
-}
-
-function validClock(value) {
-	if (typeof value !== "string" || !/^\d{2}:\d{2}$/.test(value)) return false;
-	const [hour, minute] = value.split(":").map(Number);
-	return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
-}
-
-function assertShift(shift, label) {
-	if (!shift || !validClock(shift.start) || !validClock(shift.end)) {
-		throw new Error(`${label} 必须提供有效的 HH:MM 起止时间`);
-	}
-}
-
-function validateRegistry(content) {
-	for (const [key, value] of Object.entries(content)) {
-		if (key === "preset") continue;
-		assertManifest(value, key === "agentSkin" ? "agent-skin" : key === "lifeActivities" ? "life-activities" : key);
-	}
-	const { layout, props, npcs, lifeActivities } = content;
-	if (layout.contract !== "single-office-v1") throw new Error(`不支持的 Layout 合同：${layout.contract}`);
-	if (layout.canvas?.width !== 384 || layout.canvas?.height !== 216) throw new Error("single-office-v1 必须使用 384×216 逻辑画布");
-	if (!Array.isArray(layout.seats) || layout.seats.length !== 8) throw new Error("Demo Layout 必须提供 8 个座位");
-	if (!Array.isArray(layout.navigation?.lanes) || !layout.navigation.lanes.length) throw new Error("Layout 缺少导航通道");
-
-	const propTypes = new Set(Object.keys(props.types ?? {}));
-	const propInstances = new Set();
-	for (const instance of layout.propInstances ?? []) {
-		if (!propTypes.has(instance.type)) throw new Error(`未知 Prop Type：${instance.type}`);
-		if (!instance.id || propInstances.has(instance.id)) throw new Error(`重复或无效的 Prop 实例：${instance.id ?? "—"}`);
-		propInstances.add(instance.id);
-	}
-	const required = ["research", "create", "compute", "plan", "communicate", "collaborate"];
-	for (const capability of required) {
-		if (!layout.stations?.[capability]) throw new Error(`Layout 缺少工作能力：${capability}`);
-	}
-	for (const npc of npcs.entries ?? []) {
-		if (!npc.id || !npc.role || !layout.targets?.[npc.spawn]) throw new Error(`无效的 NPC：${npc.id ?? "—"}`);
-		if (npc.shift) assertShift(npc.shift, `NPC ${npc.id} 的 shift`);
-	}
-	for (const activity of lifeActivities.entries ?? []) {
-		if (!activity.id || !["agent", "npc"].includes(activity.participant?.kind) || !activity.steps?.length) {
-			throw new Error(`无效的 Life Activity：${activity.id ?? "—"}`);
-		}
-		if (activity.participant?.minAgents != null && (!Number.isInteger(activity.participant.minAgents) || activity.participant.minAgents < 2)) {
-			throw new Error(`${activity.id} 的 minAgents 必须是至少 2 的整数`);
-		}
-		for (const requiredProp of activity.requires ?? []) {
-			if (!propInstances.has(requiredProp)) throw new Error(`${activity.id} 缺少 Prop：${requiredProp}`);
-		}
-		for (const step of activity.steps) {
-			if (!layout.targets?.[step.target]) throw new Error(`${activity.id} 缺少 Target：${step.target}`);
-			for (const target of step.targets ?? []) {
-				if (!layout.targets?.[target]) throw new Error(`${activity.id} 缺少 Group Target：${target}`);
-			}
-		}
-	}
-	const environment = content.environment;
-	if (!["local", "fixed"].includes(environment.clock?.mode)) throw new Error("Environment 的 clock.mode 必须是 local 或 fixed");
-	if (environment.clock.mode === "fixed" && !validClock(environment.clock.fixedTime)) throw new Error("Environment 的 fixedTime 无效");
-	if (!Array.isArray(environment.clock?.phases) || !environment.clock.phases.length) throw new Error("Environment 缺少 day phases");
-	for (const phase of environment.clock.phases) {
-		if (!phase.id || !validClock(phase.start)) throw new Error("Environment 包含无效的 day phase");
-	}
-	if (!Array.isArray(environment.weather?.allowedConditions) || !environment.weather.allowedConditions.length) throw new Error("Environment 缺少天气类型");
-	const allowedWeather = new Set(environment.weather.allowedConditions);
-	for (const condition of [environment.weather.condition, environment.weather.fallback]) {
-		if (condition != null && !allowedWeather.has(condition)) throw new Error(`Environment 的天气 ${condition} 不在 allowedConditions 中`);
-	}
-	assertShift(environment.npcSchedule?.defaultShift, "Environment 的 NPC 默认班次");
-	for (const [role, shift] of Object.entries(environment.npcSchedule?.roleOverrides ?? {})) {
-		assertShift(shift, `Environment 的 ${role} 班次`);
-	}
-}
 
 function applyStyle(style, atmosphere) {
 	const root = document.documentElement;
@@ -194,17 +161,35 @@ async function installPresetPicker(selectedId) {
 		throw new Error("无效的 Preset Catalog");
 	}
 	const select = document.getElementById("preset");
-	for (const item of catalog.presets.filter((entry) => entry.visibility !== "internal" || entry.id === selectedId)) {
+	let items = catalog.presets.filter((entry) => entry.visibility !== "internal" || entry.id === selectedId).map((entry) => ({ ...entry, value: `builtin/${entry.id}` }));
+	try {
+		if (!await hasOfficeApi()) throw new Error("office API unavailable");
+		const response = await fetch("/api/offices", { cache: "no-store" });
+		if (response.ok) {
+			const offices = await response.json();
+			for (const office of offices.filter((entry) => entry.origin === "custom")) items.push({ id: office.id, value: office.id, name: office.name });
+		}
+	} catch {
+		// Static preview servers do not expose local Custom Offices.
+	}
+	for (const item of items) {
 		const option = document.createElement("option");
-		option.value = item.id;
+		option.value = item.value;
 		option.textContent = window.AgentLiveI18n?.text(item.name) ?? item.name;
-		option.selected = item.id === selectedId;
+		option.selected = item.value === selectedId;
 		select.appendChild(option);
 	}
 	select.addEventListener("change", () => {
-		rememberPreset(select.value);
 		const query = new URLSearchParams(location.search);
-		query.set("preset", select.value);
+		if (select.value.startsWith("local/")) {
+			query.set("office", select.value);
+			query.delete("preset");
+		} else {
+			const preset = select.value.replace(/^builtin\//, "");
+			rememberPreset(preset);
+			query.set("preset", preset);
+			query.delete("office");
+		}
 		location.search = query.toString();
 	});
 }
@@ -244,21 +229,31 @@ try {
 	const devControls = document.getElementById("devControls");
 	devControls.hidden = query.get("dev") !== "1" && query.get("demo") !== "1";
 	const requestedPreset = query.get("preset");
+	const requestedOffice = query.get("office");
 	const storedPreset = savedPreset();
 	let presetId = requestedPreset ?? storedPreset ?? DEFAULT_PRESET;
 	let content;
-	try {
-		content = await loadPreset(presetId, window.SceneLimits);
-	} catch (error) {
-		if (requestedPreset || !storedPreset || presetId === DEFAULT_PRESET) throw error;
-		forgetPreset();
-		presetId = DEFAULT_PRESET;
-		content = await loadPreset(presetId, window.SceneLimits);
+	let selectedId;
+	if (requestedOffice) {
+		if (!await hasOfficeApi()) throw new Error("Custom Offices require the Agent Live local runtime");
+		content = await loadOffice(requestedOffice, window.SceneLimits);
+		selectedId = requestedOffice;
+	} else {
+		try {
+			content = await loadOfficialOffice(presetId, window.SceneLimits);
+		} catch (error) {
+			if (requestedPreset || !storedPreset || presetId === DEFAULT_PRESET) throw error;
+			forgetPreset();
+			presetId = DEFAULT_PRESET;
+			content = await loadOfficialOffice(presetId, window.SceneLimits);
+		}
+		rememberPreset(presetId);
+		selectedId = `builtin/${presetId}`;
 	}
-	rememberPreset(presetId);
 	window.OfficeContent = content;
 	applyStyle(content.style, content.atmosphere);
-	await installPresetPicker(presetId);
+	await installPresetPicker(selectedId);
+	installContentReload(query);
 	const environment = installEnvironmentAdapter(content, query);
 	installOfficeAdapter(content, environment);
 	installSpriteAdapter(content);

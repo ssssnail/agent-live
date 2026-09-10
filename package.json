@@ -1,42 +1,83 @@
 {
 	"name": "agent-live",
-	"version": "0.2.7",
+	"version": "0.3.0",
 	"type": "module",
 	"description": "Give coding agents a live pixel office",
-	"keywords": ["pi-package", "pi-extension", "codex-plugin", "agent-visualization", "pixel-office"],
+	"keywords": ["coding-agent", "agent-adapter", "codex-plugin", "pi-extension", "agent-visualization", "pixel-office"],
 	"author": "ssssnail",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/ssssnail/agent-office.git"
+		"url": "git+https://github.com/ssssnail/agent-live.git"
 	},
-	"homepage": "https://github.com/ssssnail/agent-office#readme",
+	"homepage": "https://github.com/ssssnail/agent-live#readme",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
 	"bugs": {
-		"url": "https://github.com/ssssnail/agent-office/issues"
+		"url": "https://github.com/ssssnail/agent-live/issues"
 	},
-	"files": ["index.ts", "plugins/agent-live", "docs", "README.md", "LICENSE"],
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./adapter-sdk": {
+			"types": "./dist/adapter-sdk/index.d.ts",
+			"import": "./dist/adapter-sdk/index.js"
+		},
+		"./pi": "./pi.ts"
+	},
+	"files": ["dist", "pi.ts", "plugins/agent-live", "!plugins/agent-live/dsh/node_modules", "skills", "docs", "README.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "LICENSE"],
 	"engines": {
-		"node": ">=20"
+		"node": ">=22"
 	},
 	"scripts": {
+		"test": "npm run check",
+		"build": "node scripts/build.mjs",
+		"typecheck": "tsc -p tsconfig.check.json",
 		"preview": "node plugins/agent-live/scripts/preview.ts",
+		"validate:components": "node plugins/agent-live/scripts/validate-component-library.ts",
+		"validate:activity-implementations": "node plugins/agent-live/scripts/validate-activity-implementations.ts",
+		"validate:architecture": "node plugins/agent-live/scripts/validate-architecture.ts",
+		"validate:adapter-sdk": "node plugins/agent-live/scripts/validate-adapter-sdk.ts",
+		"validate:layouts": "node plugins/agent-live/scripts/validate-layouts.ts && node plugins/agent-live/scripts/validate-office-engine.ts",
+		"validate:office-schema": "node plugins/agent-live/scripts/validate-office-schema.ts",
+		"validate:office-compiler": "node plugins/agent-live/scripts/validate-office-compiler.ts",
+		"validate:official-offices": "node plugins/agent-live/scripts/validate-official-offices.ts",
+		"validate:office-registry": "node plugins/agent-live/scripts/validate-office-registry.ts",
+		"validate:creator-service": "node plugins/agent-live/scripts/validate-creator-service.ts",
+		"validate:creator-mode": "node plugins/agent-live/scripts/validate-creator-mode.ts",
+		"validate:creator-commands": "node plugins/agent-live/scripts/validate-creator-commands.ts",
+		"validate:runtime-content": "node plugins/agent-live/scripts/validate-runtime-content.ts",
+		"validate:resource-guard": "node plugins/agent-live/scripts/validate-resource-guard.ts",
+		"validate:custom-office-runtime": "node plugins/agent-live/scripts/validate-custom-office-runtime.ts",
 		"validate:content": "node plugins/agent-live/scripts/validate-content.ts",
 		"validate:environment": "node plugins/agent-live/scripts/validate-environment.ts",
 		"validate:history": "node plugins/agent-live/scripts/validate-history.ts",
 		"validate:locales": "node plugins/agent-live/scripts/validate-locales.ts",
 		"validate:agents": "node plugins/agent-live/scripts/validate-agent-registry.ts",
 		"validate:codex-adapter": "node plugins/agent-live/scripts/validate-codex-adapter.ts",
+		"validate:dsh-adapter": "node plugins/agent-live/scripts/validate-dsh-adapter.ts",
+		"validate:office-engine": "node plugins/agent-live/scripts/validate-office-engine.ts",
+		"validate:pi-creator": "node plugins/agent-live/scripts/validate-pi-creator.ts",
+		"validate:pi-lifecycle": "node plugins/agent-live/scripts/validate-pi-lifecycle.ts",
 		"validate:server-url": "node plugins/agent-live/scripts/validate-server-url.ts",
 		"validate:codex-client": "node plugins/agent-live/scripts/validate-codex-client.ts",
 		"validate:codex-session": "node plugins/agent-live/scripts/validate-codex-session.ts",
+		"validate:package": "node plugins/agent-live/scripts/validate-package.ts",
 		"codex": "node plugins/agent-live/scripts/codex-client.ts",
-		"check": "npm run validate:content && npm run validate:environment && npm run validate:history && npm run validate:locales && npm run validate:agents && npm run validate:codex-adapter && npm run validate:server-url && node --check plugins/agent-live/src/core/protocol.ts && node --check plugins/agent-live/src/core/limits.ts && node --check plugins/agent-live/src/core/agents.ts && node --check plugins/agent-live/src/core/state.ts && node --check plugins/agent-live/src/core/mapping.ts && node --check plugins/agent-live/src/runtime/server.ts && node --check plugins/agent-live/src/runtime/agent-live-runtime.ts && node --input-type=module -e \"await import('./plugins/agent-live/src/runtime/agent-live-runtime.ts')\" && node --check plugins/agent-live/src/adapters/pi/adapter.ts && node --check plugins/agent-live/src/adapters/codex/app-server-client.ts && node --check plugins/agent-live/src/adapters/codex/adapter.ts && node --check plugins/agent-live/scripts/codex-client.ts && node --check plugins/agent-live/web/app.js && node --check plugins/agent-live/web/product.js && node --check plugins/agent-live/web/v2/bootstrap.js && node --check plugins/agent-live/web/v2/codex-controls.js && node --check plugins/agent-live/web/v2/i18n.js && node --check plugins/agent-live/web/v2/environment-runtime.js && node --check plugins/agent-live/web/v2/office-renderer.js && node --check plugins/agent-live/web/v2/sprite-renderer.js",
-		"prepack": "npm run check"
+		"test:integration:codex": "npm run validate:codex-client && npm run validate:codex-session",
+		"check": "npm run validate:architecture && npm run validate:resource-guard && npm run validate:components && npm run validate:activity-implementations && npm run validate:layouts && npm run validate:office-schema && npm run validate:office-compiler && npm run validate:official-offices && npm run validate:office-registry && npm run validate:creator-service && npm run validate:creator-mode && npm run validate:creator-commands && npm run validate:runtime-content && npm run validate:custom-office-runtime && npm run validate:content && npm run validate:environment && npm run validate:history && npm run validate:locales && npm run validate:agents && npm run validate:codex-adapter && npm run validate:dsh-adapter && npm run validate:pi-creator && npm run validate:pi-lifecycle && npm run validate:server-url && node --check plugins/agent-live/src/core/protocol.ts && node --check plugins/agent-live/src/core/limits.ts && node --check plugins/agent-live/src/core/agents.ts && node --check plugins/agent-live/src/core/state.ts && node --check plugins/agent-live/src/core/mapping.ts && node --check plugins/agent-live/src/runtime/content-service.ts && node --check plugins/agent-live/src/runtime/server.ts && node --check plugins/agent-live/src/runtime/agent-live-runtime.ts && node --check plugins/agent-live/src/runtime/resource-guard.ts && node --input-type=module -e \"await import('./plugins/agent-live/src/runtime/agent-live-runtime.ts')\" && node --check plugins/agent-live/src/adapters/pi/adapter.ts && node --check plugins/agent-live/src/adapters/codex/app-server-client.ts && node --check plugins/agent-live/src/adapters/codex/adapter.ts && node --check plugins/agent-live/src/adapters/codex/launcher.ts && node --check plugins/agent-live/src/adapters/dsh/adapter.ts && node --check plugins/agent-live/scripts/codex-client.ts && node --check plugins/agent-live/scripts/creator-command.ts && node --check plugins/agent-live/web/app.js && node --check plugins/agent-live/web/product.js && node --check plugins/agent-live/web/v2/bootstrap.js && node --check plugins/agent-live/web/v2/codex-controls.js && node --check plugins/agent-live/web/v2/i18n.js && node --check plugins/agent-live/web/v2/environment-runtime.js && node --check plugins/agent-live/web/v2/office-renderer.js && node --check plugins/agent-live/web/v2/sprite-renderer.js",
+		"check:dsh": "npm ci --ignore-scripts --prefix plugins/agent-live/dsh && npm run check --prefix plugins/agent-live/dsh",
+		"check:ci": "npm run check && npm run typecheck && npm run validate:adapter-sdk && npm run build && npm run check:dsh && npm run validate:package && npm pack --dry-run --ignore-scripts",
+		"prepare": "npm run build",
+		"prepack": "npm run check && npm run build"
 	},
-	"peerDependencies": {
-		"@earendil-works/pi-coding-agent": "*"
+	"devDependencies": {
+		"@types/node": "22.20.2",
+		"typescript": "5.9.3"
 	},
 	"pi": {
-		"extensions": ["./index.ts"]
+		"extensions": ["./pi.ts"]
 	}
 }

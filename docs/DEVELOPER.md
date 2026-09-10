@@ -1,14 +1,18 @@
 # Agent Live 开发者接入指南
 
-> 面向 Preset 作者、宿主 Connector 开发者和本地二次开发者
+> 面向 Preset 作者、宿主 Adapter 开发者和本地二次开发者
+
+接入新的 Coding Agent 时，请先阅读专项指南：[Agent Live Adapter 开发指南](ADAPTER-DEVELOPMENT.md)。本页保留项目的综合开发入口，不重复完整的宿主调查、能力声明、事件映射和验收流程。
 
 普通用户只选择官方 Preset；自然语言创作用户遵守 [自定义能力边界](CUSTOMIZATION.md)。Official Preset 和 Custom Office 最终都从同一套 [基础组件库](COMPONENT-LIBRARY.md) 组装；声明式 Creator 不会自动修改本页涉及的 Runtime 源码。
 
 ## 1. 十分钟跑起来
 
+需要 Node.js 22 或更高版本；项目直接执行 TypeScript 源文件，没有前端构建步骤。
+
 ```bash
-git clone https://github.com/ssssnail/agent-office.git
-cd agent-office
+git clone https://github.com/ssssnail/agent-live.git
+cd agent-live
 npm run check
 npm run preview
 ```
@@ -20,15 +24,16 @@ npm run preview
 | 目标 | 主要入口 | 通常需要修改 |
 | --- | --- | --- |
 | 新增办公室 Preset | `plugins/agent-live/web/v2/content/` | 只改 JSON |
-| 接入新的 Agent 宿主 | `plugins/agent-live/src/adapters/pi/adapter.ts`、`plugins/agent-live/src/core/protocol.ts` | 把宿主事件翻译成 `OfficeEvent` |
+| 接入新的 Agent 宿主 | [Adapter 开发指南](ADAPTER-DEVELOPMENT.md)、`plugins/agent-live/src/adapters/` | 把宿主官方接口提供的事实翻译成 `OfficeEvent` |
 | 调整工具语义 | `plugins/agent-live/src/core/mapping.ts` | 工具名到 `OfficeAction` 的映射 |
 | 新增家具画法 | `plugins/agent-live/web/v2/office-renderer.js` | Renderer + Props 声明 |
 | 新增人物动画 | `plugins/agent-live/web/v2/sprite-renderer.js` | Renderer + Agent Skin 声明 |
 | 注入真实天气/时间 | `OfficeEnvironment` | 不需要修改 Renderer |
+| 扩展自然语言自定义能力 | `plugins/agent-live/src/content/`、`plugins/agent-live/src/creator/` | Schema、Library、Compiler 与受限命令 |
 
-宿主接入与内容制作相互独立：Connector 只报告“谁在做什么”，Preset 决定这件事在当前办公室如何表现。
+宿主接入与内容制作相互独立：Adapter 只报告“谁在做什么”，Preset 决定这件事在当前办公室如何表现。
 
-## 3. 当前内容图与目标架构
+## 3. 当前内容图与统一架构
 
 当前可运行版本中，一个 Preset 组合八类内容：
 
@@ -46,7 +51,7 @@ Preset
 
 完整字段说明见 [Preset 配置手册](PRESET-CONFIG.md)。配置目录内也有一份就近说明：[Content README](../plugins/agent-live/web/v2/content/README.md)。
 
-这仍是按文件打包的过渡形态。Creator 目标架构为：
+当前 Creator 与运行时共用以下内容架构：
 
 ```text
 Component Library
@@ -145,15 +150,25 @@ window.dispatchEvent(new CustomEvent("agent-live:environment", {
 
 ## 7. 接入新的 Agent 宿主
 
-Connector 应把宿主能力归一为稳定的 `OfficeEvent`，不要直接控制人物坐标：
+Adapter 应把宿主能力归一为稳定的 `OfficeEvent`，不要直接控制人物坐标。完整流程和验收门见 [Adapter 开发指南](ADAPTER-DEVELOPMENT.md)：
 
 ```text
-宿主事件 → Connector → OfficeState → SSE → 固定 Runtime → 当前 Preset
+宿主事件 → Adapter → OfficeState → SSE → 固定 Runtime → 当前 Preset
 ```
 
 最低可用事件是 `snapshot`、`agent_state`、`action/action_end` 和 `say`。支持委派时再发送 `agent_join`、`delegate`、`agent_leave`。前端通过 Layout 的 `stations` 决定动作是在工位完成、去服务器，还是采用会议室的坐席交接，不需要宿主了解画面结构。
 
 协议和 Pi 的完整映射见 [技术文档](TECHNICAL.md)。
+
+### Creator 接入
+
+新的宿主不需要实现另一套 Creator。Adapter 只需提供三件事：
+
+1. 把 Creator Tool/Skill 暴露给宿主模型，并让模型只调用 `CreatorCommandRouter` 的受限操作。
+2. 在宿主任务内保存公共 `CreatorModeState`，每轮把 `creatorModeContext()` 注入模型上下文。
+3. 在保存、放弃、宿主任务结束和 Runtime 退出时清理状态。
+
+Pi 使用内存中的 `CreatorModeController` 和 `before_agent_start`；Codex 使用按任务隔离的本地状态文件与 `UserPromptSubmit`/`SessionEnd` Hook。Adapter 不解析或修改 Office Spec，也不能绕过 Compiler 与 Validator。
 
 ## 8. 提交前检查
 
