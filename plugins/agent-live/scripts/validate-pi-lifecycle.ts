@@ -1,8 +1,13 @@
 import assert from "node:assert/strict";
 import http from "node:http";
+import { mkdtemp, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 
 process.env.AGENT_LIVE_PI_PORT = "0";
 process.env.AGENT_LIVE_VIEWER_CLOSE_GRACE_MS = "10";
+const root = await mkdtemp(path.join(os.tmpdir(), "agent-live-pi-lifecycle-"));
+process.env.AGENT_LIVE_DATA_DIR = path.join(root, "data");
 const { default: installPiAdapter } = await import("../src/adapters/pi/adapter.ts");
 
 const handlers = new Map<string, (event: unknown, ctx: any) => Promise<unknown>>();
@@ -58,4 +63,5 @@ try {
 	console.log("pi lifecycle: last Viewer closes the instance and /agent-live can restart it");
 } finally {
 	await handlers.get("session_shutdown")?.({}, ctx);
+	await rm(root, { recursive: true, force: true });
 }

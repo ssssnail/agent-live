@@ -1,6 +1,10 @@
 # Agent Live
 
+[![CI](https://github.com/ssssnail/agent-live/actions/workflows/ci.yml/badge.svg)](https://github.com/ssssnail/agent-live/actions/workflows/ci.yml)
+
 > Give coding agents a live pixel office. Agent Live is a local-first visualization engine with official integrations for Pi, Codex and DeepSeek Harness. English contributor documentation starts with the [Adapter SDK](docs/ADAPTER-SDK.md) and [contribution guide](CONTRIBUTING.md).
+
+> **Development status:** the source is currently preparing the unreleased `0.3.0` release. GitHub installation links work only for users who can access this repository; npm packages have not been published yet.
 
 把 coding agent 的思考过程和协作过程，实时渲染成旁边一间像素办公室。
 
@@ -22,6 +26,16 @@ Coding Agent 宿主 ──> Adapter ──OfficeEvent──> Agent Live Engine �
 | Pi | 进程内 Extension + 本地 Viewer | 用户继续在 Pi 中工作 | 会话级 `custom / exit` |
 | Codex | App Server 轻量客户端 + 本地 Viewer | 在 Agent Live 页面提交 Codex 任务 | Skill 调用当轮自定义 |
 | DeepSeek Harness | 原生 `conversation.view` Plugin | DSH 当前会话中的 Agent Live View | 会话级 `custom / exit` |
+
+### 官方宿主支持状态
+
+| 宿主 | 当前实现 | 已自动验证 | 仍需真实宿主验证 |
+| --- | --- | --- | --- |
+| Pi | Observer Extension + Local Viewer | 事件映射、Creator、Viewer 生命周期、重启与清理 | 各 Pi 发布版本的 Extension API 兼容性与真实流式体验 |
+| Codex | App Server Observer/Controller + Local Viewer | Agent 生命周期、工具动作、控制请求、会话结束与资源清理 | Codex App Server 版本差异、审批和模型可用性 |
+| DeepSeek Harness | Client Observer + `conversation.view` | Snapshot 映射、工具调用、Subagent 生命周期、内容与构建产物 | DSH UI Slot、真实会话恢复和发布版安装流程 |
+
+“已自动验证”表示仓库合同测试覆盖；“仍需真实宿主验证”表示不能仅凭 mock 或静态类型保证，Adapter 贡献者应在 PR 中记录实际测试的宿主版本。
 
 下面选择自己的宿主安装；三个 Adapter 共用同一套 Engine、OfficeEvent、内容和 Creator 校验。
 
