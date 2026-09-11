@@ -17,6 +17,27 @@ export interface ContentIssue {
     path: string;
     message: string;
 }
+/**
+ * What an activity needs to be staged: a named prop instance, or a capability
+ * any matching prop type can provide. The named form is the legacy syntax;
+ * capability requirements let the same implementation be reused across layouts
+ * and stop a prop swap from satisfying an activity by id alone.
+ */
+export type ActivityRequirement = string | {
+    prop: string;
+} | {
+    capability: string;
+};
+export interface ResolvedRequirements {
+    /** Resolved instance id per requirement, aligned by index; null when unresolved. */
+    bindings: (string | null)[];
+    issues: ContentIssue[];
+}
+/**
+ * Resolves activity requirements against the props actually present, so both
+ * syntaxes stay valid while content migrates.
+ */
+export declare function resolveActivityRequirements(requires: readonly unknown[] | undefined, instances: Iterable<readonly [string, string]>, capabilitiesOf: (type: string) => readonly string[], activity: string): ResolvedRequirements;
 export declare function assertManifest(value: unknown, kind: string): void;
 /**
  * Layout structure rules. `propTypeNames` are the type names a layout may

@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { OfficeSpec } from "./schema.ts";
+import { resolveActivityRequirements } from "./graph-validator.ts";
 import type { ComponentLibraryView } from "./validator.ts";
 
 const readJson = async (file: string) => JSON.parse(await readFile(file, "utf8"));
@@ -36,10 +37,15 @@ export async function resolveRuntimeContent(spec: OfficeSpec, contentRoot: strin
 		schemaVersion: 1, kind: "npcs", id: `local/${short(spec.id)}-npcs`, name: `${spec.name} NPCs`, version: "1.0.0", contract: "single-office-v1",
 		entries: spec.npcs.map((npc) => ({ ...structuredClone(npc), role: library.npcTemplates.get(npc.template!)?.role })),
 	};
+	const capabilitiesOf = (type: string): readonly string[] => propTypes[type]?.capabilities ?? [];
+	const activityInstances = (layout.propInstances ?? []).map((entry: any): [string, string] => [entry.id, entry.type]);
 	const entries = spec.activities.map((id) => {
 		const implementation = library.activityImplementations.get(`${spec.layout}|${id}`);
 		if (!implementation) throw new Error(`activity ${id} has no implementation compatible with ${spec.layout}`);
-		return structuredClone(implementation.definition);
+		const definition = structuredClone(implementation.definition);
+		// Record which instance satisfies each requirement, so the compiled result
+		// is inspectable instead of leaving the decision to the renderer.
+		return { ...definition, bindings: resolveActivityRequirements(definition.requires, activityInstances, capabilitiesOf, id).bindings };
 	});
 	const lifeActivities = { schemaVersion: 1, kind: "life-activities", id: `local/${short(spec.id)}-activities`, name: `${spec.name} activities`, version: "1.0.0", contract: "single-office-v1", entries };
 	const agentProfileTemplate = library.agentProfileTemplates.get(spec.agentProfile?.template ?? "builtin/host-agent");

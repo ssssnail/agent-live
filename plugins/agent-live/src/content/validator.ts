@@ -8,7 +8,7 @@ import {
 	validateOfficeSpecShape,
 } from "./schema.ts";
 
-import { layoutIssues } from "./graph-validator.ts";
+import { layoutIssues, resolveActivityRequirements } from "./graph-validator.ts";
 
 export interface ComponentLibraryView {
 	descriptors: {
@@ -128,8 +128,14 @@ export function validateOfficeSpec(spec: unknown, library: ComponentLibraryView)
 	if (value.npcs.length > SCENE_LIMITS.npcs) add(issues, "too-many-npcs", "$.npcs", `maximum ${SCENE_LIMITS.npcs} NPCs`);
 
 	const activities = new Set<string>();
-	const runtimePropIds = new Set((layout.propInstances ?? []).map((entry: any) => entry.id));
-	for (const placement of value.placements) runtimePropIds.add(placement.id);
+	// Instance table for activity requirements: layout built-ins plus this office's placements.
+	const propInstances = new Map<string, string>();
+	for (const instance of layout.propInstances ?? []) propInstances.set(instance.id, instance.type);
+	for (const placement of value.placements) propInstances.set(placement.id, placement.component.replace(/^(builtin|local)\//, ""));
+	const capabilitiesOf = (type: string): readonly string[] => {
+		const prop = library.props.get(`builtin/${type}`) ?? library.props.get(`local/${type}`) ?? library.props.get(type);
+		return prop?.capabilities ?? [];
+	};
 	const npcRoles = new Set(value.npcs.map((npc) => library.npcTemplates.get(npc.template ?? "")?.role).filter(Boolean));
 	for (let index = 0; index < value.activities.length; index += 1) {
 		const activityId = value.activities[index];
@@ -139,9 +145,13 @@ export function validateOfficeSpec(spec: unknown, library: ComponentLibraryView)
 		const recipe = library.activityRecipes.get(activityId);
 		if (!recipe) add(issues, "unknown-activity", path, `unknown activity ${activityId}`);
 		else if (!library.activityImplementations.has(`${value.layout}|${activityId}`)) add(issues, "unsupported-activity-layout", path, `${activityId} has no implementation for ${value.layout}`);
-		else if ((library.activityImplementations.get(`${value.layout}|${activityId}`)?.definition?.requires ?? []).some((id: string) => !runtimePropIds.has(id))) add(issues, "missing-activity-prop", path, `${activityId} requires a prop that is not present`);
-		else if (recipe.participantKinds?.includes("npc") && recipe.participantKinds.length === 1 && recipe.participantRoles?.length && !recipe.participantRoles.some((role: string) => npcRoles.has(role))) {
-			add(issues, "missing-activity-participant", path, `${activityId} has no compatible NPC in this office`);
+		else {
+			const implementation = library.activityImplementations.get(`${value.layout}|${activityId}`);
+			const resolved = resolveActivityRequirements(implementation?.definition?.requires, propInstances, capabilitiesOf, activityId);
+			for (const issue of resolved.issues) add(issues, issue.code, path, issue.message);
+			if (!resolved.issues.length && recipe.participantKinds?.includes("npc") && recipe.participantKinds.length === 1 && recipe.participantRoles?.length && !recipe.participantRoles.some((role: string) => npcRoles.has(role))) {
+				add(issues, "missing-activity-participant", path, `${activityId} has no compatible NPC in this office`);
+			}
 		}
 	}
 	if (value.activities.length > SCENE_LIMITS.activities) add(issues, "too-many-activities", "$.activities", `maximum ${SCENE_LIMITS.activities} activities`);

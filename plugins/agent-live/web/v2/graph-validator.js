@@ -12,6 +12,45 @@
  */
 /** Capabilities every layout must expose as a walkable work station. */
 export const WORK_CAPABILITIES = ["research", "create", "compute", "plan", "communicate", "collaborate"];
+function namedInstance(requirement) {
+    if (typeof requirement === "string")
+        return requirement;
+    if (requirement && typeof requirement.prop === "string")
+        return requirement.prop;
+    return undefined;
+}
+/**
+ * Resolves activity requirements against the props actually present, so both
+ * syntaxes stay valid while content migrates.
+ */
+export function resolveActivityRequirements(requires, instances, capabilitiesOf, activity) {
+    const table = [...instances];
+    const bindings = [];
+    const issues = [];
+    for (const requirement of requires ?? []) {
+        const named = namedInstance(requirement);
+        if (named !== undefined) {
+            const present = table.some(([instanceId]) => instanceId === named);
+            bindings.push(present ? named : null);
+            if (!present)
+                issues.push({ code: "missing-activity-prop", path: "$", message: `${activity} 缺少 Prop：${named}` });
+            continue;
+        }
+        const capability = requirement && typeof requirement.capability === "string"
+            ? requirement.capability
+            : undefined;
+        if (!capability) {
+            bindings.push(null);
+            issues.push({ code: "invalid-activity-requirement", path: "$", message: `${activity} 的依赖必须是具名道具或能力需求` });
+            continue;
+        }
+        const match = table.find(([, type]) => capabilitiesOf(type).includes(capability));
+        bindings.push(match ? match[0] : null);
+        if (!match)
+            issues.push({ code: "missing-activity-capability", path: "$", message: `${activity} 需要 ${capability} 能力，当前办公室没有提供该能力的道具` });
+    }
+    return { bindings, issues };
+}
 export function assertManifest(value, kind) {
     const manifest = value;
     if (!manifest || manifest.schemaVersion !== 1 || manifest.kind !== kind || !manifest.id || !manifest.version) {
@@ -88,7 +127,8 @@ export function graphIssues(content) {
     }
     const layout = content?.layout;
     issues.push(...layoutIssues(layout, Object.keys(content?.props?.types ?? {})));
-    const propInstances = new Set((layout?.propInstances ?? []).map((instance) => instance?.id));
+    const instances = (layout?.propInstances ?? []).map((instance) => [instance?.id, instance?.type]);
+    const capabilitiesOf = (type) => content?.props?.types?.[type]?.capabilities ?? [];
     ;
     (content?.npcs?.entries ?? []).forEach((npc, index) => {
         const path = `$.npcs.entries[${index}]`;
@@ -108,10 +148,8 @@ export function graphIssues(content) {
         if (activity.participant?.minAgents != null && (!Number.isInteger(activity.participant.minAgents) || activity.participant.minAgents < 2)) {
             issues.push({ code: "invalid-activity-participant", path, message: `${activity.id} 的 minAgents 必须是至少 2 的整数` });
         }
-        for (const requiredProp of activity.requires ?? []) {
-            if (!propInstances.has(requiredProp))
-                issues.push({ code: "missing-activity-prop", path, message: `${activity.id} 缺少 Prop：${requiredProp}` });
-        }
+        const resolved = resolveActivityRequirements(activity.requires, instances, capabilitiesOf, activity.id);
+        issues.push(...resolved.issues.map((issue) => ({ ...issue, path })));
         for (const step of activity.steps ?? []) {
             if (!layout?.targets?.[step?.target])
                 issues.push({ code: "missing-activity-target", path, message: `${activity.id} 缺少 Target：${step?.target}` });

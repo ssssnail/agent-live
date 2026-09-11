@@ -20,6 +20,62 @@ export interface ContentIssue {
 	message: string;
 }
 
+/**
+ * What an activity needs to be staged: a named prop instance, or a capability
+ * any matching prop type can provide. The named form is the legacy syntax;
+ * capability requirements let the same implementation be reused across layouts
+ * and stop a prop swap from satisfying an activity by id alone.
+ */
+export type ActivityRequirement = string | { prop: string } | { capability: string };
+
+export interface ResolvedRequirements {
+	/** Resolved instance id per requirement, aligned by index; null when unresolved. */
+	bindings: (string | null)[];
+	issues: ContentIssue[];
+}
+
+function namedInstance(requirement: unknown): string | undefined {
+	if (typeof requirement === "string") return requirement;
+	if (requirement && typeof (requirement as { prop?: unknown }).prop === "string") return (requirement as { prop: string }).prop;
+	return undefined;
+}
+
+/**
+ * Resolves activity requirements against the props actually present, so both
+ * syntaxes stay valid while content migrates.
+ */
+export function resolveActivityRequirements(
+	requires: readonly unknown[] | undefined,
+	instances: Iterable<readonly [string, string]>,
+	capabilitiesOf: (type: string) => readonly string[],
+	activity: string,
+): ResolvedRequirements {
+	const table = [...instances];
+	const bindings: (string | null)[] = [];
+	const issues: ContentIssue[] = [];
+	for (const requirement of requires ?? []) {
+		const named = namedInstance(requirement);
+		if (named !== undefined) {
+			const present = table.some(([instanceId]) => instanceId === named);
+			bindings.push(present ? named : null);
+			if (!present) issues.push({ code: "missing-activity-prop", path: "$", message: `${activity} 缺少 Prop：${named}` });
+			continue;
+		}
+		const capability = requirement && typeof (requirement as { capability?: unknown }).capability === "string"
+			? (requirement as { capability: string }).capability
+			: undefined;
+		if (!capability) {
+			bindings.push(null);
+			issues.push({ code: "invalid-activity-requirement", path: "$", message: `${activity} 的依赖必须是具名道具或能力需求` });
+			continue;
+		}
+		const match = table.find(([, type]) => capabilitiesOf(type).includes(capability));
+		bindings.push(match ? match[0] : null);
+		if (!match) issues.push({ code: "missing-activity-capability", path: "$", message: `${activity} 需要 ${capability} 能力，当前办公室没有提供该能力的道具` });
+	}
+	return { bindings, issues };
+}
+
 export function assertManifest(value: unknown, kind: string): void {
 	const manifest = value as { schemaVersion?: unknown; kind?: unknown; id?: unknown; version?: unknown } | null | undefined;
 	if (!manifest || manifest.schemaVersion !== 1 || manifest.kind !== kind || !manifest.id || !manifest.version) {
@@ -87,7 +143,8 @@ export function graphIssues(content: any): ContentIssue[] {
 	}
 	const layout = content?.layout;
 	issues.push(...layoutIssues(layout, Object.keys(content?.props?.types ?? {})));
-	const propInstances = new Set<unknown>((layout?.propInstances ?? []).map((instance: any) => instance?.id));
+	const instances = (layout?.propInstances ?? []).map((instance: any): [string, string] => [instance?.id, instance?.type]);
+	const capabilitiesOf = (type: string): readonly string[] => content?.props?.types?.[type]?.capabilities ?? [];
 	;(content?.npcs?.entries ?? []).forEach((npc: any, index: number) => {
 		const path = `$.npcs.entries[${index}]`;
 		if (!npc?.id || !npc.role || !layout?.targets?.[npc.spawn]) issues.push({ code: "invalid-npc", path, message: `无效的 NPC：${npc?.id ?? "—"}` });
@@ -103,9 +160,8 @@ export function graphIssues(content: any): ContentIssue[] {
 		if (activity.participant?.minAgents != null && (!Number.isInteger(activity.participant.minAgents) || activity.participant.minAgents < 2)) {
 			issues.push({ code: "invalid-activity-participant", path, message: `${activity.id} 的 minAgents 必须是至少 2 的整数` });
 		}
-		for (const requiredProp of activity.requires ?? []) {
-			if (!propInstances.has(requiredProp)) issues.push({ code: "missing-activity-prop", path, message: `${activity.id} 缺少 Prop：${requiredProp}` });
-		}
+		const resolved = resolveActivityRequirements(activity.requires, instances, capabilitiesOf, activity.id);
+		issues.push(...resolved.issues.map((issue) => ({ ...issue, path })));
 		for (const step of activity.steps ?? []) {
 			if (!layout?.targets?.[step?.target]) issues.push({ code: "missing-activity-target", path, message: `${activity.id} 缺少 Target：${step?.target}` });
 			for (const target of step?.targets ?? []) {

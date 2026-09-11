@@ -58,4 +58,33 @@ assert.deepEqual(graphIssues(content), [], "a renderable graph must report no is
 const brokenGraph = structuredClone(content);
 brokenGraph.layout.navigation.lanes = [];
 assert.ok(graphIssues(brokenGraph).length > 0, "an unrenderable graph must be rejected before it is served");
+
+// Every requirement produces a binding, so the compiled decision is inspectable.
+for (const entry of content.lifeActivities.entries as any[]) {
+	assert.equal(entry.bindings?.length, (entry.requires ?? []).length, `${entry.id} must expose one binding per requirement`);
+}
+
+// Capability requirements resolve against the props actually present.
+const CAPABILITY_KEY = "builtin/tech-open-office|builtin/boss-water-break";
+const capabilityLibrary = { ...library, activityImplementations: new Map(library.activityImplementations) };
+const waterImplementation = library.activityImplementations.get(CAPABILITY_KEY);
+capabilityLibrary.activityImplementations.set(CAPABILITY_KEY, {
+	...waterImplementation,
+	definition: { ...waterImplementation.definition, requires: [{ capability: "water" }] },
+});
+assert.ok(validateOfficeSpec(base, capabilityLibrary).valid, "a capability this office provides must satisfy the requirement");
+const withoutWater = compileOfficePatch(base, {
+	schemaVersion: 1, kind: "office-patch", base: base.id,
+	placements: { upsert: [{ id: "water-main", component: "builtin/vending-machine", slot: "lounge-service-1" }] },
+}, capabilityLibrary);
+assert.equal(withoutWater.draft, undefined, "swapping the water source must stop satisfying a water requirement");
+assert.ok(withoutWater.errors.some((issue) => issue.code === "missing-activity-capability"), "the failure must name the missing capability");
+
+// The shared module enforces the same rule where the graph is consumed.
+const capabilityGraph = structuredClone(content);
+capabilityGraph.lifeActivities.entries[0].requires = [{ capability: "water" }];
+assert.deepEqual(graphIssues(capabilityGraph), [], "the graph must resolve a capability its props provide");
+capabilityGraph.lifeActivities.entries[0].requires = [{ capability: "teleport" }];
+assert.ok(graphIssues(capabilityGraph).some((issue) => issue.code === "missing-activity-capability"), "the graph must reject an unsatisfiable capability");
+
 console.log("runtime content: three official offices and one customized Office Spec compiled into renderable graphs");

@@ -326,7 +326,9 @@ NPC 多步骤巡检示例：
 - `participant.kind`：`agent` 或 `npc`。
 - `states`：允许参与的真实 Agent 状态；生活行为建议只使用 `idle`。
 - `roles`：允许参与的 NPC role。
-- `requires`：Layout 中必须存在的 Prop Instance ID。
+- `requires`：活动需要的道具依赖，两种写法都合法。
+  - 具名实例：`"water-main"` 或 `{ "prop": "water-main" }` —— 绑定到 Layout 或 Office Spec 中存在的那个 Prop Instance ID，适合门、出口这类确实需要固定位置的东西。
+  - 能力需求：`{ "capability": "water" }` —— 由编译器解析成当前办公室中第一个提供该能力的道具，跨 Layout 复用同一份实现，也让"把水冷机换成没有 water 能力的道具"变成明确的校验失败而不是静默失效。道具能力以 `component-library/props.json` 的 `capabilities` 为准。
 - `onlyWhenSessionIdle`：整个真实会话空闲时才允许开始。
 - `interruptible`：是否允许工作事件打断；Agent Life 必须设置为 `true`。
 - `initialDelayMs` / `cooldownMs`：可以是固定数字，也可以是 `[最小值, 最大值]`。

@@ -254,6 +254,35 @@ function validateOfficeSeedShape(input) {
 
 // ../src/content/graph-validator.ts
 var WORK_CAPABILITIES = ["research", "create", "compute", "plan", "communicate", "collaborate"];
+function namedInstance(requirement) {
+  if (typeof requirement === "string") return requirement;
+  if (requirement && typeof requirement.prop === "string") return requirement.prop;
+  return void 0;
+}
+function resolveActivityRequirements(requires, instances, capabilitiesOf, activity) {
+  const table = [...instances];
+  const bindings = [];
+  const issues = [];
+  for (const requirement of requires ?? []) {
+    const named = namedInstance(requirement);
+    if (named !== void 0) {
+      const present = table.some(([instanceId]) => instanceId === named);
+      bindings.push(present ? named : null);
+      if (!present) issues.push({ code: "missing-activity-prop", path: "$", message: `${activity} \u7F3A\u5C11 Prop\uFF1A${named}` });
+      continue;
+    }
+    const capability = requirement && typeof requirement.capability === "string" ? requirement.capability : void 0;
+    if (!capability) {
+      bindings.push(null);
+      issues.push({ code: "invalid-activity-requirement", path: "$", message: `${activity} \u7684\u4F9D\u8D56\u5FC5\u987B\u662F\u5177\u540D\u9053\u5177\u6216\u80FD\u529B\u9700\u6C42` });
+      continue;
+    }
+    const match = table.find(([, type]) => capabilitiesOf(type).includes(capability));
+    bindings.push(match ? match[0] : null);
+    if (!match) issues.push({ code: "missing-activity-capability", path: "$", message: `${activity} \u9700\u8981 ${capability} \u80FD\u529B\uFF0C\u5F53\u524D\u529E\u516C\u5BA4\u6CA1\u6709\u63D0\u4F9B\u8BE5\u80FD\u529B\u7684\u9053\u5177` });
+  }
+  return { bindings, issues };
+}
 function assertManifest(value, kind) {
   const manifest = value;
   if (!manifest || manifest.schemaVersion !== 1 || manifest.kind !== kind || !manifest.id || !manifest.version) {
@@ -309,7 +338,8 @@ function graphIssues(content) {
   }
   const layout = content?.layout;
   issues.push(...layoutIssues(layout, Object.keys(content?.props?.types ?? {})));
-  const propInstances = new Set((layout?.propInstances ?? []).map((instance) => instance?.id));
+  const instances = (layout?.propInstances ?? []).map((instance) => [instance?.id, instance?.type]);
+  const capabilitiesOf = (type) => content?.props?.types?.[type]?.capabilities ?? [];
   ;
   (content?.npcs?.entries ?? []).forEach((npc, index) => {
     const path5 = `$.npcs.entries[${index}]`;
@@ -327,9 +357,8 @@ function graphIssues(content) {
     if (activity.participant?.minAgents != null && (!Number.isInteger(activity.participant.minAgents) || activity.participant.minAgents < 2)) {
       issues.push({ code: "invalid-activity-participant", path: path5, message: `${activity.id} \u7684 minAgents \u5FC5\u987B\u662F\u81F3\u5C11 2 \u7684\u6574\u6570` });
     }
-    for (const requiredProp of activity.requires ?? []) {
-      if (!propInstances.has(requiredProp)) issues.push({ code: "missing-activity-prop", path: path5, message: `${activity.id} \u7F3A\u5C11 Prop\uFF1A${requiredProp}` });
-    }
+    const resolved = resolveActivityRequirements(activity.requires, instances, capabilitiesOf, activity.id);
+    issues.push(...resolved.issues.map((issue2) => ({ ...issue2, path: path5 })));
     for (const step of activity.steps ?? []) {
       if (!layout?.targets?.[step?.target]) issues.push({ code: "missing-activity-target", path: path5, message: `${activity.id} \u7F3A\u5C11 Target\uFF1A${step?.target}` });
       for (const target of step?.targets ?? []) {
@@ -446,8 +475,13 @@ function validateOfficeSpec(spec, library) {
   }
   if (value.npcs.length > SCENE_LIMITS.npcs) add(issues, "too-many-npcs", "$.npcs", `maximum ${SCENE_LIMITS.npcs} NPCs`);
   const activities = /* @__PURE__ */ new Set();
-  const runtimePropIds = new Set((layout.propInstances ?? []).map((entry) => entry.id));
-  for (const placement of value.placements) runtimePropIds.add(placement.id);
+  const propInstances = /* @__PURE__ */ new Map();
+  for (const instance of layout.propInstances ?? []) propInstances.set(instance.id, instance.type);
+  for (const placement of value.placements) propInstances.set(placement.id, placement.component.replace(/^(builtin|local)\//, ""));
+  const capabilitiesOf = (type) => {
+    const prop = library.props.get(`builtin/${type}`) ?? library.props.get(`local/${type}`) ?? library.props.get(type);
+    return prop?.capabilities ?? [];
+  };
   const npcRoles = new Set(value.npcs.map((npc) => library.npcTemplates.get(npc.template ?? "")?.role).filter(Boolean));
   for (let index = 0; index < value.activities.length; index += 1) {
     const activityId = value.activities[index];
@@ -457,9 +491,13 @@ function validateOfficeSpec(spec, library) {
     const recipe = library.activityRecipes.get(activityId);
     if (!recipe) add(issues, "unknown-activity", path5, `unknown activity ${activityId}`);
     else if (!library.activityImplementations.has(`${value.layout}|${activityId}`)) add(issues, "unsupported-activity-layout", path5, `${activityId} has no implementation for ${value.layout}`);
-    else if ((library.activityImplementations.get(`${value.layout}|${activityId}`)?.definition?.requires ?? []).some((id) => !runtimePropIds.has(id))) add(issues, "missing-activity-prop", path5, `${activityId} requires a prop that is not present`);
-    else if (recipe.participantKinds?.includes("npc") && recipe.participantKinds.length === 1 && recipe.participantRoles?.length && !recipe.participantRoles.some((role) => npcRoles.has(role))) {
-      add(issues, "missing-activity-participant", path5, `${activityId} has no compatible NPC in this office`);
+    else {
+      const implementation = library.activityImplementations.get(`${value.layout}|${activityId}`);
+      const resolved = resolveActivityRequirements(implementation?.definition?.requires, propInstances, capabilitiesOf, activityId);
+      for (const issue2 of resolved.issues) add(issues, issue2.code, path5, issue2.message);
+      if (!resolved.issues.length && recipe.participantKinds?.includes("npc") && recipe.participantKinds.length === 1 && recipe.participantRoles?.length && !recipe.participantRoles.some((role) => npcRoles.has(role))) {
+        add(issues, "missing-activity-participant", path5, `${activityId} has no compatible NPC in this office`);
+      }
     }
   }
   if (value.activities.length > SCENE_LIMITS.activities) add(issues, "too-many-activities", "$.activities", `maximum ${SCENE_LIMITS.activities} activities`);
@@ -920,10 +958,13 @@ async function resolveRuntimeContent(spec, contentRoot, library) {
     contract: "single-office-v1",
     entries: spec.npcs.map((npc) => ({ ...structuredClone(npc), role: library.npcTemplates.get(npc.template)?.role }))
   };
+  const capabilitiesOf = (type) => propTypes[type]?.capabilities ?? [];
+  const activityInstances = (layout.propInstances ?? []).map((entry) => [entry.id, entry.type]);
   const entries = spec.activities.map((id) => {
     const implementation = library.activityImplementations.get(`${spec.layout}|${id}`);
     if (!implementation) throw new Error(`activity ${id} has no implementation compatible with ${spec.layout}`);
-    return structuredClone(implementation.definition);
+    const definition = structuredClone(implementation.definition);
+    return { ...definition, bindings: resolveActivityRequirements(definition.requires, activityInstances, capabilitiesOf, id).bindings };
   });
   const lifeActivities = { schemaVersion: 1, kind: "life-activities", id: `local/${short(spec.id)}-activities`, name: `${spec.name} activities`, version: "1.0.0", contract: "single-office-v1", entries };
   const agentProfileTemplate = library.agentProfileTemplates.get(spec.agentProfile?.template ?? "builtin/host-agent");
