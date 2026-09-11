@@ -1,7 +1,27 @@
-import { compileOfficePatch, compileOfficeSeed } from "../content/compiler.ts";
-import type { OfficePatch } from "../content/schema.ts";
+import { compileOfficePatch } from "../content/compiler.ts";
+import type { OfficePatch, OfficeSpec } from "../content/schema.ts";
 import type { ComponentLibraryView } from "../content/validator.ts";
 import { OfficeRegistry } from "../content/registry.ts";
+
+/**
+ * What the selected Office's room offers: the zones a request can name, the
+ * slots that exist and what they accept, who currently occupies them, and where
+ * NPCs may spawn. This is model-facing context only; rooms are never a choice.
+ */
+function roomView(library: ComponentLibraryView, office: OfficeSpec) {
+	const layout = library.layouts.get(office.layout);
+	if (!layout) return null;
+	const occupants = new Map<string, string | null>();
+	for (const slot of layout.placementSlots ?? []) occupants.set(slot.id, slot.occupiedBy ?? null);
+	for (const placement of office.placements) occupants.set(placement.slot, placement.id);
+	return {
+		name: layout.name,
+		zones: (layout.zones ?? []).map((zone: any) => ({ id: zone.id, name: zone.name, x: zone.x, y: zone.y, width: zone.width, height: zone.height })),
+		slots: (layout.placementSlots ?? []).map((slot: any) => ({ id: slot.id, zone: slot.zone, accepts: slot.accepts ?? [], maxSize: slot.maxSize, occupiedBy: occupants.get(slot.id) ?? null })),
+		npcSpawns: layout.npcSpawns ?? [],
+		placements: office.placements.map((placement) => ({ id: placement.id, component: placement.component, slot: placement.slot, ...(placement.orientation ? { orientation: placement.orientation } : {}) })),
+	};
+}
 
 export class CreatorService {
 	readonly #registry: OfficeRegistry;
@@ -21,30 +41,23 @@ export class CreatorService {
 		return { selected: true as const, office };
 	}
 
-	async createFromLayout(layout: string, name: string) {
-		const id = `local/layout-${layout.replace(/^builtin\//, "").replace(/[^a-z0-9-]+/gi, "-").toLowerCase()}`;
-		const existing = await this.#registry.get(id);
-		if (existing) {
-			await this.#registry.select(id);
-			return { saved: true as const, office: existing };
-		}
-		const compiled = compileOfficeSeed({ schemaVersion: 1, kind: "office-seed", id, name, layout }, this.#library);
-		if (!compiled.draft) return { saved: false as const, errors: compiled.errors };
-		const saved = await this.#registry.save(compiled.draft);
-		if (!saved.saved) return { saved: false as const, errors: saved.issues };
-		await this.#registry.select(id);
-		return { saved: true as const, office: compiled.draft };
-	}
-
-	listComponents() {
+	/**
+	 * Capabilities the model may map a request onto. `room` describes the room of
+	 * the currently selected Office only — zones, placement slots and NPC spawns —
+	 * because "add a plant" or "put a water cooler in the lounge" is only reliable
+	 * when the model can see what this Office actually offers. Rooms are never
+	 * presented as a choice.
+	 */
+	async listComponents() {
+		const office = await this.#registry.selected();
 		return {
-			layouts: this.#library.descriptors.layouts.map((entry) => ({ ...entry, zones: this.#library.layouts.get(entry.id)?.zones ?? [], placementSlots: this.#library.layouts.get(entry.id)?.placementSlots ?? [], npcSpawns: this.#library.layouts.get(entry.id)?.npcSpawns ?? [] })),
+			room: roomView(this.#library, office),
 			styles: structuredClone(this.#library.descriptors.styles),
 			agentSkins: structuredClone(this.#library.descriptors.agentSkins),
 			props: structuredClone([...this.#library.props.values()]),
 			npcTemplates: structuredClone([...this.#library.npcTemplates.values()]),
 			agentProfileTemplates: structuredClone([...this.#library.agentProfileTemplates.values()]),
-			activities: [...this.#library.activityRecipes.values()].map((entry) => ({ ...structuredClone(entry), layouts: [...this.#library.activityImplementations.values()].filter((implementation) => implementation.recipe === entry.id).map((implementation) => implementation.layout) })),
+			activities: [...this.#library.activityRecipes.values()].map((entry) => ({ ...structuredClone(entry), rooms: [...this.#library.activityImplementations.values()].filter((implementation) => implementation.recipe === entry.id).map((implementation) => implementation.layout) })),
 			atmospheres: structuredClone(this.#library.descriptors.atmospheres),
 			environments: structuredClone(this.#library.descriptors.environments),
 		};

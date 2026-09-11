@@ -39,16 +39,15 @@ assert.match(creator, /CreatorModeRegistry/);
 assert.match(creator, /input === "custom"/);
 assert.match(creator, /input === "exit"/);
 assert.match(creator, /input === "list preset" \|\| input === "list presets"/, "preset discovery must accept singular and plural commands");
-assert.match(creator, /input === "list layout" \|\| input === "list layouts"/, "layout discovery must accept singular and plural commands");
+assert.doesNotMatch(creator, /list layouts|startsWith\("layout "/, "an Office keeps its room: the layout surface must stay closed");
 assert.match(creator, /rawInput = invocation\.rawInput\.trim\(\)\.replace/, "creator commands must normalize whitespace without destroying selector names");
 assert.match(creator, /input = rawInput\.toLowerCase\(\)/, "creator command verbs must be case-insensitive");
 assert.match(creator, /input\.startsWith\("preset "\)/, "preset discovery must have a selection command");
-assert.match(creator, /input\.startsWith\("layout "\)/, "layout discovery must have a selection command");
 assert.match(creator, /commandOfficeProjections\.get\(String\(event\.data\.commandId\)\)/, "command selection must refresh the exact current session projection");
 assert.match(creator, /commandOfficeProjections\.set\(String\(invocation\.commandId\), selectedOfficeProjection\)/, "selection handlers must publish their projection by command id");
 assert.match(creator, /session\/disposed/, "Creator Mode must be released with its DSH session");
 assert.match(creator, /currentOfficeProjection = selectedOfficeProjection/, "all DSH scopes must share the latest selected Office");
-assert.match(creator, /Custom offices:/, "preset discovery must distinguish custom Offices from official presets");
+assert.match(creator, /Custom Offices:/, "preset discovery must distinguish custom Offices from preset Offices");
 assert.match(creator, /systemPrompt\.context/);
 
 const baseline: DshObservation = {

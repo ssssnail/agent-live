@@ -59,7 +59,11 @@ Use the agent_live_creator tool when Agent Live Creator Mode is active. The user
 
 Inspect list_offices and list_components when the available choices are not already known, then call customize once. Omit base to modify the currently selected Office, or provide an Office id to start from that Office. Customize validates, saves, selects, and immediately displays the result.
 
-Never expose internal component ids, schemas, or patches unless the user explicitly asks for implementation details. Map unsupported input to the closest supported capability without interrupting generation, then summarize defaults, substitutions, ignored requests, and source-code-only requests after applying the change.`;
+Never expose internal component ids, schemas, or patches unless the user explicitly asks for implementation details. Map unsupported input to the closest supported capability without interrupting generation, then summarize defaults, substitutions, ignored requests, and source-code-only requests after applying the change.
+
+An Office keeps its room. Map a request like "make me a police station" onto the closest complete Preset Office, then change its name, people, identities, furniture, style and activities. A brand-new room structure needs a new Office Preset, which is a source change — say so instead of swapping a room in place.
+
+The public commands are exactly: /agent-live list presets, /agent-live preset <number or name>, /agent-live custom, /agent-live exit.`;
 
 function commandPayload(operation: CreatorOperation, args: Record<string, unknown>) {
   switch (operation) {
@@ -115,15 +119,15 @@ export async function registerCreator(ctx: Context): Promise<void> {
   ctx.skills.register({
     name: "agent-live-creator",
     description: "Create or modify a local Agent Live office from natural language.",
-    whenToUse: "Use for Agent Live office customization, presets, layouts, NPCs, furniture, visual style, environment, schedules, or agent identity.",
+    whenToUse: "Use for Agent Live office customization, presets, NPCs, furniture, visual style, environment, schedules, or agent identity.",
     content: SKILL,
     source: "bundled",
   });
 
   ctx.commands.register({
     name: "agent-live",
-    description: "Enter or exit Creator Mode, or inspect available offices and layouts.",
-    input: { hint: "custom | exit | list presets | preset <number/name> | list layouts | layout <number/name>" },
+    description: "Enter or exit Creator Mode, or inspect available Offices.",
+    input: { hint: "custom | exit | list presets | preset <number/name>" },
     async handler(invocation: CommandInvocation) {
       const rawInput = invocation.rawInput.trim().replace(/\s+/g, " ");
       const input = rawInput.toLowerCase();
@@ -139,13 +143,9 @@ export async function registerCreator(ctx: Context): Promise<void> {
         const offices = await service.listOffices();
         const lines = offices.map((office, index) => `${index + 1}. ${office.name}${office.selected ? " (selected)" : ""}`);
         const officialCount = offices.filter((office) => office.origin === "official").length;
-        lines.splice(officialCount, 0, ...(officialCount < offices.length ? ["", "Custom offices:"] : []));
-        lines.unshift("Official presets:");
-        return { kind: "success", text: lines.join("\n") + "\n\nSelect with /agent-live preset <number or name>." };
-      }
-      if (input === "list layout" || input === "list layouts") {
-        const layouts = service.listComponents().layouts;
-        return { kind: "success", text: layouts.map((layout, index) => `${index + 1}. ${layout.name}`).join("\n") + "\n\nSelect with /agent-live layout <number or name>." };
+        lines.splice(officialCount, 0, ...(officialCount < offices.length ? ["", "Custom Offices:"] : []));
+        lines.unshift("Preset Offices:");
+        return { kind: "success", text: lines.join("\n") + "\n\nSelect with /agent-live preset <number or name>, then edit it with /agent-live custom." };
       }
       if (input.startsWith("preset ")) {
         const selector = rawInput.slice(rawInput.indexOf(" ") + 1).trim();
@@ -161,21 +161,7 @@ export async function registerCreator(ctx: Context): Promise<void> {
         modes.exit(sessionId);
         return { kind: "success", text: `Selected ${office.name}. Agent Live has updated.` };
       }
-      if (input.startsWith("layout ")) {
-        const selector = rawInput.slice(rawInput.indexOf(" ") + 1).trim();
-        const layouts = service.listComponents().layouts;
-        const index = /^\d+$/.test(selector) ? Number(selector) - 1 : -1;
-        const layout = index >= 0 ? layouts[index] : layouts.find((entry) => entry.id.toLowerCase() === selector.toLowerCase() || entry.name.toLowerCase() === selector.toLowerCase());
-        if (!layout) return { kind: "error", text: `Unknown layout "${selector}". Use /agent-live list layouts to see the available choices.` };
-        const result = await service.createFromLayout(layout.id, `Custom ${layout.name}`);
-        if (!result.saved) return { kind: "error", text: `Could not use ${layout.name}: ${result.errors.map((entry) => entry.message).join("; ")}` };
-        selectedOfficeProjection = { revision: Date.now(), content: sessionEventContent(await content.resolve(result.office.id)) };
-        currentOfficeProjection = selectedOfficeProjection;
-        commandOfficeProjections.set(String(invocation.commandId), selectedOfficeProjection);
-        modes.enter(sessionId);
-        return { kind: "success", text: `Created a basic custom office with ${layout.name}. Describe what to add, or use /agent-live exit when finished.` };
-      }
-      if (input) return { kind: "error", text: "Use /agent-live custom, /agent-live exit, /agent-live list presets, /agent-live preset <number or name>, /agent-live list layouts, or /agent-live layout <number or name>." };
+      if (input) return { kind: "error", text: "Use /agent-live custom, /agent-live exit, /agent-live list presets, or /agent-live preset <number or name>." };
       return { kind: "success", text: modes.isActive(sessionId) ? "Creator Mode is active. Use /agent-live exit to leave." : "Use /agent-live custom to start editing the office." };
     },
   });

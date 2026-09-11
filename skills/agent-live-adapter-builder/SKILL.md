@@ -1,6 +1,6 @@
 ---
 name: agent-live-adapter-builder
-description: Investigate a coding agent's official extension APIs and build or review an independent Agent Live adapter with evidence, event mapping, scaffolding, and contract tests. Use when adding Agent Live support to a new coding-agent host; do not use for editing Office layouts or presets.
+description: Investigate a coding agent's official extension APIs and build or review an independent Agent Live adapter with evidence, event mapping, scaffolding, and contract tests. Use when adding Agent Live support to a new coding-agent host; do not use for editing Offices or presets.
 ---
 
 # Agent Live Adapter Builder

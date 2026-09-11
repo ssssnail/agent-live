@@ -67,7 +67,8 @@ pi install /absolute/path/to/agent-live
 | `/agent-live demo` | 打开演示场景（不消耗 token，用来看效果） |
 | `/agent-live status` | 打印当前地址 |
 | `/agent-live close` | 关闭当前本地服务 |
-| `/agent-live preset [id]` | 查看或打开官方 Preset |
+| `/agent-live list presets` | 列出可选 Preset Office |
+| `/agent-live preset <number or name>` | 打开指定 Preset Office |
 | `/agent-live custom` | 进入 Creator Mode，后续自然语言只修改当前办公室 |
 | `/agent-live exit` | 退出 Creator Mode，恢复普通任务 |
 

@@ -31,7 +31,11 @@ export function compileOfficeSpec(input: unknown, library: ComponentLibraryView)
 	return { draft: structuredClone(input as OfficeSpec), errors: [], adjustments: [] };
 }
 
-/** Creates the smallest valid custom office around a registered Layout Template. */
+/**
+ * Creates the smallest valid custom office around a registered room.
+ * Internal primitive: Creator never starts from an empty room, it edits the
+ * Preset Office that already owns the room (see CreatorService.customize).
+ */
 export function compileOfficeSeed(input: unknown, library: ComponentLibraryView): CompileResult {
 	const shapeIssues = validateOfficeSeedShape(input).map((entry) => ({ ...entry, code: "invalid-seed-shape" }));
 	if (shapeIssues.length) return { errors: shapeIssues, adjustments: [] };
@@ -155,9 +159,10 @@ export function compileOfficePatch(base: OfficeSpec, patchInput: unknown, librar
 
 	const adjustments: CompileAdjustment[] = [];
 	const components = patch.components ?? {};
-	const layoutId = components.layout ?? base.layout;
+	// An Office keeps the room it was created with; `components.layout` is rejected by the shape check.
+	const layoutId = base.layout;
 	const layout = library.layouts.get(layoutId);
-	if (!layout) return { errors: [{ code: "unknown-layout", path: "$.components.layout", message: `unknown layout ${layoutId}` }], adjustments: [] };
+	if (!layout) return { errors: [{ code: "unknown-layout", path: "$.layout", message: `unknown layout ${layoutId}` }], adjustments: [] };
 	const placements = upsertById<OfficePlacement>(base.placements, patch.placements?.upsert ?? [], patch.placements?.remove ?? [], "$.placements", adjustments);
 	const npcs = upsertById<OfficeNpc>(base.npcs, patch.npcs?.upsert ?? [], patch.npcs?.remove ?? [], "$.npcs", adjustments, mergeNpc);
 	const activities = new Set(base.activities);

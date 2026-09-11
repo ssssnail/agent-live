@@ -12,6 +12,10 @@ export interface CompileResult {
 }
 /** The common compilation gate used by both Official and Custom Office Specs. */
 export declare function compileOfficeSpec(input: unknown, library: ComponentLibraryView): CompileResult;
-/** Creates the smallest valid custom office around a registered Layout Template. */
+/**
+ * Creates the smallest valid custom office around a registered room.
+ * Internal primitive: Creator never starts from an empty room, it edits the
+ * Preset Office that already owns the room (see CreatorService.customize).
+ */
 export declare function compileOfficeSeed(input: unknown, library: ComponentLibraryView): CompileResult;
 export declare function compileOfficePatch(base: OfficeSpec, patchInput: unknown, library: ComponentLibraryView): CompileResult;

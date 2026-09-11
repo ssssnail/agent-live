@@ -95,7 +95,6 @@ export interface OfficePatch {
     base: string;
     name?: string;
     components?: {
-        layout?: string;
         style?: string;
         agentSkin?: string;
         atmosphere?: string;

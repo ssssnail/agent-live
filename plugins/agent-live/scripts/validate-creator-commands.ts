@@ -16,12 +16,23 @@ try {
 	const router = new CreatorCommandRouter(new CreatorService(registry, library));
 	assert.equal((await router.execute({ command: "list_offices" })).ok, true);
 	const components: any = await router.execute({ command: "list_components" });
-	assert.equal(components.ok && components.data.layouts.some((entry: any) => entry.id === "builtin/tech-open-office"), true);
+	assert.equal(components.ok && components.data.styles.length > 0 && components.data.props.length > 0, true);
+	assert.equal("layouts" in components.data, false, "rooms must not be exposed as a selectable component");
+	// The model still needs the selected Office's room affordances to place things.
+	const room = components.data.room;
+	assert.equal(room.zones.length > 0, true, "the room must report its zones");
+	assert.equal(room.npcSpawns.length > 0, true, "the room must report its NPC spawn points");
+	assert.equal(room.slots.every((slot: any) => typeof slot.zone === "string" && slot.maxSize && Array.isArray(slot.accepts)), true);
+	assert.equal(room.slots.find((slot: any) => slot.id === "lounge-service-1")?.occupiedBy, "water-main", "slot occupancy must reflect this Office's placements");
+	assert.equal(room.placements.some((placement: any) => placement.id === "water-main" && placement.slot === "lounge-service-1"), true);
+	assert.equal(components.data.activities.every((entry: any) => Array.isArray(entry.rooms)), true, "activities must report the rooms they are implemented for");
 	const changed: any = await router.execute({ command: "customize", patch: { id: "local/command-office", name: "Command Office", npcs: { upsert: [{ id: "colleague" }] } } });
 	assert.equal(changed.ok && changed.data.office.id === "local/command-office", true);
 	assert.equal((await registry.selected()).id, "local/command-office");
 	const before = await registry.selected();
-	assert.equal((await router.execute({ command: "customize", patch: { components: { layout: "builtin/missing" } } })).ok, false);
+	const roomSwap: any = await router.execute({ command: "customize", patch: { components: { layout: "builtin/boardroom-office" } } });
+	assert.equal(roomSwap.ok, false, "an Office must not be able to swap its room");
+	assert.equal(roomSwap.issues.some((issue: any) => issue.path === "$.components.layout"), true);
 	assert.deepEqual(await registry.selected(), before);
 	for (const command of ["preview", "undo", "confirm", "discard", "create_from_preset", "apply_patch"]) assert.equal((await router.execute({ command })).ok, false, `${command} remained public`);
 	assert.equal((await router.execute({ command: "list_offices", path: "/tmp" })).ok, false);

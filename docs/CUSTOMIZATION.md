@@ -17,11 +17,22 @@
 | Official Preset | 官方发布、只读并经过完整回归的办公室 | 是 |
 | Custom Office | 由 Creator 原子校验、保存并选择的本地办公室 | 是 |
 
-Custom Office 可以基于一个 Official Preset 保存允许的变化，也可以从 [Component Library](COMPONENT-LIBRARY.md) 中从头组装；两条路径最终都生成相同的 Office Spec，不覆盖安装目录中的官方文件。校验或保存失败时，当前有效版本保持不变。
+Custom Office 由某个 Official Preset 派生：第一笔改动就会生成一个内容完整继承的副本（房间、摆放、NPC、活动、组件全都带过来），不覆盖安装目录中的官方文件。校验或保存失败时，当前有效版本保持不变。
 
-Creator 优先从最接近的 Official Preset 修改；没有合适基础时才从已登记的 Layout Template 和基础组件开始。用户不需要先理解内部 Schema，也不需要手工选择每个组件。可用的公开发现命令只有 `/agent-live custom list presets` 和 `/agent-live custom list layouts`。
+Creator 只从最接近的 Official Preset 修改，用户不需要先理解内部 Schema，也不需要手工选择每个组件。公开命令只有四条：
 
-Creator Mode 是会话级模态状态，但不是内容草稿状态。每次合法修改都会经过校验后直接生效；每轮回复都应提示 Creator Mode 仍在运行以及 `/agent-live exit`。模式内出现明显无关或指代不清的项目开发请求时不直接执行，而是让用户选择继续编辑、退出、列出 Preset 或列出 Layout。
+```text
+/agent-live list presets
+/agent-live preset <number or name>
+/agent-live custom
+/agent-live exit
+```
+
+“给我做一个警察局”这类需求的处理方式：**先选中最接近的完整 Preset Office，再修改名称、人员与身份、家具、风格和活动**；“警察局”这个说法本身不产生新的房间结构。如果用户要求的是全新的房间结构（新的墙体、区域、通道、座位或工作落点），统一回答：**这需要新增一个 Office Preset，需要修改源码**，Creator 不做这件事。
+
+一个 Office 自带它所在的房间，**房间不能单独更换**：想换房间就是换一个 Preset Office（`/agent-live preset <number or name>`），或者编辑那个 Preset Office 得到一份自己的副本。Layout 因此是内容作者（Component Library）的概念，不是 Creator 的操作。
+
+Creator Mode 是会话级模态状态，但不是内容草稿状态。每次合法修改都会经过校验后直接生效；每轮回复都应提示 Creator Mode 仍在运行以及 `/agent-live exit`。模式内出现明显无关或指代不清的项目开发请求时不直接执行，而是让用户选择继续编辑、退出或列出 Preset。
 
 ## 3. Creator v1 可以映射的能力
 
@@ -32,9 +43,9 @@ Creator Mode 是会话级模态状态，但不是内容草稿状态。每次合�
 | “增加老板、保洁或前台” | NPC | 只能选择 Capability Catalog 中已登记的 NPC Template |
 | “保洁晚上八点上班” | Environment / NPC shift | 使用有效 `HH:MM` 班次，支持跨夜 |
 | “空闲时去喝水或聊天” | Life Activities | 只组合已有参与者、target、pose、particle 和 step |
-| “把饮水机放到休息区” | Layout / Props | 目标区域必须存在，放置后不能阻断导航 |
-| “从 Tech 办公室开始” | Custom Office base | 引用已安装的 Official Preset |
-| “从头做一个办公室” | Office Spec | 从 Component Library 选择合法 Layout Template 和其他组件 |
+| “把饮水机放到休息区” | Props / slot | 目标槽位必须存在，放置后不能阻断导航 |
+| “从 Tech 办公室开始” | Custom Office base | 引用已安装的 Preset Office，房间与内容完整继承 |
+| “换成会议室的房间” | 不支持就地更换 | 选中那个 Preset Office 再编辑；房间随它带来，成本与改别的东西相同 |
 
 Creator 可以调整和组合现有能力，但不能因为自然语言中出现了一个新名词，就假设 Runtime 已经具备对应实现。
 

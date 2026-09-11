@@ -73,11 +73,11 @@ Office Spec
 
 Creator v1 只能选择已登记 Style，并覆盖白名单中的少量语义参数；不直接开放全部底层颜色 token。
 
-### 4.2 Layout Template
+### 4.2 Layout（房间骨架）
 
-定义单层办公室的固定空间骨架：墙体、通道、座位、工作目标、区域和可放置插槽。
+定义单层办公室的固定空间骨架：墙体、通道、座位、工作目标、区域和可放置插槽。Layout 是内容作者的概念，不是 Creator 的可选项——一个 Office 自带它的房间。
 
-Layout Template 必须提供：
+Layout 必须提供：
 
 - 384×216 的 `single-office-v1` 逻辑画布。
 - 8 个可分配座位。
@@ -173,21 +173,21 @@ Office Spec 是 Preset 与 Custom Office 共用的最终组装合同。目标形
 
 这是当前 Office Seed/Spec 合同的概念示例。实际输入还必须带 `kind`，实例化物件必须带唯一 `id`；最终以 `src/content/schema.ts` 为准。Official Preset 和 Custom Office 已由同一个 Compiler 与 Validator 解析。
 
-## 7. Preset 与纯自定义
+## 7. Preset Office 与自定义
 
-运行 `/agent-live custom` 后，宿主 Agent 会根据描述选择最接近的创作起点：
+运行 `/agent-live custom` 后，宿主 Agent 会根据描述选择最接近的 Preset Office 作为起点：
 
 ```text
 Tech 开放式办公室
 长形会议室
 老式办公室
-从头自定义
+你的 Custom Office
 ```
 
-- 选择 Official Preset：加载它的 Office Spec，再生成受限制的差异。
-- 选择“从头自定义”：Agent 从 Component Library 依次选择 Layout Template、Style、设施、NPC、活动和 Environment。
+- 选择一个 Preset Office：加载它的 Office Spec，再生成受限制的差异。
+- 对 Preset Office 动第一笔改动，就会生成一个内容完整继承的 Custom Office：房间、摆放、NPC、活动和组件全都带过来。
 
-“从头”只表示不继承某个 Official Preset，不表示从空白坐标或空白代码开始。系统仍然必须先选择一个合法 Layout Template，并满足固定工作语义、座位和导航合同。
+一个 Office 自带它的房间，**房间不单独提供、也不支持就地更换**。想换房间就是选中那个 Preset Office 再编辑——和改任何其它东西的成本一样。Layout 因此只是内容作者的概念（见 [Preset 配置手册](PRESET-CONFIG.md)）。
 
 ## 8. 当前内置能力盘点
 

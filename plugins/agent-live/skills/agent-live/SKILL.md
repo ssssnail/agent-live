@@ -21,16 +21,17 @@ Codex currently supports explicit single-turn customization through this Skill. 
 
 1. Start the lightweight client exactly as in Normal mode if it is not already running for this invocation, and retain its authenticated viewer URL and persistent terminal session.
 2. Use `node <PLUGIN_ROOT>/scripts/creator-command.ts --url <AUTHENTICATED_URL> --json <COMMAND_JSON>` for internal operations.
-3. Inspect `list_offices` and `list_components` when the available capabilities are not already known.
-4. Call `customize` once with an optional base Office id and an Office Patch containing the requested changes. Metadata is filled internally. If base is omitted, the currently selected Office is modified.
-5. The operation validates, saves, selects, and immediately activates the Office. If validation fails, the current Office remains unchanged.
+3. Inspect `list_offices` and `list_components` when the available capabilities are not already known. `list_components` also returns the selected Office's `room`: its zones, the placement slots that exist with what each accepts, who currently occupies them, and the NPC spawn points. Use those so "add a plant" or "put a water cooler in the lounge" targets a slot that actually exists.
+4. Start from the closest complete Preset Office. For a request like "make me a police station", pick the nearest Preset Office and change its name, people, identities, furniture, style and activities; the wording itself never creates a new room.
+5. Call `customize` once with an optional base Office id and an Office Patch containing the requested changes. Metadata is filled internally. If base is omitted, the currently selected Office is modified. A patch can never change the room.
+6. The operation validates, saves, selects, and immediately activates the Office. If validation fails, the current Office remains unchanged.
 
 Do not expose internal command names, component IDs, JSON schemas, or patches. Map every request into the registered schema and component library without interrupting for unsupported values. After applying the change, summarize in one place:
 
 - defaults selected for omitted details;
 - closest supported substitutions;
 - ignored or rejected parts;
-- requests that require source changes because they need new geometry, artwork, animation, behavior, or component families.
+- requests that require source changes because they need new geometry, artwork, animation, behavior, or component families. A brand-new room structure (new walls, areas, lanes, seats or work stations) belongs here: it needs a new Office Preset, so say that plainly.
 
 Agent identity is part of the Office template: use Agent Profile for the real Agent's display name, title, and supported appearance. Leave omitted identity fields to the host. Do not rewrite host-reported subagent identities.
 

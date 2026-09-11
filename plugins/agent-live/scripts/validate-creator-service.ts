@@ -19,15 +19,21 @@ try {
 	assert.equal(changed.office?.npcs.some((npc) => npc.id === "sam" && npc.profile), true);
 	assert.equal((await registry.selected()).id, "local/natural-test");
 	const snapshot = await registry.selected();
-	const invalid = await creator.customize({ components: { layout: "builtin/missing" } });
-	assert.equal(invalid.saved, false);
+	const invalid = await creator.customize({ components: { layout: "builtin/boardroom-office" } });
+	assert.equal(invalid.saved, false, "an Office must not be able to swap its room");
+	assert.equal(invalid.errors?.some((issue: any) => issue.path === "$.components.layout"), true, "swapping a room must be rejected with a path that explains why");
 	assert.deepEqual(await registry.selected(), snapshot);
-	const firstLayoutOffice = await creator.createFromLayout("builtin/demo-office", "Custom Demo Office");
-	const secondLayoutOffice = await creator.createFromLayout("builtin/demo-office", "Custom Demo Office");
-	assert.equal(firstLayoutOffice.saved, true);
-	assert.equal(secondLayoutOffice.saved, true);
-	assert.equal(firstLayoutOffice.office?.id, "local/layout-demo-office");
-	assert.equal(secondLayoutOffice.office?.id, firstLayoutOffice.office?.id, "selecting one Layout repeatedly must reuse its working Office");
-	assert.equal((await creator.listOffices()).filter((entry) => entry.id === "local/layout-demo-office").length, 1);
-	console.log("creator service: direct save/select, defaults and failed-change isolation passed");
+	// Editing a Preset Office is the only way to end up in another room, and the
+	// copy inherits every piece of content, so it costs the same as any other edit.
+	const presetOffice = await registry.get("builtin/boardroom-office");
+	assert.ok(presetOffice);
+	const copied = await creator.customize({ name: "My Boardroom" }, presetOffice.id);
+	assert.equal(copied.saved, true);
+	assert.equal(copied.office?.id, "local/boardroom-office");
+	assert.equal(copied.office?.layout, presetOffice.layout, "the copy keeps the room it was edited from");
+	assert.equal(copied.office?.placements.length, presetOffice.placements.length);
+	assert.equal(copied.office?.npcs.length, presetOffice.npcs.length);
+	assert.deepEqual([...(copied.office?.activities ?? [])].sort(), [...presetOffice.activities].sort());
+	assert.equal((await registry.selected()).id, "local/boardroom-office");
+	console.log("creator service: direct save/select, full-content Office copies, defaults and failed-change isolation passed");
 } finally { await rm(root, { recursive: true, force: true }); }

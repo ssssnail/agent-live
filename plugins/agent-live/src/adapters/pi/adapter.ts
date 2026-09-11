@@ -388,7 +388,7 @@ export default function (pi: ExtensionAPI) {
 	}
 
 	pi.registerCommand("agent-live", {
-		description: "打开 Agent Live 可视化 (demo | status | close | preset [id])",
+		description: "打开 Agent Live 可视化 (demo | status | close | list presets | preset <number or name> | custom | exit)",
 		handler: async (args: string, ctx: any) => {
 			const sub = (args ?? "").trim().toLowerCase();
 			const [command, value, ...rest] = sub.split(/\s+/).filter(Boolean);
@@ -412,18 +412,31 @@ export default function (pi: ExtensionAPI) {
 				ctx.ui.notify("已打开演示场景", "info");
 				return;
 			}
+			const entries = [...PRESETS.entries()];
+			const listPresets = () => {
+				ctx.ui.notify(`可用 Preset：${entries.map(([id, name], index) => `${index + 1}. ${id}（${name}）`).join("、")}`, "info");
+			};
+			const openPreset = (selector: string | undefined, extra: string[]) => {
+				if (!selector) {
+					listPresets();
+					return;
+				}
+				// Accept the listed number, the preset id, or its display name.
+				const index = /^\d+$/.test(selector) ? Number(selector) - 1 : -1;
+				const selected = index >= 0 ? entries[index] : entries.find(([id, name]) => id === selector || name.toLowerCase() === selector);
+				if (extra.length || !selected) {
+					ctx.ui.notify(`未知 Preset：${[selector, ...extra].join(" ")}。输入 /agent-live list presets 查看可用选项。`, "error");
+					return;
+				}
+				server!.open(viewerTarget({ preset: selected[0] }));
+				ctx.ui.notify(`已打开 ${selected[1]}；浏览器会记住这次选择`, "info");
+			};
+			if (command === "list" && (value === "preset" || value === "presets")) {
+				listPresets();
+				return;
+			}
 			if (command === "preset") {
-				if (!value) {
-					const options = [...PRESETS.entries()].map(([id, name]) => `${id}（${name}）`).join("、");
-					ctx.ui.notify(`可用 Preset：${options}`, "info");
-					return;
-				}
-				if (rest.length || !PRESETS.has(value)) {
-					ctx.ui.notify(`未知 Preset：${[value, ...rest].filter(Boolean).join(" ")}。输入 /agent-live preset 查看可用选项。`, "error");
-					return;
-				}
-				server.open(viewerTarget({ preset: value }));
-				ctx.ui.notify(`已打开 ${PRESETS.get(value)}；浏览器会记住这次选择`, "info");
+				openPreset(value, rest);
 				return;
 			}
 		if (command === "custom") {
@@ -437,7 +450,7 @@ export default function (pi: ExtensionAPI) {
 			return;
 		}
 		if (command && command !== "open") {
-			ctx.ui.notify("用法：/agent-live [custom | exit | demo | status | close | preset [id]]", "error");
+			ctx.ui.notify("用法：/agent-live [demo | status | close | list presets | preset <number or name> | custom | exit]", "error");
 				return;
 			}
 			server.open(viewerTarget());

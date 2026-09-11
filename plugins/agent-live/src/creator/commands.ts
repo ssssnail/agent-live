@@ -27,7 +27,7 @@ export class CreatorCommandRouter {
 					return { ok: true, data: await this.#creator.listOffices() };
 				case "list_components":
 					exact(value, []);
-					return { ok: true, data: this.#creator.listComponents() };
+					return { ok: true, data: await this.#creator.listComponents() };
 				case "customize": {
 					exact(value, ["base", "patch"]);
 					if (value.base !== undefined && (typeof value.base !== "string" || !value.base)) throw new Error("base must be a non-empty string");

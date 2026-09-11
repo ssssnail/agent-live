@@ -94,7 +94,6 @@ export interface OfficePatch {
 	base: string;
 	name?: string;
 	components?: {
-		layout?: string;
 		style?: string;
 		agentSkin?: string;
 		atmosphere?: string;
@@ -128,6 +127,7 @@ export interface SchemaIssue {
 const SPEC_KEYS = new Set(["schemaVersion", "kind", "id", "name", "origin", "basePreset", "layout", "style", "agentSkin", "placements", "npcs", "activities", "atmosphere", "environment", "environmentOverrides", "agentProfile"]);
 const PATCH_KEYS = new Set(["schemaVersion", "kind", "id", "base", "name", "components", "placements", "npcs", "activities", "environmentOverrides", "agentProfile"]);
 const SEED_KEYS = new Set(["schemaVersion", "kind", "id", "name", "layout", "style", "agentSkin", "atmosphere", "environment", "agentProfile"]);
+/** `layout` is listed only to reject it with a useful message; an Office owns its room. */
 const COMPONENT_KEYS = new Set(["layout", "style", "agentSkin", "atmosphere", "environment"]);
 const PLACEMENT_KEYS = new Set(["id", "component", "slot", "orientation"]);
 const NPC_KEYS = new Set(["id", "template", "profile", "name", "title", "gender", "appearance", "spawn", "shift", "pose"]);
@@ -294,6 +294,11 @@ export function validateOfficePatchShape(input: unknown): SchemaIssue[] {
 		if (!object(input.components)) issue(issues, "$.components", "must be an object");
 		else {
 			exactKeys(input.components, COMPONENT_KEYS, "$.components", issues);
+			// `layout` stays a known key only so it can be rejected with a useful
+			// message instead of a generic "unknown field".
+			if (input.components.layout !== undefined) {
+				issue(issues, "$.components.layout", "an Office keeps its room; edit the Office that already uses that layout instead");
+			}
 			for (const [key, value] of Object.entries(input.components)) optionalString(value, `$.components.${key}`, issues);
 		}
 	}

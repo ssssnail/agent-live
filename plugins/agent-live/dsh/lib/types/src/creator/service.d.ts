@@ -1,3 +1,4 @@
+import type { OfficeSpec } from "../content/schema.ts";
 import type { ComponentLibraryView } from "../content/validator.ts";
 import { OfficeRegistry } from "../content/registry.ts";
 export declare class CreatorService {
@@ -10,20 +11,29 @@ export declare class CreatorService {
         office?: undefined;
     } | {
         selected: true;
-        office: import("../content/schema.ts").OfficeSpec;
+        office: OfficeSpec;
         error?: undefined;
     }>;
-    createFromLayout(layout: string, name: string): Promise<{
-        saved: true;
-        office: import("../content/schema.ts").OfficeSpec;
-        errors?: undefined;
-    } | {
-        saved: false;
-        errors: import("../content/validator.ts").ValidationIssue[];
-        office?: undefined;
-    }>;
-    listComponents(): {
-        layouts: any[];
+    /**
+     * Capabilities the model may map a request onto. `room` describes the room of
+     * the currently selected Office only — zones, placement slots and NPC spawns —
+     * because "add a plant" or "put a water cooler in the lounge" is only reliable
+     * when the model can see what this Office actually offers. Rooms are never
+     * presented as a choice.
+     */
+    listComponents(): Promise<{
+        room: {
+            name: any;
+            zones: any;
+            slots: any;
+            npcSpawns: any;
+            placements: {
+                orientation?: "horizontal" | "vertical" | undefined;
+                id: string;
+                component: string;
+                slot: string;
+            }[];
+        } | null;
         styles: any[];
         agentSkins: any[];
         props: any[];
@@ -32,7 +42,7 @@ export declare class CreatorService {
         activities: any[];
         atmospheres: any[];
         environments: any[];
-    };
+    }>;
     /** Validate, persist and select one customization without exposing draft state. */
     customize(patchInput: unknown, baseOffice?: string): Promise<{
         saved: boolean;
@@ -41,7 +51,7 @@ export declare class CreatorService {
         office?: undefined;
     } | {
         saved: boolean;
-        office: import("../content/schema.ts").OfficeSpec;
+        office: OfficeSpec;
         errors: never[];
         adjustments: import("../content/compiler.ts").CompileAdjustment[];
     }>;

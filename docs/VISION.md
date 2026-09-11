@@ -61,7 +61,7 @@ Office 给设施标注能力，Office Engine 再为工作语义选择合适地�
 - **Atmosphere**：白天、雨夜等状态的色板、窗外、粒子和声音表现。
 - **Environment**：本地或固定时间、外部天气输入、自动照明和 NPC 班次。
 
-Component Library 是上述内容的唯一全集。Office Spec 从中组装一间办公室；Official Preset 是给普通用户一键选择的只读 Office Spec，Custom Office 则由 Creator 基于 Preset 修改或从组件库开始组装。两者使用同一个 Compiler 和 Validator。内容模块不改变：
+Component Library 是上述内容的唯一全集。Office Spec 从中组装一间办公室；Official Preset 是给普通用户一键选择的只读 Office Spec，Custom Office 则由 Creator 基于某个 Official Preset 修改得到（第一笔改动即生成内容完整继承的副本）。两者使用同一个 Compiler 和 Validator。内容模块不改变：
 
 - Agent 的真实状态与事件事实。
 - Work Event 的真实事实和工作语义。

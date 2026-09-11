@@ -127,9 +127,11 @@ Style 当前分为四组 token：
 
 Style 只改变“怎么画”，不要在这里放座位、坐标、NPC 或行为规则。
 
-## 6. Layout：办公室空间
+## 6. Layout：办公室空间（内容作者概念）
 
 文件位置：`plugins/agent-live/web/v2/content/layouts/`
+
+Layout 描述房间的几何：画布、座位、导航通道、走位目标点、工作能力工位、道具槽位和 NPC 出生点。它是**内容作者的概念**——用户和 Creator 都不选择、也不更换它。一个 Office 自带房间；想换房间就是换一个 Preset Office（`/agent-live preset <number or name>`），或者编辑那个 Preset Office 得到一份内容完整继承的副本。
 
 第一版必须遵守 `single-office-v1`：
 

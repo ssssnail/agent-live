@@ -20,7 +20,7 @@ Office Spec
 Official Preset / Custom Office
 ```
 
-Preset 不再拥有一套独立内容定义；它只是从同一个 Component Library 组装并验证出来的只读 Office Spec。Creator 的“从头自定义”也使用同一套组件、编译器和校验器。完整组件合同见 [基础组件库](COMPONENT-LIBRARY.md)。
+Preset 不再拥有一套独立内容定义；它只是从同一个 Component Library 组装并验证出来的只读 Office Spec。Creator 的自定义也使用同一套组件、编译器和校验器：对 Preset Office 动第一笔改动就得到内容完整继承的 Custom Office（房间随之带来，不单独更换）。完整组件合同见 [基础组件库](COMPONENT-LIBRARY.md)。
 
 ## 1. 固定不变的部分
 

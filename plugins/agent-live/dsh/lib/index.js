@@ -25,7 +25,7 @@ var CreatorCommandRouter = class {
           return { ok: true, data: await this.#creator.listOffices() };
         case "list_components":
           exact(value, []);
-          return { ok: true, data: this.#creator.listComponents() };
+          return { ok: true, data: await this.#creator.listComponents() };
         case "customize": {
           exact(value, ["base", "patch"]);
           if (value.base !== void 0 && (typeof value.base !== "string" || !value.base)) throw new Error("base must be a non-empty string");
@@ -72,7 +72,6 @@ var OFFICE_SPEC_DEFAULTS = Object.freeze({
 });
 var SPEC_KEYS = /* @__PURE__ */ new Set(["schemaVersion", "kind", "id", "name", "origin", "basePreset", "layout", "style", "agentSkin", "placements", "npcs", "activities", "atmosphere", "environment", "environmentOverrides", "agentProfile"]);
 var PATCH_KEYS = /* @__PURE__ */ new Set(["schemaVersion", "kind", "id", "base", "name", "components", "placements", "npcs", "activities", "environmentOverrides", "agentProfile"]);
-var SEED_KEYS = /* @__PURE__ */ new Set(["schemaVersion", "kind", "id", "name", "layout", "style", "agentSkin", "atmosphere", "environment", "agentProfile"]);
 var COMPONENT_KEYS = /* @__PURE__ */ new Set(["layout", "style", "agentSkin", "atmosphere", "environment"]);
 var PLACEMENT_KEYS = /* @__PURE__ */ new Set(["id", "component", "slot", "orientation"]);
 var NPC_KEYS = /* @__PURE__ */ new Set(["id", "template", "profile", "name", "title", "gender", "appearance", "spawn", "shift", "pose"]);
@@ -223,6 +222,9 @@ function validateOfficePatchShape(input) {
     if (!object2(input.components)) issue(issues, "$.components", "must be an object");
     else {
       exactKeys(input.components, COMPONENT_KEYS, "$.components", issues);
+      if (input.components.layout !== void 0) {
+        issue(issues, "$.components.layout", "an Office keeps its room; edit the Office that already uses that layout instead");
+      }
       for (const [key, value] of Object.entries(input.components)) optionalString(value, `$.components.${key}`, issues);
     }
   }
@@ -238,17 +240,6 @@ function validateOfficePatchShape(input) {
   }
   if (input.environmentOverrides !== void 0 && input.environmentOverrides !== null) validateEnvironment(input.environmentOverrides, "$.environmentOverrides", issues);
   if (input.agentProfile !== void 0 && input.agentProfile !== null) validateAgentProfile(input.agentProfile, "$.agentProfile", issues);
-  return issues;
-}
-function validateOfficeSeedShape(input) {
-  const issues = [];
-  if (!object2(input)) return [{ path: "$", message: "must be an object" }];
-  exactKeys(input, SEED_KEYS, "$", issues);
-  if (input.schemaVersion !== OFFICE_SPEC_SCHEMA_VERSION) issue(issues, "$.schemaVersion", `must equal ${OFFICE_SPEC_SCHEMA_VERSION}`);
-  if (input.kind !== "office-seed") issue(issues, "$.kind", "must equal office-seed");
-  for (const key of ["id", "name", "layout"]) requiredString(input[key], `$.${key}`, issues);
-  for (const key of ["style", "agentSkin", "atmosphere", "environment"]) optionalString(input[key], `$.${key}`, issues);
-  if (input.agentProfile !== void 0) validateAgentProfile(input.agentProfile, "$.agentProfile", issues);
   return issues;
 }
 
@@ -519,28 +510,6 @@ function compileOfficeSpec(input, library) {
   if (!validation.valid) return { errors: validation.issues, adjustments: [] };
   return { draft: structuredClone(input), errors: [], adjustments: [] };
 }
-function compileOfficeSeed(input, library) {
-  const shapeIssues = validateOfficeSeedShape(input).map((entry) => ({ ...entry, code: "invalid-seed-shape" }));
-  if (shapeIssues.length) return { errors: shapeIssues, adjustments: [] };
-  const seed = input;
-  const draft = {
-    schemaVersion: OFFICE_SPEC_SCHEMA_VERSION,
-    kind: "office-spec",
-    id: seed.id,
-    name: seed.name,
-    origin: "custom",
-    layout: seed.layout,
-    style: seed.style ?? OFFICE_SPEC_DEFAULTS.style,
-    agentSkin: seed.agentSkin ?? OFFICE_SPEC_DEFAULTS.agentSkin,
-    placements: [],
-    npcs: [],
-    activities: [],
-    atmosphere: seed.atmosphere ?? OFFICE_SPEC_DEFAULTS.atmosphere,
-    environment: seed.environment ?? OFFICE_SPEC_DEFAULTS.environment,
-    agentProfile: structuredClone(seed.agentProfile ?? OFFICE_SPEC_DEFAULTS.agentProfile)
-  };
-  return compileOfficeSpec(draft, library);
-}
 function hash(value) {
   let result = 2166136261;
   for (let index = 0; index < value.length; index += 1) {
@@ -631,9 +600,9 @@ function compileOfficePatch(base, patchInput, library) {
   if (operationErrors.length) return { errors: operationErrors, adjustments: [] };
   const adjustments = [];
   const components = patch.components ?? {};
-  const layoutId = components.layout ?? base.layout;
+  const layoutId = base.layout;
   const layout = library.layouts.get(layoutId);
-  if (!layout) return { errors: [{ code: "unknown-layout", path: "$.components.layout", message: `unknown layout ${layoutId}` }], adjustments: [] };
+  if (!layout) return { errors: [{ code: "unknown-layout", path: "$.layout", message: `unknown layout ${layoutId}` }], adjustments: [] };
   const placements = upsertById(base.placements, patch.placements?.upsert ?? [], patch.placements?.remove ?? [], "$.placements", adjustments);
   const npcs = upsertById(base.npcs, patch.npcs?.upsert ?? [], patch.npcs?.remove ?? [], "$.npcs", adjustments, mergeNpc);
   const activities = new Set(base.activities);
@@ -664,6 +633,20 @@ function compileOfficePatch(base, patchInput, library) {
 }
 
 // ../src/creator/service.ts
+function roomView(library, office) {
+  const layout = library.layouts.get(office.layout);
+  if (!layout) return null;
+  const occupants = /* @__PURE__ */ new Map();
+  for (const slot of layout.placementSlots ?? []) occupants.set(slot.id, slot.occupiedBy ?? null);
+  for (const placement of office.placements) occupants.set(placement.slot, placement.id);
+  return {
+    name: layout.name,
+    zones: (layout.zones ?? []).map((zone) => ({ id: zone.id, name: zone.name, x: zone.x, y: zone.y, width: zone.width, height: zone.height })),
+    slots: (layout.placementSlots ?? []).map((slot) => ({ id: slot.id, zone: slot.zone, accepts: slot.accepts ?? [], maxSize: slot.maxSize, occupiedBy: occupants.get(slot.id) ?? null })),
+    npcSpawns: layout.npcSpawns ?? [],
+    placements: office.placements.map((placement) => ({ id: placement.id, component: placement.component, slot: placement.slot, ...placement.orientation ? { orientation: placement.orientation } : {} }))
+  };
+}
 var CreatorService = class {
   #registry;
   #library;
@@ -680,29 +663,23 @@ var CreatorService = class {
     await this.#registry.select(id);
     return { selected: true, office };
   }
-  async createFromLayout(layout, name) {
-    const id = `local/layout-${layout.replace(/^builtin\//, "").replace(/[^a-z0-9-]+/gi, "-").toLowerCase()}`;
-    const existing = await this.#registry.get(id);
-    if (existing) {
-      await this.#registry.select(id);
-      return { saved: true, office: existing };
-    }
-    const compiled = compileOfficeSeed({ schemaVersion: 1, kind: "office-seed", id, name, layout }, this.#library);
-    if (!compiled.draft) return { saved: false, errors: compiled.errors };
-    const saved = await this.#registry.save(compiled.draft);
-    if (!saved.saved) return { saved: false, errors: saved.issues };
-    await this.#registry.select(id);
-    return { saved: true, office: compiled.draft };
-  }
-  listComponents() {
+  /**
+   * Capabilities the model may map a request onto. `room` describes the room of
+   * the currently selected Office only — zones, placement slots and NPC spawns —
+   * because "add a plant" or "put a water cooler in the lounge" is only reliable
+   * when the model can see what this Office actually offers. Rooms are never
+   * presented as a choice.
+   */
+  async listComponents() {
+    const office = await this.#registry.selected();
     return {
-      layouts: this.#library.descriptors.layouts.map((entry) => ({ ...entry, zones: this.#library.layouts.get(entry.id)?.zones ?? [], placementSlots: this.#library.layouts.get(entry.id)?.placementSlots ?? [], npcSpawns: this.#library.layouts.get(entry.id)?.npcSpawns ?? [] })),
+      room: roomView(this.#library, office),
       styles: structuredClone(this.#library.descriptors.styles),
       agentSkins: structuredClone(this.#library.descriptors.agentSkins),
       props: structuredClone([...this.#library.props.values()]),
       npcTemplates: structuredClone([...this.#library.npcTemplates.values()]),
       agentProfileTemplates: structuredClone([...this.#library.agentProfileTemplates.values()]),
-      activities: [...this.#library.activityRecipes.values()].map((entry) => ({ ...structuredClone(entry), layouts: [...this.#library.activityImplementations.values()].filter((implementation) => implementation.recipe === entry.id).map((implementation) => implementation.layout) })),
+      activities: [...this.#library.activityRecipes.values()].map((entry) => ({ ...structuredClone(entry), rooms: [...this.#library.activityImplementations.values()].filter((implementation) => implementation.recipe === entry.id).map((implementation) => implementation.layout) })),
       atmospheres: structuredClone(this.#library.descriptors.atmospheres),
       environments: structuredClone(this.#library.descriptors.environments)
     };
@@ -733,7 +710,9 @@ var CreatorService = class {
 var CREATOR_MODE_CONTEXT = `Agent Live Creator Mode is active for this session.
 Treat office-related natural language as a request to modify the currently selected Custom Office and use the agent_live_creator tool.
 Do not expose schemas, patches, or component ids unless explicitly asked for implementation details.
-If a request is unrelated to the office or ambiguous, do not perform it. Explain that Creator Mode is active and offer exactly these choices: continue editing, /agent-live exit, /agent-live list presets, or /agent-live list layouts.
+If a request is unrelated to the office or ambiguous, do not perform it. Explain that Creator Mode is active and offer exactly these choices: continue editing, /agent-live list presets, /agent-live preset <number or name>, /agent-live custom, or /agent-live exit.
+Map a request like "make me a police station" onto the closest complete Preset Office, then change its name, people, identities, furniture, style and activities. If the request needs a brand-new room structure (walls, areas, lanes, seats or work stations), say that it requires adding a new Office Preset and therefore a source change; never offer to swap a room in place.
+An Office keeps its room. Moving to another room means selecting that Preset Office and editing a copy of it.
 After every response, state that Creator Mode remains active and mention /agent-live exit.`;
 var CreatorModeRegistry = class {
   #sessions = /* @__PURE__ */ new Set();
@@ -1070,7 +1049,11 @@ Use the agent_live_creator tool when Agent Live Creator Mode is active. The user
 
 Inspect list_offices and list_components when the available choices are not already known, then call customize once. Omit base to modify the currently selected Office, or provide an Office id to start from that Office. Customize validates, saves, selects, and immediately displays the result.
 
-Never expose internal component ids, schemas, or patches unless the user explicitly asks for implementation details. Map unsupported input to the closest supported capability without interrupting generation, then summarize defaults, substitutions, ignored requests, and source-code-only requests after applying the change.`;
+Never expose internal component ids, schemas, or patches unless the user explicitly asks for implementation details. Map unsupported input to the closest supported capability without interrupting generation, then summarize defaults, substitutions, ignored requests, and source-code-only requests after applying the change.
+
+An Office keeps its room. Map a request like "make me a police station" onto the closest complete Preset Office, then change its name, people, identities, furniture, style and activities. A brand-new room structure needs a new Office Preset, which is a source change \u2014 say so instead of swapping a room in place.
+
+The public commands are exactly: /agent-live list presets, /agent-live preset <number or name>, /agent-live custom, /agent-live exit.`;
 function commandPayload(operation, args) {
   switch (operation) {
     case "list_offices":
@@ -1122,14 +1105,14 @@ async function registerCreator(ctx) {
   ctx.skills.register({
     name: "agent-live-creator",
     description: "Create or modify a local Agent Live office from natural language.",
-    whenToUse: "Use for Agent Live office customization, presets, layouts, NPCs, furniture, visual style, environment, schedules, or agent identity.",
+    whenToUse: "Use for Agent Live office customization, presets, NPCs, furniture, visual style, environment, schedules, or agent identity.",
     content: SKILL,
     source: "bundled"
   });
   ctx.commands.register({
     name: "agent-live",
-    description: "Enter or exit Creator Mode, or inspect available offices and layouts.",
-    input: { hint: "custom | exit | list presets | preset <number/name> | list layouts | layout <number/name>" },
+    description: "Enter or exit Creator Mode, or inspect available Offices.",
+    input: { hint: "custom | exit | list presets | preset <number/name>" },
     async handler(invocation) {
       const rawInput = invocation.rawInput.trim().replace(/\s+/g, " ");
       const input = rawInput.toLowerCase();
@@ -1145,13 +1128,9 @@ async function registerCreator(ctx) {
         const offices = await service.listOffices();
         const lines = offices.map((office, index) => `${index + 1}. ${office.name}${office.selected ? " (selected)" : ""}`);
         const officialCount = offices.filter((office) => office.origin === "official").length;
-        lines.splice(officialCount, 0, ...officialCount < offices.length ? ["", "Custom offices:"] : []);
-        lines.unshift("Official presets:");
-        return { kind: "success", text: lines.join("\n") + "\n\nSelect with /agent-live preset <number or name>." };
-      }
-      if (input === "list layout" || input === "list layouts") {
-        const layouts = service.listComponents().layouts;
-        return { kind: "success", text: layouts.map((layout, index) => `${index + 1}. ${layout.name}`).join("\n") + "\n\nSelect with /agent-live layout <number or name>." };
+        lines.splice(officialCount, 0, ...officialCount < offices.length ? ["", "Custom Offices:"] : []);
+        lines.unshift("Preset Offices:");
+        return { kind: "success", text: lines.join("\n") + "\n\nSelect with /agent-live preset <number or name>, then edit it with /agent-live custom." };
       }
       if (input.startsWith("preset ")) {
         const selector = rawInput.slice(rawInput.indexOf(" ") + 1).trim();
@@ -1167,21 +1146,7 @@ async function registerCreator(ctx) {
         modes.exit(sessionId);
         return { kind: "success", text: `Selected ${office.name}. Agent Live has updated.` };
       }
-      if (input.startsWith("layout ")) {
-        const selector = rawInput.slice(rawInput.indexOf(" ") + 1).trim();
-        const layouts = service.listComponents().layouts;
-        const index = /^\d+$/.test(selector) ? Number(selector) - 1 : -1;
-        const layout = index >= 0 ? layouts[index] : layouts.find((entry) => entry.id.toLowerCase() === selector.toLowerCase() || entry.name.toLowerCase() === selector.toLowerCase());
-        if (!layout) return { kind: "error", text: `Unknown layout "${selector}". Use /agent-live list layouts to see the available choices.` };
-        const result = await service.createFromLayout(layout.id, `Custom ${layout.name}`);
-        if (!result.saved) return { kind: "error", text: `Could not use ${layout.name}: ${result.errors.map((entry) => entry.message).join("; ")}` };
-        selectedOfficeProjection = { revision: Date.now(), content: sessionEventContent(await content.resolve(result.office.id)) };
-        currentOfficeProjection = selectedOfficeProjection;
-        commandOfficeProjections.set(String(invocation.commandId), selectedOfficeProjection);
-        modes.enter(sessionId);
-        return { kind: "success", text: `Created a basic custom office with ${layout.name}. Describe what to add, or use /agent-live exit when finished.` };
-      }
-      if (input) return { kind: "error", text: "Use /agent-live custom, /agent-live exit, /agent-live list presets, /agent-live preset <number or name>, /agent-live list layouts, or /agent-live layout <number or name>." };
+      if (input) return { kind: "error", text: "Use /agent-live custom, /agent-live exit, /agent-live list presets, or /agent-live preset <number or name>." };
       return { kind: "success", text: modes.isActive(sessionId) ? "Creator Mode is active. Use /agent-live exit to leave." : "Use /agent-live custom to start editing the office." };
     }
   });
