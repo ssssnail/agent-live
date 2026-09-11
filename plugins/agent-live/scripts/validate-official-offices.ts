@@ -12,6 +12,15 @@ const library = await loadComponentLibrary(contentRoot);
 const offices = await loadOfficialOffices(contentRoot);
 
 assert.deepEqual(offices.map((office) => office.id).sort(), ["builtin/boardroom-office", "builtin/old-school-office", "builtin/tech-open-office"]);
+assert.deepEqual(
+	Object.fromEntries(offices.map((office) => [office.id, office.name])),
+	{
+		"builtin/tech-open-office": "tech",
+		"builtin/boardroom-office": "meetingroom",
+		"builtin/old-school-office": "oldschool",
+	},
+	"official Office names must stay short and stable",
+);
 for (const office of offices) {
 	const result = validateOfficeSpec(office, library);
 	assert.equal(result.valid, true, `${office.id}: ${JSON.stringify(result.issues)}`);

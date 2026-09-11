@@ -16,9 +16,9 @@ const DEFAULT_PORT = Number(process.env.AGENT_LIVE_PI_PORT ?? 7788);
 const VIEWER_CLOSE_GRACE_MS = Number(process.env.AGENT_LIVE_VIEWER_CLOSE_GRACE_MS ?? 12_000);
 const VIEWER_PATH = "v2.html";
 const PRESETS = new Map([
-	["tech-open-office", "Tech 开放式办公室"],
-	["boardroom-office", "长形会议室"],
-	["old-school-office", "老式办公室"],
+	["tech-open-office", "tech"],
+	["boardroom-office", "meetingroom"],
+	["old-school-office", "oldschool"],
 ]);
 
 type Block = { type: string; text?: string; thinking?: string };
@@ -58,6 +58,7 @@ export default function (pi: ExtensionAPI) {
 	let runtime: AgentLiveRuntime | null = null;
 	let agents: AgentRegistry | null = null;
 	let creator: CreatorCommandRouter | null = null;
+	let creatorService: CreatorService | null = null;
 	let accessToken = "";
 	let closePromise: Promise<void> | null = null;
 	let bootPromise: Promise<void> | null = null;
@@ -89,7 +90,8 @@ export default function (pi: ExtensionAPI) {
 			agents = new AgentRegistry(state);
 			hasSeenViewer = false;
 			const content = await OfficeContentService.create();
-			creator = new CreatorCommandRouter(new CreatorService(content.registry, content.library));
+			creatorService = new CreatorService(content.registry, content.library);
+			creator = new CreatorCommandRouter(creatorService);
 			const creatorToken = randomBytes(24).toString("hex");
 			accessToken = creatorToken;
 			state.updateSession({
@@ -130,6 +132,7 @@ export default function (pi: ExtensionAPI) {
 			runtime = null;
 			agents = null;
 			creator = null;
+			creatorService = null;
 			const message = `Agent Live 启动失败: ${(err as Error).message}`;
 			if (ctx.hasUI) ctx.ui.notify(message, "error");
 			else console.error(message);
@@ -155,6 +158,7 @@ export default function (pi: ExtensionAPI) {
 		runtime = null;
 		agents = null;
 		creator = null;
+		creatorService = null;
 		accessToken = "";
 		delegated.clear();
 		closePromise = (async () => {
@@ -388,9 +392,10 @@ export default function (pi: ExtensionAPI) {
 	}
 
 	pi.registerCommand("agent-live", {
-		description: "打开 Agent Live 可视化 (demo | status | close | list presets | preset <number or name> | custom | exit)",
+		description: "打开 Agent Live 可视化 (demo | status | close | list presets | preset <number or exact name> | custom | exit)",
 		handler: async (args: string, ctx: any) => {
-			const sub = (args ?? "").trim().toLowerCase();
+			const raw = (args ?? "").trim().replace(/\s+/g, " ");
+			const sub = raw.toLowerCase();
 			const [command, value, ...rest] = sub.split(/\s+/).filter(Boolean);
 			if (command === "close") {
 				await shutdown();
@@ -416,27 +421,32 @@ export default function (pi: ExtensionAPI) {
 			const listPresets = () => {
 				ctx.ui.notify(`可用 Preset：${entries.map(([id, name], index) => `${index + 1}. ${id}（${name}）`).join("、")}`, "info");
 			};
-			const openPreset = (selector: string | undefined, extra: string[]) => {
+			const openPreset = async (selector: string | undefined) => {
 				if (!selector) {
 					listPresets();
 					return;
 				}
-				// Accept the listed number, the preset id, or its display name.
+				// Public selection is intentionally small: listed number or exact name.
 				const index = /^\d+$/.test(selector) ? Number(selector) - 1 : -1;
-				const selected = index >= 0 ? entries[index] : entries.find(([id, name]) => id === selector || name.toLowerCase() === selector);
-				if (extra.length || !selected) {
-					ctx.ui.notify(`未知 Preset：${[selector, ...extra].join(" ")}。输入 /agent-live list presets 查看可用选项。`, "error");
+				const selected = index >= 0 ? entries[index] : entries.find(([, name]) => name === selector);
+				if (!selected) {
+					ctx.ui.notify(`未知 Preset：${selector}。输入 /agent-live list presets 查看可用选项。`, "error");
 					return;
 				}
-				server!.open(viewerTarget({ preset: selected[0] }));
-				ctx.ui.notify(`已打开 ${selected[1]}；浏览器会记住这次选择`, "info");
+				const result = await creatorService?.selectOffice(`builtin/${selected[0]}`);
+				if (!result?.selected) {
+					ctx.ui.notify(`无法选择 ${selected[1]}：${result?.error ?? "Creator 未就绪"}`, "error");
+					return;
+				}
+				server!.open(viewerTarget());
+				ctx.ui.notify(`已选择 ${selected[1]}`, "info");
 			};
 			if (command === "list" && (value === "preset" || value === "presets")) {
 				listPresets();
 				return;
 			}
 			if (command === "preset") {
-				openPreset(value, rest);
+				await openPreset([value, ...rest].filter(Boolean).join(" ") || undefined);
 				return;
 			}
 		if (command === "custom") {
@@ -450,7 +460,7 @@ export default function (pi: ExtensionAPI) {
 			return;
 		}
 		if (command && command !== "open") {
-			ctx.ui.notify("用法：/agent-live [demo | status | close | list presets | preset <number or name> | custom | exit]", "error");
+			ctx.ui.notify("用法：/agent-live [demo | status | close | list presets | preset <number or exact name> | custom | exit]", "error");
 				return;
 			}
 			server.open(viewerTarget());

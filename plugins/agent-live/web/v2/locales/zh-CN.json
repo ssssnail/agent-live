@@ -43,6 +43,10 @@
 		"delegate.assign": "派活：{task}",
 		"config.error": "配置错误"
 	},
-	"text": {},
+	"text": {
+		"tech": "科技",
+		"meetingroom": "会议室",
+		"oldschool": "格子间"
+	},
 	"patterns": []
 }

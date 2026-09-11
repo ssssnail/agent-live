@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"kind": "office-spec",
 	"id": "builtin/tech-open-office",
-	"name": "Tech Open Office",
+	"name": "tech",
 	"origin": "official",
 	"layout": "builtin/tech-open-office",
 	"style": "builtin/pixel-classic",

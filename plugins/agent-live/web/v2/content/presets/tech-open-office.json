@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"kind": "preset",
 	"id": "builtin/tech-open-office",
-	"name": "Tech 开放式办公室",
+	"name": "tech",
 	"version": "1.0.0",
 	"engine": { "min": "0.2.0" },
 	"contract": "single-office-v1",

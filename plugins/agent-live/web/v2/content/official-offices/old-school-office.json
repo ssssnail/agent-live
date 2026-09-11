@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"kind": "office-spec",
 	"id": "builtin/old-school-office",
-	"name": "Old-school Office",
+	"name": "oldschool",
 	"origin": "official",
 	"layout": "builtin/old-school-office",
 	"style": "builtin/warm-studio",

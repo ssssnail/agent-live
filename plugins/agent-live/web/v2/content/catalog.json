@@ -2,9 +2,9 @@
 	"schemaVersion": 1,
 	"kind": "preset-catalog",
 	"presets": [
-		{ "id": "tech-open-office", "name": "Tech 开放式办公室" },
-		{ "id": "boardroom-office", "name": "长形会议室" },
-		{ "id": "old-school-office", "name": "老式办公室" },
+		{ "id": "tech-open-office", "name": "tech" },
+		{ "id": "boardroom-office", "name": "meetingroom" },
+		{ "id": "old-school-office", "name": "oldschool" },
 		{ "id": "refined-demo", "name": "Agent Live Demo", "visibility": "internal" },
 		{ "id": "demo-office", "name": "原版基准（Legacy）", "visibility": "internal" },
 		{ "id": "lively-office", "name": "有生活的像素办公室", "visibility": "internal" },

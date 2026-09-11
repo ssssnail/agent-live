@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"kind": "preset",
 	"id": "builtin/boardroom-office",
-	"name": "长形会议室",
+	"name": "meetingroom",
 	"version": "1.0.0",
 	"engine": { "min": "0.2.0" },
 	"contract": "single-office-v1",

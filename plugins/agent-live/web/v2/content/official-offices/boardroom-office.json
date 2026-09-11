@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"kind": "office-spec",
 	"id": "builtin/boardroom-office",
-	"name": "Boardroom Office",
+	"name": "meetingroom",
 	"origin": "official",
 	"layout": "builtin/boardroom-office",
 	"style": "builtin/pixel-classic",
