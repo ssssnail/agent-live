@@ -1053,7 +1053,7 @@ Never expose internal component ids, schemas, or patches unless the user explici
 
 An Office keeps its room. Map a request like "make me a police station" onto the closest complete Preset Office, then change its name, people, identities, furniture, style and activities. A brand-new room structure needs a new Office Preset, which is a source change \u2014 say so instead of swapping a room in place.
 
-The public commands are exactly: /agent-live list presets, /agent-live preset <number or name>, /agent-live custom, /agent-live exit.`;
+The public commands are exactly: /agent-live list presets, /agent-live preset <number or exact name>, /agent-live custom, /agent-live exit.`;
 function commandPayload(operation, args) {
   switch (operation) {
     case "list_offices":
@@ -1136,7 +1136,7 @@ async function registerCreator(ctx) {
         const selector = rawInput.slice(rawInput.indexOf(" ") + 1).trim();
         const offices = await service.listOffices();
         const index = /^\d+$/.test(selector) ? Number(selector) - 1 : -1;
-        const office = index >= 0 ? offices[index] : offices.find((entry) => entry.id.toLowerCase() === selector.toLowerCase() || entry.name.toLowerCase() === selector.toLowerCase());
+        const office = index >= 0 ? offices[index] : offices.find((entry) => entry.name.toLowerCase() === selector.toLowerCase());
         if (!office) return { kind: "error", text: `Unknown preset "${selector}". Use /agent-live list presets to see the available choices.` };
         const result = await service.selectOffice(office.id);
         if (!result.selected) return { kind: "error", text: result.error };
