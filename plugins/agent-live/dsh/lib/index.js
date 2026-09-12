@@ -70,8 +70,8 @@ var OFFICE_SPEC_DEFAULTS = Object.freeze({
   npcs: Object.freeze([]),
   activities: Object.freeze([])
 });
-var SPEC_KEYS = /* @__PURE__ */ new Set(["schemaVersion", "kind", "id", "name", "origin", "basePreset", "layout", "style", "agentSkin", "placements", "npcs", "activities", "atmosphere", "environment", "environmentOverrides", "agentProfile"]);
-var PATCH_KEYS = /* @__PURE__ */ new Set(["schemaVersion", "kind", "id", "base", "name", "components", "placements", "npcs", "activities", "environmentOverrides", "agentProfile"]);
+var SPEC_KEYS = /* @__PURE__ */ new Set(["schemaVersion", "kind", "id", "name", "origin", "basePreset", "layout", "style", "agentSkin", "placements", "npcs", "activities", "atmosphere", "environment", "environmentOverrides", "agentProfile", "texts"]);
+var PATCH_KEYS = /* @__PURE__ */ new Set(["schemaVersion", "kind", "id", "base", "name", "components", "placements", "npcs", "activities", "environmentOverrides", "agentProfile", "texts"]);
 var COMPONENT_KEYS = /* @__PURE__ */ new Set(["layout", "style", "agentSkin", "atmosphere", "environment"]);
 var PLACEMENT_KEYS = /* @__PURE__ */ new Set(["id", "component", "slot", "orientation"]);
 var NPC_KEYS = /* @__PURE__ */ new Set(["id", "template", "profile", "name", "title", "gender", "appearance", "spawn", "shift", "pose"]);
@@ -182,6 +182,14 @@ function validateEnvironment(value, path5, issues) {
     }
   }
 }
+function validateTexts(value, issues) {
+  if (!object2(value)) return issue(issues, "$.texts", "must be an object");
+  if (Object.keys(value).length > 8) issue(issues, "$.texts", "maximum 8 text areas");
+  for (const [key, text] of Object.entries(value)) {
+    if (!/^[a-z][a-z0-9-]*$/.test(key)) issue(issues, `$.texts.${key}`, "invalid text area id");
+    if (typeof text !== "string" || [...text].length > 120 || /[\r\n\u0000-\u001f]/.test(text)) issue(issues, `$.texts.${key}`, "must be single-line plain text of at most 120 characters");
+  }
+}
 function validateOfficeSpecShape(input) {
   const issues = [];
   if (!object2(input)) return [{ path: "$", message: "must be an object" }];
@@ -198,6 +206,7 @@ function validateOfficeSpecShape(input) {
   stringArray(input.activities, "$.activities", issues);
   if (input.environmentOverrides !== void 0) validateEnvironment(input.environmentOverrides, "$.environmentOverrides", issues);
   if (input.agentProfile !== void 0) validateAgentProfile(input.agentProfile, "$.agentProfile", issues);
+  if (input.texts !== void 0) validateTexts(input.texts, issues);
   return issues;
 }
 function validateCollectionPatch(value, path5, issues, itemValidator) {
@@ -240,6 +249,7 @@ function validateOfficePatchShape(input) {
   }
   if (input.environmentOverrides !== void 0 && input.environmentOverrides !== null) validateEnvironment(input.environmentOverrides, "$.environmentOverrides", issues);
   if (input.agentProfile !== void 0 && input.agentProfile !== null) validateAgentProfile(input.agentProfile, "$.agentProfile", issues);
+  if (input.texts !== void 0 && input.texts !== null) validateTexts(input.texts, issues);
   return issues;
 }
 
@@ -302,6 +312,14 @@ function layoutIssues(layout, propTypeNames) {
   if (!Array.isArray(layout.seats) || layout.seats.length !== 8) issues.push({ code: "invalid-layout-seats", path: "$.layout", message: "Demo Layout \u5FC5\u987B\u63D0\u4F9B 8 \u4E2A\u5EA7\u4F4D" });
   if (!Array.isArray(layout.navigation?.lanes) || !layout.navigation.lanes.length) issues.push({ code: "invalid-layout-navigation", path: "$.layout", message: "Layout \u7F3A\u5C11\u5BFC\u822A\u901A\u9053" });
   const propTypes = new Set(propTypeNames);
+  const textIds = /* @__PURE__ */ new Set();
+  if (layout.textSlots !== void 0 && (!Array.isArray(layout.textSlots) || layout.textSlots.length > 8)) {
+    issues.push({ code: "invalid-text-slots", path: "$.layout.textSlots", message: "maximum 8 text areas" });
+  } else for (const slot of layout.textSlots ?? []) {
+    const valid = slot && typeof slot.id === "string" && /^[a-z][a-z0-9-]*$/.test(slot.id) && !textIds.has(slot.id) && [slot.x, slot.y, slot.width, slot.height, slot.maxLength].every(Number.isFinite) && slot.x >= 0 && slot.y >= 0 && slot.width >= 12 && slot.height >= 9 && slot.x + slot.width <= 384 && slot.y + slot.height <= 216 && slot.maxLength >= 1 && slot.maxLength <= 120 && [slot.text, slot.defaultText].every((text) => text === void 0 || typeof text === "string" && [...text].length <= slot.maxLength);
+    if (!valid) issues.push({ code: "invalid-text-slot", path: "$.layout.textSlots", message: "invalid, duplicate or out-of-bounds text area" });
+    if (slot?.id) textIds.add(slot.id);
+  }
   const propInstances = /* @__PURE__ */ new Set();
   for (const instance of layout.propInstances ?? []) {
     if (!propTypes.has(instance?.type)) issues.push({ code: "unknown-layout-prop", path: "$.layout.propInstances", message: `\u672A\u77E5 Prop Type\uFF1A${instance?.type}` });
@@ -426,6 +444,11 @@ function validateOfficeSpec(spec, library) {
   const layout = library.layouts.get(value.layout);
   if (!layout) return { valid: false, issues };
   validateLayoutContract(layout, library, issues);
+  for (const [id, text] of Object.entries(value.texts ?? {})) {
+    const slot = (layout.textSlots ?? []).find((entry) => entry.id === id);
+    if (!slot) add(issues, "unknown-text-area", `$.texts.${id}`, `unknown text area ${id}`);
+    else if ([...text].length > slot.maxLength) add(issues, "text-too-long", `$.texts.${id}`, `maximum ${slot.maxLength} characters`);
+  }
   const slots = new Map((layout.placementSlots ?? []).map((slot) => [slot.id, slot]));
   const placementIds = /* @__PURE__ */ new Set();
   const occupiedSlots = /* @__PURE__ */ new Set();
@@ -467,7 +490,8 @@ function validateOfficeSpec(spec, library) {
   if (value.npcs.length > SCENE_LIMITS.npcs) add(issues, "too-many-npcs", "$.npcs", `maximum ${SCENE_LIMITS.npcs} NPCs`);
   const activities = /* @__PURE__ */ new Set();
   const propInstances = /* @__PURE__ */ new Map();
-  for (const instance of layout.propInstances ?? []) propInstances.set(instance.id, instance.type);
+  const replaceableIds = new Set((layout.placementSlots ?? []).map((slot) => slot.occupiedBy).filter(Boolean));
+  for (const instance of layout.propInstances ?? []) if (!replaceableIds.has(instance.id)) propInstances.set(instance.id, instance.type);
   for (const placement of value.placements) propInstances.set(placement.id, placement.component.replace(/^(builtin|local)\//, ""));
   const capabilitiesOf = (type) => {
     const prop = library.props.get(`builtin/${type}`) ?? library.props.get(`local/${type}`) ?? library.props.get(type);
@@ -625,6 +649,7 @@ function compileOfficePatch(base, patchInput, library) {
     activities: truncate([...activities], SCENE_LIMITS.activities, "$.activities", adjustments),
     atmosphere: components.atmosphere ?? base.atmosphere,
     environment: components.environment ?? base.environment,
+    ...patch.texts === null ? {} : base.texts || patch.texts ? { texts: { ...base.texts, ...patch.texts } } : {},
     ...patch.environmentOverrides === null ? {} : patch.environmentOverrides || base.environmentOverrides ? { environmentOverrides: mergeEnvironment(base.environmentOverrides, patch.environmentOverrides ?? {}) } : {},
     ...patch.agentProfile === null ? {} : patch.agentProfile || base.agentProfile ? { agentProfile: { ...base.agentProfile ?? OFFICE_SPEC_DEFAULTS.agentProfile, ...patch.agentProfile ?? {}, appearance: { ...base.agentProfile?.appearance ?? {}, ...patch.agentProfile?.appearance ?? {} } } } : {}
   };
@@ -637,13 +662,14 @@ function roomView(library, office) {
   const layout = library.layouts.get(office.layout);
   if (!layout) return null;
   const occupants = /* @__PURE__ */ new Map();
-  for (const slot of layout.placementSlots ?? []) occupants.set(slot.id, slot.occupiedBy ?? null);
+  for (const slot of layout.placementSlots ?? []) occupants.set(slot.id, null);
   for (const placement of office.placements) occupants.set(placement.slot, placement.id);
   return {
     name: layout.name,
     zones: (layout.zones ?? []).map((zone) => ({ id: zone.id, name: zone.name, x: zone.x, y: zone.y, width: zone.width, height: zone.height })),
     slots: (layout.placementSlots ?? []).map((slot) => ({ id: slot.id, zone: slot.zone, accepts: slot.accepts ?? [], maxSize: slot.maxSize, occupiedBy: occupants.get(slot.id) ?? null })),
     npcSpawns: layout.npcSpawns ?? [],
+    textSlots: (layout.textSlots ?? []).map((slot) => ({ id: slot.id, name: slot.name, maxLength: slot.maxLength, text: office.texts?.[slot.id] ?? slot.defaultText ?? "" })),
     placements: office.placements.map((placement) => ({ id: placement.id, component: placement.component, slot: placement.slot, ...placement.orientation ? { orientation: placement.orientation } : {} }))
   };
 }
@@ -821,7 +847,10 @@ var OfficeRegistry = class {
         console.warn(`Agent Live ignored invalid custom office ${file}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
-    return entries.sort((a, b) => a.origin.localeCompare(b.origin) || a.name.localeCompare(b.name));
+    return [
+      ...entries.filter((entry) => entry.origin === "official"),
+      ...entries.filter((entry) => entry.origin === "custom").sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
+    ];
   }
   async get(id) {
     const official = this.#official.get(id);
@@ -911,6 +940,7 @@ async function asset(contentRoot, family, id, suffix = "") {
 async function resolveRuntimeContent(spec, contentRoot, library) {
   const layout = structuredClone(library.layouts.get(spec.layout));
   if (!layout) throw new Error(`unknown layout ${spec.layout}`);
+  layout.textSlots = (layout.textSlots ?? []).map((slot) => ({ ...slot, text: spec.texts?.[slot.id] ?? slot.defaultText ?? "" }));
   const officialId = short(spec.layout);
   const scaffold = await readJson2(path3.join(contentRoot, "presets", `${officialId}.json`));
   const [style, agentSkin, atmosphere, environment] = await Promise.all([
@@ -1008,6 +1038,9 @@ var OfficeContentService = class _OfficeContentService {
   }
   list() {
     return this.registry.list();
+  }
+  select(id) {
+    return this.registry.select(id);
   }
   async resolve(id) {
     const office = id ? await this.registry.get(id) : await this.registry.selected();
@@ -1126,7 +1159,8 @@ async function registerCreator(ctx) {
       }
       if (input === "list preset" || input === "list presets") {
         const offices = await service.listOffices();
-        const lines = offices.map((office, index) => `${index + 1}. ${office.name}${office.selected ? " (selected)" : ""}`);
+        const lines = offices.map((office, index) => `${index + 1}. ${office.name}${office.selected ? " (selected)" : ""}
+   /agent-live preset ${index + 1}`);
         const officialCount = offices.filter((office) => office.origin === "official").length;
         lines.splice(officialCount, 0, ...officialCount < offices.length ? ["", "Custom Offices:"] : []);
         lines.unshift("Preset Offices:");
@@ -1136,7 +1170,8 @@ async function registerCreator(ctx) {
         const selector = rawInput.slice(rawInput.indexOf(" ") + 1).trim();
         const offices = await service.listOffices();
         const index = /^\d+$/.test(selector) ? Number(selector) - 1 : -1;
-        const office = index >= 0 ? offices[index] : offices.find((entry) => entry.name.toLowerCase() === selector.toLowerCase());
+        const matches = offices.filter((entry) => entry.name.toLowerCase() === selector.toLowerCase());
+        const office = index >= 0 ? offices[index] : matches.length === 1 ? matches[0] : void 0;
         if (!office) return { kind: "error", text: `Unknown preset "${selector}". Use /agent-live list presets to see the available choices.` };
         const result = await service.selectOffice(office.id);
         if (!result.selected) return { kind: "error", text: result.error };

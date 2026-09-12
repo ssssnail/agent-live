@@ -10,6 +10,7 @@ export declare class OfficeContentService {
         contentRoot?: string;
     }): Promise<OfficeContentService>;
     list(): Promise<import("../content/registry.ts").RegistryEntry[]>;
+    select(id: string): Promise<void>;
     resolve(id?: string): Promise<{
         preset: Record<string, unknown>;
         style: any;

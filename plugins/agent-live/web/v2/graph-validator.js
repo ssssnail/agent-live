@@ -93,6 +93,23 @@ export function layoutIssues(layout, propTypeNames) {
     if (!Array.isArray(layout.navigation?.lanes) || !layout.navigation.lanes.length)
         issues.push({ code: "invalid-layout-navigation", path: "$.layout", message: "Layout 缺少导航通道" });
     const propTypes = new Set(propTypeNames);
+    const textIds = new Set();
+    if (layout.textSlots !== undefined && (!Array.isArray(layout.textSlots) || layout.textSlots.length > 8)) {
+        issues.push({ code: "invalid-text-slots", path: "$.layout.textSlots", message: "maximum 8 text areas" });
+    }
+    else
+        for (const slot of layout.textSlots ?? []) {
+            const valid = slot && typeof slot.id === "string" && /^[a-z][a-z0-9-]*$/.test(slot.id) && !textIds.has(slot.id)
+                && [slot.x, slot.y, slot.width, slot.height, slot.maxLength].every(Number.isFinite)
+                && slot.x >= 0 && slot.y >= 0 && slot.width >= 12 && slot.height >= 9
+                && slot.x + slot.width <= 384 && slot.y + slot.height <= 216
+                && slot.maxLength >= 1 && slot.maxLength <= 120
+                && [slot.text, slot.defaultText].every((text) => text === undefined || typeof text === "string" && [...text].length <= slot.maxLength);
+            if (!valid)
+                issues.push({ code: "invalid-text-slot", path: "$.layout.textSlots", message: "invalid, duplicate or out-of-bounds text area" });
+            if (slot?.id)
+                textIds.add(slot.id);
+        }
     const propInstances = new Set();
     for (const instance of layout.propInstances ?? []) {
         if (!propTypes.has(instance?.type))

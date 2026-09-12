@@ -87,6 +87,8 @@ export interface OfficeSpec {
     environment: string;
     agentProfile?: AgentProfile;
     environmentOverrides?: EnvironmentOverrides;
+    /** Plain text for named, fixed display areas; empty text hides an area. */
+    texts?: Record<string, string>;
 }
 export interface OfficePatch {
     schemaVersion: typeof OFFICE_SPEC_SCHEMA_VERSION;
@@ -114,6 +116,7 @@ export interface OfficePatch {
     };
     environmentOverrides?: EnvironmentOverrides | null;
     agentProfile?: AgentProfile | null;
+    texts?: Record<string, string> | null;
 }
 export interface OfficeSeed {
     schemaVersion: typeof OFFICE_SPEC_SCHEMA_VERSION;

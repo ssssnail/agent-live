@@ -27,6 +27,7 @@ export declare class CreatorService {
             zones: any;
             slots: any;
             npcSpawns: any;
+            textSlots: any;
             placements: {
                 orientation?: "horizontal" | "vertical" | undefined;
                 id: string;
