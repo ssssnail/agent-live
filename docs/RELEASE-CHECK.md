@@ -4,6 +4,8 @@ The current development target is 0.3.0, not a published release. Keep CHANGELOG
 
 Run npm run check:ci for deterministic contract, types, builds and package validation. Run npm run test:integration:codex separately on a machine with a configured Codex CLI; it creates an ephemeral test thread and the session test sends one small model request, so it is intentionally not a public-PR CI requirement. Failures must be recorded, not treated as an automatic pass.
 
+Run `node scripts/browser-smoke.mjs` when Playwright and its Chromium browser are available. You may set PLAYWRIGHT_MODULE to an existing Playwright module file and BROWSER_EXECUTABLE to an existing Chrome binary. This optional check uses temporary data and an ephemeral local port, tests all three rooms with signage and extra furniture, verifies selection/reopen, and cleans up its browser and service. It never calls a model or changes a real user Office.
+
 For each official host, record the host version and validate this user path before a release:
 
 1. Install from the intended distribution source into a disposable host profile.
