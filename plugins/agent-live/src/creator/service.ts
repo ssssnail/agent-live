@@ -12,13 +12,14 @@ function roomView(library: ComponentLibraryView, office: OfficeSpec) {
 	const layout = library.layouts.get(office.layout);
 	if (!layout) return null;
 	const occupants = new Map<string, string | null>();
-	for (const slot of layout.placementSlots ?? []) occupants.set(slot.id, slot.occupiedBy ?? null);
+	for (const slot of layout.placementSlots ?? []) occupants.set(slot.id, null);
 	for (const placement of office.placements) occupants.set(placement.slot, placement.id);
 	return {
 		name: layout.name,
 		zones: (layout.zones ?? []).map((zone: any) => ({ id: zone.id, name: zone.name, x: zone.x, y: zone.y, width: zone.width, height: zone.height })),
 		slots: (layout.placementSlots ?? []).map((slot: any) => ({ id: slot.id, zone: slot.zone, accepts: slot.accepts ?? [], maxSize: slot.maxSize, occupiedBy: occupants.get(slot.id) ?? null })),
 		npcSpawns: layout.npcSpawns ?? [],
+		textSlots: (layout.textSlots ?? []).map((slot: any) => ({ id: slot.id, name: slot.name, maxLength: slot.maxLength, text: office.texts?.[slot.id] ?? slot.defaultText ?? "" })),
 		placements: office.placements.map((placement) => ({ id: placement.id, component: placement.component, slot: placement.slot, ...(placement.orientation ? { orientation: placement.orientation } : {}) })),
 	};
 }

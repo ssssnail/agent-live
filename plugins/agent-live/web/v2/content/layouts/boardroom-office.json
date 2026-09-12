@@ -17,7 +17,11 @@
 		{ "id": "service-right", "name": "AV & Water Service", "x": 302, "y": 60, "width": 72, "height": 150 },
 		{ "id": "circulation", "name": "Meeting Room Circulation", "x": 0, "y": 54, "width": 384, "height": 162 }
 	],
-	"placementSlots": [
+	"textSlots": [{"id":"company","name":"Company name / text logo","x":125,"y":11,"width":132,"height":12,"maxLength":24,"defaultText":""},{"id":"notice","name":"Notice","x":125,"y":27,"width":132,"height":12,"maxLength":48,"defaultText":""},{"id":"slogan","name":"Area slogan","x":18,"y":128,"width":52,"height":11,"maxLength":48,"defaultText":""}],
+		"placementSlots": [
+		{"id":"extra-1","zone":"circulation","x":14,"y":111,"accepts":["plant"],"maxSize":{"width":14,"height":22},"required":false},
+		{"id":"extra-2","zone":"circulation","x":362,"y":117,"accepts":["plant"],"maxSize":{"width":14,"height":22},"required":false},
+		{"id":"extra-3","zone":"circulation","x":306,"y":121,"accepts":["water-cooler","vending-machine"],"maxSize":{"width":18,"height":28},"required":false},
 		{ "id": "front-decoration-left", "zone": "presentation", "x": 91, "y": 69, "accepts": ["plant"], "maxSize": { "width": 14, "height": 22 }, "required": false, "occupiedBy": "plant-front-left" },
 		{ "id": "front-decoration-right", "zone": "presentation", "x": 295, "y": 69, "accepts": ["plant"], "maxSize": { "width": 14, "height": 22 }, "required": false, "occupiedBy": "plant-front-right" },
 		{ "id": "left-refreshment", "zone": "service-left", "x": 48, "y": 105, "accepts": ["coffee-machine"], "maxSize": { "width": 26, "height": 22 }, "required": false, "occupiedBy": "coffee-main" },
@@ -51,6 +55,7 @@
 		{ "x": 272, "y": 60, "dir": "down", "lane": 0, "zone": "circulation" }
 	],
 	"targets": {
+		"staff-entry": {"x":10,"y":60,"dir":"right","lane":0,"zone":"top"},
 		"archive": { "x": 68, "y": 184, "dir": "left", "lane": 3 },
 		"server": { "x": 336, "y": 111, "dir": "up", "lane": 1 },
 		"whiteboard": { "x": 50, "y": 116, "dir": "up", "lane": 1 },
@@ -113,5 +118,5 @@
 		{ "id": "plant-front-right", "type": "plant", "x": 295, "y": 69 },
 		{ "id": "wall-clock", "type": "office-clock", "x": 362, "y": 8 }
 	],
-	"npcSpawns": ["boss-seat", "secretary-entry", "service-entry"]
+	"npcSpawns": ["staff-entry", "boss-seat", "secretary-entry", "service-entry"]
 }

@@ -86,6 +86,11 @@ export function validateOfficeSpec(spec: unknown, library: ComponentLibraryView)
 	const layout = library.layouts.get(value.layout);
 	if (!layout) return { valid: false, issues };
 	validateLayoutContract(layout, library, issues);
+	for (const [id, text] of Object.entries(value.texts ?? {})) {
+		const slot = (layout.textSlots ?? []).find((entry: any) => entry.id === id);
+		if (!slot) add(issues, "unknown-text-area", `$.texts.${id}`, `unknown text area ${id}`);
+		else if ([...text].length > slot.maxLength) add(issues, "text-too-long", `$.texts.${id}`, `maximum ${slot.maxLength} characters`);
+	}
 	const slots = new Map((layout.placementSlots ?? []).map((slot: any) => [slot.id, slot]));
 	const placementIds = new Set<string>();
 	const occupiedSlots = new Set<string>();
@@ -130,7 +135,8 @@ export function validateOfficeSpec(spec: unknown, library: ComponentLibraryView)
 	const activities = new Set<string>();
 	// Instance table for activity requirements: layout built-ins plus this office's placements.
 	const propInstances = new Map<string, string>();
-	for (const instance of layout.propInstances ?? []) propInstances.set(instance.id, instance.type);
+	const replaceableIds = new Set((layout.placementSlots ?? []).map((slot: any) => slot.occupiedBy).filter(Boolean));
+	for (const instance of layout.propInstances ?? []) if (!replaceableIds.has(instance.id)) propInstances.set(instance.id, instance.type);
 	for (const placement of value.placements) propInstances.set(placement.id, placement.component.replace(/^(builtin|local)\//, ""));
 	const capabilitiesOf = (type: string): readonly string[] => {
 		const prop = library.props.get(`builtin/${type}`) ?? library.props.get(`local/${type}`) ?? library.props.get(type);

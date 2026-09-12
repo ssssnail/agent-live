@@ -178,9 +178,9 @@ Office Spec 是 Preset 与 Custom Office 共用的最终组装合同。目标形
 运行 `/agent-live custom` 后，宿主 Agent 会根据描述选择最接近的 Preset Office 作为起点：
 
 ```text
-Tech 开放式办公室
-长形会议室
-老式办公室
+tech（科技）
+meetingroom（会议室）
+oldschool（格子间）
 你的 Custom Office
 ```
 

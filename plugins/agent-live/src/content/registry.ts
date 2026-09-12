@@ -67,7 +67,10 @@ export class OfficeRegistry {
 				console.warn(`Agent Live ignored invalid custom office ${file}: ${error instanceof Error ? error.message : String(error)}`);
 			}
 		}
-		return entries.sort((a, b) => a.origin.localeCompare(b.origin) || a.name.localeCompare(b.name));
+		return [
+			...entries.filter((entry) => entry.origin === "official"),
+			...entries.filter((entry) => entry.origin === "custom").sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id)),
+		];
 	}
 
 	async get(id: string): Promise<OfficeSpec | undefined> {

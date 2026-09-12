@@ -25,9 +25,13 @@ try {
 	const changed = await fetch(`${server.url}/api/creator`, { method: "POST", headers: { "content-type": "application/json", "x-agent-live-token": "test-token" }, body: JSON.stringify(request) }).then((response) => response.json());
 	assert.equal(changed.ok, true);
 	assert.equal((await content.registry.selected()).id, "local/browser-test");
-	const graph = await fetch(`${server.url}/api/office-content?id=${encodeURIComponent("local/browser-test")}`).then((response) => response.json());
+	for (const endpoint of ["/api/offices", "/api/office-content", "/api/content-events"]) assert.equal((await fetch(server.url + endpoint)).status, 403);
+	const graph = await fetch(`${server.url}/api/office-content?id=${encodeURIComponent("local/browser-test")}`, { headers: { "x-agent-live-token": "test-token" } }).then((response) => response.json());
 	assert.equal(graph.preset.id, "local/browser-test");
 	assert.equal(graph.layout.propInstances.some((entry: any) => entry.id === "plant-1"), false);
-	assert.equal((await fetch(`${server.url}/api/office-content?id=local%2Fmissing`)).status, 404);
+	assert.equal((await fetch(`${server.url}/api/office-content?id=local%2Fmissing`, { headers: { "x-agent-live-token": "test-token" } })).status, 404);
+	const selection = await fetch(server.url + "/api/office-selection", { method: "POST", headers: { "x-agent-live-token": "test-token", "content-type": "application/json" }, body: JSON.stringify({ id: "builtin/boardroom-office" }) });
+	assert.equal(selection.status, 200);
+	assert.equal((await content.registry.selected()).name, "meetingroom");
 	console.log("custom office runtime: authenticated direct customization and renderable saved content passed");
 } finally { await runtime?.close(); await rm(dataRoot, { recursive: true, force: true }); }

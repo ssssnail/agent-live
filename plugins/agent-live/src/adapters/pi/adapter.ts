@@ -15,11 +15,6 @@ const PI_CREATOR_SESSION = "pi-current-session";
 const DEFAULT_PORT = Number(process.env.AGENT_LIVE_PI_PORT ?? 7788);
 const VIEWER_CLOSE_GRACE_MS = Number(process.env.AGENT_LIVE_VIEWER_CLOSE_GRACE_MS ?? 12_000);
 const VIEWER_PATH = "v2.html";
-const PRESETS = new Map([
-	["tech-open-office", "tech"],
-	["boardroom-office", "meetingroom"],
-	["old-school-office", "oldschool"],
-]);
 
 type Block = { type: string; text?: string; thinking?: string };
 
@@ -417,9 +412,9 @@ export default function (pi: ExtensionAPI) {
 				ctx.ui.notify("已打开演示场景", "info");
 				return;
 			}
-			const entries = [...PRESETS.entries()];
+			const entries = await creatorService!.listOffices();
 			const listPresets = () => {
-				ctx.ui.notify(`可用 Preset：${entries.map(([id, name], index) => `${index + 1}. ${id}（${name}）`).join("、")}`, "info");
+				ctx.ui.notify(entries.map((office, index) => `${index + 1}. ${office.name}${office.selected ? " (selected)" : ""}\n   /agent-live preset ${index + 1}`).join("\n") + "\n也可以使用完整名称，例如 /agent-live preset tech", "info");
 			};
 			const openPreset = async (selector: string | undefined) => {
 				if (!selector) {
@@ -428,18 +423,20 @@ export default function (pi: ExtensionAPI) {
 				}
 				// Public selection is intentionally small: listed number or exact name.
 				const index = /^\d+$/.test(selector) ? Number(selector) - 1 : -1;
-				const selected = index >= 0 ? entries[index] : entries.find(([, name]) => name === selector);
+				const matches = entries.filter((office) => office.name.toLowerCase() === selector);
+				const selected = index >= 0 ? entries[index] : matches.length === 1 ? matches[0] : undefined;
 				if (!selected) {
 					ctx.ui.notify(`未知 Preset：${selector}。输入 /agent-live list presets 查看可用选项。`, "error");
 					return;
 				}
-				const result = await creatorService?.selectOffice(`builtin/${selected[0]}`);
+				const result = await creatorService?.selectOffice(selected.id);
 				if (!result?.selected) {
-					ctx.ui.notify(`无法选择 ${selected[1]}：${result?.error ?? "Creator 未就绪"}`, "error");
+					ctx.ui.notify(`无法选择 ${selected.name}：${result?.error ?? "Creator 未就绪"}`, "error");
 					return;
 				}
 				server!.open(viewerTarget());
-				ctx.ui.notify(`已选择 ${selected[1]}`, "info");
+				creatorModes.exit(PI_CREATOR_SESSION);
+				ctx.ui.notify(`已选择 ${selected.name}。Creator Mode 已退出。`, "info");
 			};
 			if (command === "list" && (value === "preset" || value === "presets")) {
 				listPresets();

@@ -185,7 +185,7 @@ Environment 集中管理跨 Preset 的现实规则：
 - **共享固定 Runtime**：`plugins/agent-live/web/app.js` 仍由原版和 V2 共用，负责 SSE、状态机、移动、气泡、交接、侧栏与动画循环。
 - **工作事实层**：`plugins/agent-live/src/core/protocol.ts`、`plugins/agent-live/src/core/mapping.ts` 和 `plugins/agent-live/src/core/state.ts` 负责 Work Event、工具映射和会话状态，不属于可替换内容。
 
-八类内容已经按目录拆分到 `plugins/agent-live/web/v2/content/`。当前对用户开放三套正式 Preset（Tech 开放式办公室、长桌会议室、老式办公室），另保留五套内部回归内容；共有两套 Style 和五套 Layout。当前文件仍是按场景组合的过渡 registry，还没有完成唯一 Component Library、Placement Slot 和 Office Spec Compiler 的迁移。饮水、保洁与支持人员的本地 Life Activity 已经跑通，真实 Work Event 仍可立即打断 Agent 的生活行为。
+八类内容已经按目录拆分到 `plugins/agent-live/web/v2/content/`。当前对用户开放三套正式 Preset（tech（科技）、meetingroom（会议室）、oldschool（格子间）），另保留五套内部回归内容；共有两套 Style 和五套 Layout。正式 Office 已通过统一 Component Library、Placement Slot 和 Office Spec Compiler 组装与校验。饮水、保洁与支持人员的本地 Life Activity 已经跑通，真实 Work Event 仍可立即打断 Agent 的生活行为。
 
 新增的两套空间组织已经进入正式 V2 入口：
 

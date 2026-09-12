@@ -50,6 +50,7 @@ export interface OfficeContentControls {
 	list(): Promise<unknown>;
 	resolve(id?: string): Promise<unknown>;
 	subscribe?(listener: (change: unknown) => void): () => void;
+	select?(id: string): Promise<unknown>;
 }
 
 export interface CreatorControls {
@@ -83,7 +84,7 @@ export async function startServer(
 			json(res, 403, { error: "local requests only" });
 			return;
 		}
-		if (accessToken && ["/events", "/api/state", "/api/client/status"].includes(url.pathname) && !hasToken(req, url, accessToken)) {
+		if (accessToken && (url.pathname === "/events" || url.pathname.startsWith("/api/") && url.pathname !== "/api/scene-limits") && !hasToken(req, url, accessToken)) {
 			json(res, 403, { error: "forbidden" });
 			return;
 		}
@@ -126,6 +127,18 @@ export async function startServer(
 
 		if (options.content && url.pathname === "/api/offices" && req.method === "GET") {
 			void options.content.list().then((value) => json(res, 200, value), (error) => json(res, 500, { error: (error as Error).message }));
+			return;
+		}
+
+		if (options.content?.select && url.pathname === "/api/office-selection" && req.method === "POST") {
+			if (!accessToken || req.headers["x-agent-live-token"] !== accessToken) {
+				json(res, 403, { error: "forbidden" });
+				return;
+			}
+			void readJson(req).then((body) => options.content!.select!(String(body.id ?? ""))).then(
+				(value) => json(res, 200, value ?? { ok: true }),
+				(error) => json(res, 400, { error: (error as Error).message }),
+			);
 			return;
 		}
 

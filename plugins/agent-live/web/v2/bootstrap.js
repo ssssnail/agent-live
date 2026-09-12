@@ -16,11 +16,13 @@ const CONTENT_ROOT = "/v2/content";
 const DEFAULT_PRESET = "tech-open-office";
 const PRESET_STORAGE_KEY = "agent-live:selected-preset";
 let officeApiAvailable;
+const token = new URLSearchParams(location.search).get("token") ?? "";
+const apiFetch = (url, options = {}) => fetch(url, { cache: "no-store", ...options, headers: { ...options.headers, ...(token ? { "x-agent-live-token": token } : {}) } });
 
 async function hasOfficeApi() {
 	if (officeApiAvailable !== undefined) return officeApiAvailable;
 	try {
-		officeApiAvailable = (await fetch("/api/offices", { cache: "no-store" })).ok;
+		officeApiAvailable = (await apiFetch("/api/offices")).ok;
 	} catch {
 		officeApiAvailable = false;
 	}
@@ -80,7 +82,7 @@ async function loadPreset(presetId, limits) {
 async function loadOffice(officeId, limits) {
 	const params = new URLSearchParams();
 	if (officeId) params.set("id", officeId);
-	const response = await fetch(`/api/office-content?${params}`, { cache: "no-store" });
+	const response = await apiFetch(`/api/office-content?${params}`);
 	if (!response.ok) {
 		const body = await response.json().catch(() => ({}));
 		throw new Error(body.error ?? `Unable to load office ${officeId}`);
@@ -98,7 +100,7 @@ async function loadOfficialOffice(presetId, limits) {
 
 function installContentReload(query) {
 	const officeId = query.get("office");
-	const events = new EventSource("/api/content-events");
+	const events = new EventSource("/api/content-events?" + new URLSearchParams({ token }));
 	events.onmessage = (event) => {
 		const change = JSON.parse(event.data);
 		if (change.type !== "office" || !change.officeId) return;
@@ -164,7 +166,7 @@ async function installPresetPicker(selectedId) {
 	let items = catalog.presets.filter((entry) => entry.visibility !== "internal" || entry.id === selectedId).map((entry) => ({ ...entry, value: `builtin/${entry.id}` }));
 	try {
 		if (!await hasOfficeApi()) throw new Error("office API unavailable");
-		const response = await fetch("/api/offices", { cache: "no-store" });
+		const response = await apiFetch("/api/offices");
 		if (response.ok) {
 			const offices = await response.json();
 			for (const office of offices.filter((entry) => entry.origin === "custom")) items.push({ id: office.id, value: office.id, name: office.name });
@@ -179,7 +181,19 @@ async function installPresetPicker(selectedId) {
 		option.selected = item.value === selectedId;
 		select.appendChild(option);
 	}
-	select.addEventListener("change", () => {
+	select.addEventListener("change", async () => {
+		if (token && await hasOfficeApi()) {
+			select.disabled = true;
+			try {
+				const response = await apiFetch("/api/office-selection", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: select.value }) });
+				if (!response.ok) throw new Error("Unable to select office");
+				const next = new URL(location.href);
+				next.searchParams.delete("preset");
+				next.searchParams.delete("office");
+				location.replace(next);
+			} catch (error) { select.disabled = false; showBootError(error); }
+			return;
+		}
 		const query = new URLSearchParams(location.search);
 		if (select.value.startsWith("local/")) {
 			query.set("office", select.value);
@@ -234,7 +248,10 @@ try {
 	let presetId = requestedPreset ?? storedPreset ?? DEFAULT_PRESET;
 	let content;
 	let selectedId;
-	if (requestedOffice) {
+	if (!requestedOffice && !requestedPreset && await hasOfficeApi()) {
+		content = await loadOffice(undefined, window.SceneLimits);
+		selectedId = content.preset.id;
+	} else if (requestedOffice) {
 		if (!await hasOfficeApi()) throw new Error("Custom Offices require the Agent Live local runtime");
 		content = await loadOffice(requestedOffice, window.SceneLimits);
 		selectedId = requestedOffice;

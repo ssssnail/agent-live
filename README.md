@@ -101,7 +101,7 @@ dsh plugin --profile web add ./plugins/agent-live/dsh
 npm run preview      # 然后打开 http://localhost:7788/?demo=1
 ```
 
-原版 Demo 永久保留在 `/?demo=1`。基于可替换内容架构的入口位于 `/v2.html?demo=1`；顶部 Preset 选择器提供 Tech 开放式办公室、长形会议室和老式办公室，旧原型与回归组合保留为内部内容。V2 使用自己的办公室与角色 renderer，只与原版共用固定的 `plugins/agent-live/web/app.js` Runtime。后续视觉和内容调整只在新版入口继续。
+原版 Demo 永久保留在 `/?demo=1`。基于可替换内容架构的入口位于 `/v2.html?demo=1`；顶部 Preset 选择器提供 tech（科技）、meetingroom（会议室）和oldschool（格子间），旧原型与回归组合保留为内部内容。V2 使用自己的办公室与角色 renderer，只与原版共用固定的 `plugins/agent-live/web/app.js` Runtime。后续视觉和内容调整只在新版入口继续。
 
 正式 Preset 共用本地 Environment 配置：时间取用户本地时钟，窗外支持 `clear/cloudy/rain/snow`，室内灯光按时段变化，NPC 默认 06:00 上班、18:00 下班。核心不会主动访问天气服务；宿主可用 `?weather=rain` 或 `window.OfficeEnvironment.update({ weather: "rain" })` 注入外部天气。
 
@@ -210,7 +210,7 @@ npm run validate:office-engine
 
 ## 已知限制 / 下一步
 
-- 当前产品选择器提供 Tech 开放式办公室、长形会议室和老式办公室三个正式 Preset；实验和回归 Preset 仍保留为内部内容。新 Layout 需遵守单层、同屏的 `single-office-v1` 合同；Agent 上限为 16，座位上限为 8，无座位 Agent 仍可在场景中活动。
+- 当前产品选择器提供 tech（科技）、meetingroom（会议室）和oldschool（格子间）三个正式 Preset；实验和回归 Preset 仍保留为内部内容。新 Layout 需遵守单层、同屏的 `single-office-v1` 合同；Agent 上限为 16，座位上限为 8，无座位 Agent 仍可在场景中活动。
 - 小人仍是程序化绘制；Agent Skin 数据已经独立，未来可以在不改 Runtime 的前提下替换为精灵图。
 - 子 agent 的进度依赖委派工具在 `details.results` 里回传消息，字段名换了就只能看到状态不看到细节。
 - 当前回放只覆盖本次本地 Runtime 内存中的历史；尚未实现跨会话 Agent Diary。多个 Pi 会话会各占一个端口，页面各看各的。

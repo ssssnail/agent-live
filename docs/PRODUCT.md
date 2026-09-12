@@ -218,7 +218,7 @@ npm run preview   # 然后打开 http://localhost:7788/?demo=1
 | --- | --- | --- |
 | 已完成 | V2 配置化复刻 | 原版 Demo 冻结；八类内容与 Preset 已拆分，并由 V2 原生 renderer 1:1 复现 |
 | 已完成 | Office Life 纵向切片 | 已加入饮水机、保洁 / 支持 NPC、接水与巡检，并验证空闲触发和真实工作抢占 |
-| 已完成 | 三套正式 Preset | Tech 开放式办公室、长桌会议室、老式办公室已完成；另保留内部回归 Preset |
+| 已完成 | 三套正式 Preset | tech（科技）、meetingroom（会议室）、oldschool（格子间）已完成；另保留内部回归 Preset |
 | 已完成 | 公共 Environment | 时间阶段、外部天气、自动照明和 NPC 班次可复用配置，并支持宿主运行时注入 |
 | 后续 | Agent Diary 与更多 Adapter | 本次运行的回放已完成；继续探索跨会话日记、Cursor 等宿主，并按官方能力明确降级 |
 | 观察项 | 工位竞争、更多单层 Layout、录屏分享 | 根据真实用户反馈决定优先级，不扩展为多楼层或多建筑产品 |

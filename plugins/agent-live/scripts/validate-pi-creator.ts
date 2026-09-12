@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { mock } from "node:test";
+import { AgentLiveRuntime } from "../src/runtime/agent-live-runtime.ts";
 
 process.env.AGENT_LIVE_PI_PORT = "0";
 const { default: installPiAdapter } = await import("../src/adapters/pi/adapter.ts");
@@ -9,6 +11,12 @@ const handlers = new Map<string, (event: any, ctx: any) => Promise<any>>();
 const commands = new Map<string, any>();
 const tools = new Map<string, any>();
 const notices: string[] = [];
+const opened: string[] = [];
+const startRuntime = AgentLiveRuntime.prototype.start;
+mock.method(AgentLiveRuntime.prototype, "start", async function (this: AgentLiveRuntime, options: Parameters<AgentLiveRuntime["start"]>[0]) {
+	const server = await startRuntime.call(this, options);
+	return { ...server, open(target: string) { opened.push(target); } };
+});
 const root = await mkdtemp(path.join(os.tmpdir(), "agent-live-pi-creator-"));
 process.env.AGENT_LIVE_DATA_DIR = path.join(root, "data");
 const ctx = { cwd: root, model: { id: "test-model" }, thinkingLevel: "minimal", hasUI: true, ui: { setStatus() {}, notify(message: string) { notices.push(message); } } };
@@ -32,5 +40,16 @@ try {
 	assert.match(notices.at(-1) ?? "", /Creator Mode 已退出/);
 	const normalPrompt = await handlers.get("before_agent_start")?.({ prompt: "normal work", systemPrompt: "base" }, ctx);
 	assert.equal(normalPrompt?.systemPrompt, undefined);
+	await commands.get("agent-live").handler("list presets", ctx);
+	assert.match(notices.at(-1)!, /1\. tech[\s\S]*2\. meetingroom[\s\S]*3\. oldschool[\s\S]*Pi Test/);
+	await commands.get("agent-live").handler("custom", ctx);
+	await commands.get("agent-live").handler("preset meetingroom", ctx);
+	assert.ok(opened.at(-1)?.startsWith("v2.html?token="));
+	const listed = JSON.parse((await tool.execute("2", { command: "list_offices" }, undefined, undefined, ctx)).content[0].text);
+	assert.equal(listed.data.find((office: any) => office.selected).name, "meetingroom");
+	assert.equal((await handlers.get("before_agent_start")?.({ prompt: "normal work", systemPrompt: "base" }, ctx))?.systemPrompt, undefined);
+	await commands.get("agent-live").handler("preset Pi Test", ctx);
+	const restored = JSON.parse((await tool.execute("3", { command: "list_offices" }, undefined, undefined, ctx)).content[0].text);
+	assert.equal(restored.data.find((office: any) => office.selected).id, "local/pi-test");
 	console.log("pi creator: explicit mode, scoped prompt and direct atomic customization passed");
-} finally { await handlers.get("session_shutdown")?.({}, ctx); await rm(root, { recursive: true, force: true }); }
+} finally { await handlers.get("session_shutdown")?.({}, ctx); mock.restoreAll(); await rm(root, { recursive: true, force: true }); }

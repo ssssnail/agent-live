@@ -186,6 +186,7 @@ export function compileOfficePatch(base: OfficeSpec, patchInput: unknown, librar
 		activities: truncate([...activities], SCENE_LIMITS.activities, "$.activities", adjustments),
 		atmosphere: components.atmosphere ?? base.atmosphere,
 		environment: components.environment ?? base.environment,
+		...(patch.texts === null ? {} : base.texts || patch.texts ? { texts: { ...base.texts, ...patch.texts } } : {}),
 		...(patch.environmentOverrides === null
 			? {}
 			: patch.environmentOverrides || base.environmentOverrides

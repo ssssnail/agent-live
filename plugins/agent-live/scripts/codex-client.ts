@@ -7,7 +7,7 @@ const option = (name: string, fallback: string) => {
 	return index >= 0 ? args[index + 1] ?? fallback : fallback;
 };
 const port = Number(option("--port", process.env.AGENT_LIVE_CODEX_PORT ?? "7792"));
-const preset = option("--preset", "tech-open-office");
+const preset = option("--preset", "") || undefined;
 const cwd = option("--cwd", process.cwd());
 const viewerStartTimeoutMs = Number(process.env.AGENT_LIVE_VIEWER_START_TIMEOUT_MS ?? "180000");
 const viewerCloseGraceMs = Number(process.env.AGENT_LIVE_VIEWER_CLOSE_GRACE_MS ?? "12000");

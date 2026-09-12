@@ -16,6 +16,7 @@ async function asset(contentRoot: string, family: string, id: string, suffix = "
 export async function resolveRuntimeContent(spec: OfficeSpec, contentRoot: string, library: ComponentLibraryView) {
 	const layout = structuredClone(library.layouts.get(spec.layout));
 	if (!layout) throw new Error(`unknown layout ${spec.layout}`);
+	layout.textSlots = (layout.textSlots ?? []).map((slot: any) => ({ ...slot, text: spec.texts?.[slot.id] ?? slot.defaultText ?? "" }));
 	const officialId = short(spec.layout);
 	const scaffold = await readJson(path.join(contentRoot, "presets", `${officialId}.json`));
 	const [style, agentSkin, atmosphere, environment] = await Promise.all([

@@ -79,6 +79,19 @@ const withoutWater = compileOfficePatch(base, {
 }, capabilityLibrary);
 assert.equal(withoutWater.draft, undefined, "swapping the water source must stop satisfying a water requirement");
 assert.ok(withoutWater.errors.some((issue) => issue.code === "missing-activity-capability"), "the failure must name the missing capability");
+const removedWater = compileOfficePatch(base, {
+	schemaVersion: 1, kind: "office-patch", base: base.id,
+	placements: { remove: ["water-main"] },
+}, capabilityLibrary);
+assert.equal(removedWater.draft, undefined, "a removed fixture must not satisfy an active routine");
+const signed = compileOfficePatch(base, {
+	schemaVersion: 1, kind: "office-patch", base: base.id,
+	texts: { company: "Snail Lab", notice: "Welcome", slogan: "Build together" },
+}, library);
+assert.ok(signed.draft);
+const signedGraph = await resolveRuntimeContent(signed.draft, contentRoot, library);
+assert.deepEqual(graphIssues(signedGraph), []);
+assert.equal(signedGraph.layout.textSlots.find((slot: any) => slot.id === "company").text, "Snail Lab");
 
 // The shared module enforces the same rule where the graph is consumed.
 const capabilityGraph = structuredClone(content);

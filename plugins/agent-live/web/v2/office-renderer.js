@@ -11,6 +11,33 @@ export function createOfficeRenderer(content, environment = null) {
 	const rich = renderMode === "rich";
 	const { W, H, WALL_H, SEATS, TARGETS } = engine;
 	const AREAS = [...(layout.areas ?? [])];
+	// Fit immutable room signage once, then reuse on every animation frame.
+	let signs;
+	function drawSigns(c) {
+		c.save();
+		c.font = 'bold 7px ui-monospace, "PingFang SC", sans-serif';
+		c.textAlign = "center";
+		c.textBaseline = "middle";
+		signs ??= (layout.textSlots ?? []).map((slot) => {
+			let text = String(slot.text ?? slot.defaultText ?? "");
+			const original = text;
+			while (text && c.measureText(text + (text !== original ? "…" : "")).width > slot.width - 8) text = [...text].slice(0, -1).join("");
+			return { ...slot, text: text + (text !== original && text ? "…" : "") };
+		});
+		for (const slot of signs) {
+			if (!slot.text) continue;
+			px(c, slot.x, slot.y, slot.width, slot.height, C.outline);
+			px(c, slot.x + 1, slot.y + 1, slot.width - 2, slot.height - 2, C.wallBase ?? C.woodDark);
+			c.save();
+			c.beginPath();
+			c.rect(slot.x + 2, slot.y + 1, slot.width - 4, slot.height - 2);
+			c.clip();
+			c.fillStyle = C.paper;
+			c.fillText(slot.text, slot.x + slot.width / 2, slot.y + slot.height / 2);
+			c.restore();
+		}
+		c.restore();
+	}
 	const instances = layout.propInstances.map((instance) => {
 		const type = propTypes[instance.type];
 		return {
@@ -789,6 +816,7 @@ export function createOfficeRenderer(content, environment = null) {
 			}
 		}
 		drawAreaLabels(c);
+		drawSigns(c);
 		drawAutomaticLighting(c, officeTime);
 	}
 

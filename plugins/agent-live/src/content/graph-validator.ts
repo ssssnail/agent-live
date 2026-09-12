@@ -113,6 +113,19 @@ export function layoutIssues(layout: any, propTypeNames: Iterable<string>): Cont
 	if (!Array.isArray(layout.seats) || layout.seats.length !== 8) issues.push({ code: "invalid-layout-seats", path: "$.layout", message: "Demo Layout 必须提供 8 个座位" });
 	if (!Array.isArray(layout.navigation?.lanes) || !layout.navigation.lanes.length) issues.push({ code: "invalid-layout-navigation", path: "$.layout", message: "Layout 缺少导航通道" });
 	const propTypes = new Set(propTypeNames);
+	const textIds = new Set<string>();
+	if (layout.textSlots !== undefined && (!Array.isArray(layout.textSlots) || layout.textSlots.length > 8)) {
+		issues.push({ code: "invalid-text-slots", path: "$.layout.textSlots", message: "maximum 8 text areas" });
+	} else for (const slot of layout.textSlots ?? []) {
+		const valid = slot && typeof slot.id === "string" && /^[a-z][a-z0-9-]*$/.test(slot.id) && !textIds.has(slot.id)
+			&& [slot.x, slot.y, slot.width, slot.height, slot.maxLength].every(Number.isFinite)
+			&& slot.x >= 0 && slot.y >= 0 && slot.width >= 12 && slot.height >= 9
+			&& slot.x + slot.width <= 384 && slot.y + slot.height <= 216
+			&& slot.maxLength >= 1 && slot.maxLength <= 120
+			&& [slot.text, slot.defaultText].every((text) => text === undefined || typeof text === "string" && [...text].length <= slot.maxLength);
+		if (!valid) issues.push({ code: "invalid-text-slot", path: "$.layout.textSlots", message: "invalid, duplicate or out-of-bounds text area" });
+		if (slot?.id) textIds.add(slot.id);
+	}
 	const propInstances = new Set<unknown>();
 	for (const instance of layout.propInstances ?? []) {
 		if (!propTypes.has(instance?.type)) issues.push({ code: "unknown-layout-prop", path: "$.layout.propInstances", message: `未知 Prop Type：${instance?.type}` });

@@ -141,7 +141,7 @@ export async function registerCreator(ctx: Context): Promise<void> {
       }
       if (input === "list preset" || input === "list presets") {
         const offices = await service.listOffices();
-        const lines = offices.map((office, index) => `${index + 1}. ${office.name}${office.selected ? " (selected)" : ""}`);
+        const lines = offices.map((office, index) => `${index + 1}. ${office.name}${office.selected ? " (selected)" : ""}\n   /agent-live preset ${index + 1}`);
         const officialCount = offices.filter((office) => office.origin === "official").length;
         lines.splice(officialCount, 0, ...(officialCount < offices.length ? ["", "Custom Offices:"] : []));
         lines.unshift("Preset Offices:");
@@ -151,7 +151,8 @@ export async function registerCreator(ctx: Context): Promise<void> {
         const selector = rawInput.slice(rawInput.indexOf(" ") + 1).trim();
         const offices = await service.listOffices();
         const index = /^\d+$/.test(selector) ? Number(selector) - 1 : -1;
-        const office = index >= 0 ? offices[index] : offices.find((entry) => entry.name.toLowerCase() === selector.toLowerCase());
+        const matches = offices.filter((entry) => entry.name.toLowerCase() === selector.toLowerCase());
+        const office = index >= 0 ? offices[index] : matches.length === 1 ? matches[0] : undefined;
         if (!office) return { kind: "error", text: `Unknown preset "${selector}". Use /agent-live list presets to see the available choices.` };
         const result = await service.selectOffice(office.id);
         if (!result.selected) return { kind: "error", text: result.error };

@@ -4,7 +4,7 @@ import { CodexAppServerClient } from "../src/adapters/codex/app-server-client.ts
 const client = new CodexAppServerClient({
 	cwd: process.cwd(),
 	onStderr(text) {
-		if (process.env.AGENT_LIVE_DEBUG === "1") process.stderr.write(text);
+		process.stderr.write(text);
 	},
 });
 

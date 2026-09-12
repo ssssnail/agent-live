@@ -13,6 +13,7 @@ try {
 	const library = await loadComponentLibrary(contentRoot);
 	const registry = new OfficeRegistry({ root, library, officialOffices: await loadOfficialOffices(contentRoot) });
 	const creator = new CreatorService(registry, library);
+	assert.deepEqual((await creator.listOffices()).map((office) => office.name), ["tech", "meetingroom", "oldschool"]);
 	assert.equal((await creator.listOffices()).filter((entry) => entry.origin === "official").length, 3);
 	const changed = await creator.customize({ id: "local/natural-test", name: "Natural Test", npcs: { upsert: [{ id: "sam" }] }, activities: { enable: ["builtin/phone-break"] } });
 	assert.equal(changed.saved, true);
@@ -35,5 +36,17 @@ try {
 	assert.equal(copied.office?.npcs.length, presetOffice.npcs.length);
 	assert.deepEqual([...(copied.office?.activities ?? [])].sort(), [...presetOffice.activities].sort());
 	assert.equal((await registry.selected()).id, "local/boardroom-office");
+	const withText = await creator.customize({ texts: { company: "Snail Lab", notice: "Build together" }, placements: { upsert: [{ id: "extra-plant", component: "builtin/plant", slot: "extra-1" }] } });
+	assert.equal(withText.saved, true);
+	assert.equal(withText.office?.texts?.company, "Snail Lab");
+	const room = (await creator.listComponents()).room!;
+	assert.equal(room.slots.find((slot: any) => slot.id === "extra-1")?.occupiedBy, "extra-plant");
+	assert.equal((await creator.customize({ texts: { missing: "Hello" } })).saved, false);
+	assert.equal((await creator.customize({ texts: { company: "x".repeat(25) } })).saved, false);
+	assert.equal((await creator.customize({ texts: { company: "" } })).saved, true);
+	assert.equal((await creator.customize({ texts: { slogan: "Welcome" } })).office?.texts?.notice, "Build together");
+	const reopened = new OfficeRegistry({ root, library, officialOffices: await loadOfficialOffices(contentRoot) });
+	assert.equal((await reopened.selected()).texts?.slogan, "Welcome", "custom text must survive a new instance");
+	assert.deepEqual((await reopened.list()).slice(0, 3).map((office) => office.name), ["tech", "meetingroom", "oldschool"]);
 	console.log("creator service: direct save/select, full-content Office copies, defaults and failed-change isolation passed");
 } finally { await rm(root, { recursive: true, force: true }); }

@@ -85,6 +85,8 @@ export interface OfficeSpec {
 	environment: string;
 	agentProfile?: AgentProfile;
 	environmentOverrides?: EnvironmentOverrides;
+	/** Plain text for named, fixed display areas; empty text hides an area. */
+	texts?: Record<string, string>;
 }
 
 export interface OfficePatch {
@@ -104,6 +106,7 @@ export interface OfficePatch {
 	activities?: { enable?: string[]; disable?: string[] };
 	environmentOverrides?: EnvironmentOverrides | null;
 	agentProfile?: AgentProfile | null;
+	texts?: Record<string, string> | null;
 }
 
 export interface OfficeSeed {
@@ -124,8 +127,8 @@ export interface SchemaIssue {
 	message: string;
 }
 
-const SPEC_KEYS = new Set(["schemaVersion", "kind", "id", "name", "origin", "basePreset", "layout", "style", "agentSkin", "placements", "npcs", "activities", "atmosphere", "environment", "environmentOverrides", "agentProfile"]);
-const PATCH_KEYS = new Set(["schemaVersion", "kind", "id", "base", "name", "components", "placements", "npcs", "activities", "environmentOverrides", "agentProfile"]);
+const SPEC_KEYS = new Set(["schemaVersion", "kind", "id", "name", "origin", "basePreset", "layout", "style", "agentSkin", "placements", "npcs", "activities", "atmosphere", "environment", "environmentOverrides", "agentProfile", "texts"]);
+const PATCH_KEYS = new Set(["schemaVersion", "kind", "id", "base", "name", "components", "placements", "npcs", "activities", "environmentOverrides", "agentProfile", "texts"]);
 const SEED_KEYS = new Set(["schemaVersion", "kind", "id", "name", "layout", "style", "agentSkin", "atmosphere", "environment", "agentProfile"]);
 /** `layout` is listed only to reject it with a useful message; an Office owns its room. */
 const COMPONENT_KEYS = new Set(["layout", "style", "agentSkin", "atmosphere", "environment"]);
@@ -252,6 +255,15 @@ function validateEnvironment(value: unknown, path: string, issues: SchemaIssue[]
 	}
 }
 
+function validateTexts(value: unknown, issues: SchemaIssue[]) {
+	if (!object(value)) return issue(issues, "$.texts", "must be an object");
+	if (Object.keys(value).length > 8) issue(issues, "$.texts", "maximum 8 text areas");
+	for (const [key, text] of Object.entries(value)) {
+		if (!/^[a-z][a-z0-9-]*$/.test(key)) issue(issues, `$.texts.${key}`, "invalid text area id");
+		if (typeof text !== "string" || [...text].length > 120 || /[\r\n\u0000-\u001f]/.test(text)) issue(issues, `$.texts.${key}`, "must be single-line plain text of at most 120 characters");
+	}
+}
+
 export function validateOfficeSpecShape(input: unknown): SchemaIssue[] {
 	const issues: SchemaIssue[] = [];
 	if (!object(input)) return [{ path: "$", message: "must be an object" }];
@@ -268,6 +280,7 @@ export function validateOfficeSpecShape(input: unknown): SchemaIssue[] {
 	stringArray(input.activities, "$.activities", issues);
 	if (input.environmentOverrides !== undefined) validateEnvironment(input.environmentOverrides, "$.environmentOverrides", issues);
 	if (input.agentProfile !== undefined) validateAgentProfile(input.agentProfile, "$.agentProfile", issues);
+	if (input.texts !== undefined) validateTexts(input.texts, issues);
 	return issues;
 }
 
@@ -314,6 +327,7 @@ export function validateOfficePatchShape(input: unknown): SchemaIssue[] {
 	}
 	if (input.environmentOverrides !== undefined && input.environmentOverrides !== null) validateEnvironment(input.environmentOverrides, "$.environmentOverrides", issues);
 	if (input.agentProfile !== undefined && input.agentProfile !== null) validateAgentProfile(input.agentProfile, "$.agentProfile", issues);
+	if (input.texts !== undefined && input.texts !== null) validateTexts(input.texts, issues);
 	return issues;
 }
 

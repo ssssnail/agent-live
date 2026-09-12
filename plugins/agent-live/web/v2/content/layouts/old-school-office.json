@@ -19,7 +19,11 @@
 		{ "id": "break", "name": "Break Room", "x": 274, "y": 140, "width": 100, "height": 68 },
 		{ "id": "circulation", "name": "Office Circulation", "x": 0, "y": 36, "width": 384, "height": 180 }
 	],
-	"placementSlots": [
+	"textSlots": [{"id":"company","name":"Company name / text logo","x":225,"y":10,"width":51,"height":10,"maxLength":24,"defaultText":""},{"id":"notice","name":"Notice","x":225,"y":21,"width":51,"height":10,"maxLength":48,"defaultText":""},{"id":"slogan","name":"Area slogan","x":193,"y":172,"width":56,"height":11,"maxLength":48,"defaultText":""}],
+		"placementSlots": [
+		{"id":"extra-1","zone":"circulation","x":215,"y":112,"accepts":["plant"],"maxSize":{"width":14,"height":22},"required":false},
+		{"id":"extra-2","zone":"circulation","x":304,"y":113,"accepts":["plant"],"maxSize":{"width":14,"height":22},"required":false},
+		{"id":"extra-3","zone":"circulation","x":252,"y":150,"accepts":["water-cooler","vending-machine"],"maxSize":{"width":18,"height":28},"required":false},
 		{ "id": "manager-utility-1", "zone": "manager", "x": 280, "y": 103, "accepts": ["floor-fan", "coat-rack"], "maxSize": { "width": 18, "height": 29 }, "required": false, "occupiedBy": "manager-fan" },
 		{ "id": "manager-utility-2", "zone": "circulation", "x": 294, "y": 104, "accepts": ["coat-rack", "floor-fan"], "maxSize": { "width": 18, "height": 29 }, "required": false, "occupiedBy": "coat-rack" },
 		{ "id": "reception-service", "zone": "reception", "x": 190, "y": 166, "accepts": ["reception-desk", "sideboard"], "maxSize": { "width": 64, "height": 20 }, "required": false, "occupiedBy": "reception-main" },
@@ -61,6 +65,7 @@
 		{ "x": 270, "y": 146, "dir": "down", "lane": 2, "zone": "circulation" }
 	],
 	"targets": {
+		"staff-entry": {"x":8,"y":46,"dir":"down","lane":0},
 		"archive": { "x": 83, "y": 190, "dir": "left", "lane": 3 },
 		"server": { "x": 164, "y": 192, "dir": "up", "lane": 3 },
 		"whiteboard": { "x": 338, "y": 64, "dir": "up", "lane": 1 },
@@ -145,5 +150,5 @@
 		{ "id": "coffee-main", "type": "coffee-machine", "x": 320, "y": 150 },
 		{ "id": "vending-main", "type": "vending-machine", "x": 352, "y": 174 }
 	],
-	"npcSpawns": ["reception", "cleaner-entry"]
+	"npcSpawns": ["staff-entry", "reception", "cleaner-entry"]
 }

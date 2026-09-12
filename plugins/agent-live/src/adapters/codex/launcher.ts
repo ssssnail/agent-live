@@ -9,7 +9,7 @@ import { CodexOfficeSession, type PendingApproval } from "./adapter.ts";
 export interface CodexAdapterLaunchOptions {
 	cwd: string;
 	port: number;
-	preset: string;
+	preset?: string;
 	sourceThreadId?: string;
 	viewerStartTimeoutMs?: number;
 	viewerCloseGraceMs?: number;
@@ -69,6 +69,12 @@ export async function launchCodexAdapter(options: CodexAdapterLaunchOptions): Pr
 	let server;
 	try {
 		const content = await OfficeContentService.create();
+		if (options.preset) {
+			const offices = await content.list();
+			const selected = offices.find((office) => office.name === options.preset || office.id === options.preset || office.id === `builtin/${options.preset}`);
+			if (!selected) throw new Error(`Unknown office: ${options.preset}`);
+			await content.select(selected.id);
+		}
 		const creator = new CreatorCommandRouter(new CreatorService(content.registry, content.library));
 		await session.start();
 		server = await runtime.start({
@@ -112,7 +118,7 @@ export async function launchCodexAdapter(options: CodexAdapterLaunchOptions): Pr
 	}, viewerStartTimeoutMs);
 	viewerStartTimer.unref?.();
 
-	const query = new URLSearchParams({ client: "codex", preset: options.preset, token });
+	const query = new URLSearchParams({ client: "codex", token });
 	const url = `${server.url}/v2.html?${query}`;
 	if (options.open) server.open(`v2.html?${query}`);
 	return { url, close };

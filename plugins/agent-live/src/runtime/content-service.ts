@@ -42,6 +42,7 @@ export class OfficeContentService {
 	}
 
 	list() { return this.registry.list(); }
+	select(id: string) { return this.registry.select(id); }
 
 	async resolve(id?: string) {
 		const office = id ? await this.registry.get(id) : await this.registry.selected();
