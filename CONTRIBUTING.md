@@ -13,6 +13,7 @@ Thanks for helping coding agents feel more legible and alive. Small, focused cha
   ```
 
 - Run `npm run build` when changing exported TypeScript or generated browser code.
+- After changing public SDK exports, run `npm run build && npm run validate:sdk-example`. This exercises a public-API consumer with a real temporary HTTP server, selection, Creator, persistence and cleanup, without a coding-agent login or model call.
 - Run the complete release-equivalent validation before a pull request when the DSH dependencies are available:
 
   ```bash

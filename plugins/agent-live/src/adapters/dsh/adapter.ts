@@ -42,6 +42,7 @@ const short = (value: string, max: number) => {
 	const clean = value.replace(/\s+/g, " ").trim();
 	return clean.length > max ? `${clean.slice(0, max)}…` : clean;
 };
+const OBSERVATION_WINDOW = 4000;
 
 function sessionOf(input: DshObservation, startedAt: number): SessionInfo {
 	return {
@@ -82,12 +83,12 @@ function recoveredHistory(input: DshObservation, mainId: string): RecordedOffice
 	const recovered: Array<RecordedOfficeEvent & { order: number }> = [];
 	let order = 0;
 	const record = (at: number, event: OfficeDelta) => recovered.push({ at, event, order: order++ });
-	for (const message of input.messages) {
+	for (const message of input.messages.slice(-OBSERVATION_WINDOW)) {
 		const text = short(message.text ?? "", message.kind === "user" ? 300 : 400);
 		if (message.kind === "user" && text) record(message.at, { type: "task", id: mainId, task: text });
 		if (message.kind === "assistant" && text) record(message.at, { type: "say", id: mainId, text });
 	}
-	for (const tool of input.tools) {
+	for (const tool of input.tools.slice(-OBSERVATION_WINDOW)) {
 		record(tool.at, {
 			type: "action",
 			id: mainId,
@@ -99,12 +100,13 @@ function recoveredHistory(input: DshObservation, mainId: string): RecordedOffice
 	}
 	return recovered
 		.sort((left, right) => left.at - right.at || left.order - right.order)
+		.slice(-OBSERVATION_WINDOW)
 		.map(({ at, event }) => ({ at, event }));
 }
 
 /** Stateful diff cursor over DSH's already-deduplicated public client snapshots. */
 export class DshSnapshotAdapter {
-	private static readonly SEEN_LIMIT = 4000;
+	private static readonly SEEN_LIMIT = OBSERVATION_WINDOW;
 	private readonly startedAt: number;
 	private initialized = false;
 	private previousSession = "";
@@ -132,7 +134,7 @@ export class DshSnapshotAdapter {
 		}
 
 		this.syncChildren(input, mainId, output);
-		for (const tool of input.tools) {
+		for (const tool of input.tools.slice(-DshSnapshotAdapter.SEEN_LIMIT)) {
 			if (tool.running && !this.activeTools.has(tool.callId)) {
 				this.seenTools.add(tool.callId);
 				this.trimSeen(this.seenTools);
@@ -158,16 +160,13 @@ export class DshSnapshotAdapter {
 			}
 		}
 
-		for (const message of input.messages) {
+		for (const message of input.messages.slice(-DshSnapshotAdapter.SEEN_LIMIT)) {
 			if (this.seenMessages.has(message.key)) continue;
 			this.seenMessages.add(message.key);
 			this.trimSeen(this.seenMessages);
 			const text = short(message.text ?? "", message.kind === "user" ? 300 : 400);
 			if (message.kind === "user" && text) output.push({ type: "task", id: mainId, task: text });
 			if (message.kind === "assistant" && text) output.push({ type: "say", id: mainId, text });
-			if (message.kind === "assistant" && message.tokens) {
-				output.push({ type: "usage", id: mainId, tokens: message.tokens, cost: 0 });
-			}
 		}
 		const tokens = Math.max(0, input.tokens ?? 0, ...input.messages.map((item) => item.tokens ?? 0));
 		if (tokens !== this.previousTokens) {
@@ -200,8 +199,10 @@ export class DshSnapshotAdapter {
 		this.seenTools.clear();
 		this.activeTools.clear();
 		this.visibleChildren.clear();
-		for (const item of input.messages) this.seenMessages.add(item.key);
-		for (const tool of input.tools) {
+		// Process and remember the same bounded projection window. Evicting keys
+		// while scanning the full log would replay all old events on each update.
+		for (const item of input.messages.slice(-DshSnapshotAdapter.SEEN_LIMIT)) this.seenMessages.add(item.key);
+		for (const tool of input.tools.slice(-DshSnapshotAdapter.SEEN_LIMIT)) {
 			this.seenTools.add(tool.callId);
 			if (tool.running) this.activeTools.add(tool.callId);
 		}
@@ -210,8 +211,7 @@ export class DshSnapshotAdapter {
 		this.previousTokens = main.tokens;
 		this.previousState = main.state;
 		const agents = [main];
-		for (const [index, child] of input.children.slice(0, SCENE_LIMITS.agents - 1).entries()) {
-			if (!child.running) continue;
+		for (const [index, child] of input.children.filter((child) => child.running).slice(0, SCENE_LIMITS.agents - 1).entries()) {
 			this.visibleChildren.add(child.id);
 			agents.push(this.childView(child, main.id, index + 1));
 		}
@@ -230,8 +230,7 @@ export class DshSnapshotAdapter {
 
 	private syncChildren(input: DshObservation, mainId: string, output: OfficeEvent[]): void {
 		const current = new Set<string>();
-		for (const [index, child] of input.children.slice(0, SCENE_LIMITS.agents - 1).entries()) {
-			if (!child.running) continue;
+		for (const [index, child] of input.children.filter((child) => child.running).slice(0, SCENE_LIMITS.agents - 1).entries()) {
 			current.add(child.id);
 			if (this.visibleChildren.has(child.id)) continue;
 			this.visibleChildren.add(child.id);

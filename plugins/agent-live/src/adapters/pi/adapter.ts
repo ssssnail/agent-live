@@ -77,8 +77,19 @@ export default function (pi: ExtensionAPI) {
 		if (closePromise) await closePromise.catch(() => undefined);
 		if (state && server) return;
 		try {
-			totalTokens = 0;
-			totalCost = 0;
+			// Reopening a Viewer is not a new host session. Recover persisted usage
+			// when available; otherwise retain the lightweight session counters.
+			const branch = ctx.sessionManager?.getBranch?.();
+			if (Array.isArray(branch)) {
+				totalTokens = 0;
+				totalCost = 0;
+				for (const entry of branch) {
+					const message = entry?.message;
+					if (message?.role !== "assistant") continue;
+					totalTokens += Number(message.usage?.totalTokens ?? 0);
+					totalCost += Number(message.usage?.cost?.total ?? 0);
+				}
+			}
 			const nextRuntime = new AgentLiveRuntime(ctx.cwd ?? process.cwd());
 			runtime = nextRuntime;
 			state = nextRuntime.state;
@@ -96,6 +107,7 @@ export default function (pi: ExtensionAPI) {
 			});
 			const info = mainName(ctx);
 			agents.join(MAIN, { ...info, model: ctx?.model?.id });
+			state.addUsage(MAIN, totalTokens, totalCost);
 			server = await nextRuntime.start({
 				port: DEFAULT_PORT,
 				content,
@@ -142,6 +154,7 @@ export default function (pi: ExtensionAPI) {
 	}
 
 	async function shutdown(): Promise<void> {
+		creatorModes.clear();
 		if (closePromise) return closePromise;
 		if (viewerCloseTimer) clearTimeout(viewerCloseTimer);
 		viewerCloseTimer = null;
@@ -173,6 +186,8 @@ export default function (pi: ExtensionAPI) {
 	}
 
 	pi.on("session_start", async (_event, ctx) => {
+		totalTokens = 0;
+		totalCost = 0;
 		await boot(ctx);
 	});
 
@@ -251,18 +266,20 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("message_end", async (event: any) => {
-		if (!state) return;
 		const message = event?.message;
 		if (message?.role !== "assistant") return;
+		const usage = message.usage;
+		if (usage) {
+			totalTokens += Number(usage.totalTokens ?? 0);
+			totalCost += Number(usage.cost?.total ?? 0);
+		}
+		if (!state) return;
 
 		state.flushThoughts();
 		const text = joinBlocks(message.content, "text");
 		if (text.trim()) state.say(MAIN, text);
 
-		const usage = message.usage;
 		if (usage) {
-			totalTokens += Number(usage.totalTokens ?? 0);
-			totalCost += Number(usage.cost?.total ?? 0);
 			state.addUsage(MAIN, totalTokens, totalCost);
 		}
 	});
@@ -397,6 +414,11 @@ export default function (pi: ExtensionAPI) {
 				ctx.ui.notify("Agent Live 已关闭", "info");
 				return;
 			}
+			if (command === "exit") {
+				const exited = creatorModes.exit(PI_CREATOR_SESSION);
+				ctx.ui.notify(exited ? "Creator Mode 已退出。" : "当前未处于 Creator Mode。", "info");
+				return;
+			}
 			await boot(ctx);
 
 			if (!server) {
@@ -449,11 +471,6 @@ export default function (pi: ExtensionAPI) {
 		if (command === "custom") {
 			creatorModes.enter(PI_CREATOR_SESSION);
 			ctx.ui.notify("Creator Mode 已开启。现在直接描述办公室修改；输入 /agent-live exit 退出。", "info");
-			return;
-		}
-		if (command === "exit") {
-			const exited = creatorModes.exit(PI_CREATOR_SESSION);
-			ctx.ui.notify(exited ? "Creator Mode 已退出。" : "当前未处于 Creator Mode。", "info");
 			return;
 		}
 		if (command && command !== "open") {

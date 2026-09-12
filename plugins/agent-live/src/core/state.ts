@@ -47,11 +47,12 @@ export class OfficeState {
 	}
 
 	private emit(event: OfficeDelta): void {
-		this.history.push({ at: Date.now(), event });
+		// Keep the journal independent from live AgentView objects and consumers.
+		this.history.push({ at: Date.now(), event: structuredClone(event) });
 		if (this.history.length > MAX_HISTORY) this.history.shift();
 		for (const listener of this.listeners) {
 			try {
-				listener(event);
+				listener(structuredClone(event));
 			} catch {
 				// A dead renderer must never break the agent loop.
 			}
@@ -59,13 +60,13 @@ export class OfficeState {
 	}
 
 	snapshot(includeHistory = true): Extract<OfficeEvent, { type: "snapshot" }> {
-		return {
+		return structuredClone({
 			type: "snapshot",
 			agents: [...this.agents.values()],
 			log: this.log.slice(-60),
 			session: this.session,
 			history: includeHistory ? this.history.slice() : [],
-		};
+		});
 	}
 
 	getAgent(id: string): AgentView | undefined {

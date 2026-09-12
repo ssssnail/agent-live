@@ -4,7 +4,7 @@ import { OfficeContentService } from "../../runtime/content-service.ts";
 import { CreatorService } from "../../creator/service.ts";
 import { CreatorCommandRouter } from "../../creator/commands.ts";
 import { CodexAppServerClient } from "./app-server-client.ts";
-import { CodexOfficeSession, type PendingApproval } from "./adapter.ts";
+import { CodexOfficeSession } from "./adapter.ts";
 
 export interface CodexAdapterLaunchOptions {
 	cwd: string;
@@ -30,7 +30,6 @@ export async function launchCodexAdapter(options: CodexAdapterLaunchOptions): Pr
 	const runtime = new AgentLiveRuntime(options.cwd);
 	const appServer = new CodexAppServerClient({ cwd: options.cwd });
 
-	let approval: PendingApproval | null = null;
 	let viewerCloseTimer: ReturnType<typeof setTimeout> | null = null;
 	let viewerStartTimer: ReturnType<typeof setTimeout> | null = null;
 	let hasSeenViewer = false;
@@ -39,7 +38,6 @@ export async function launchCodexAdapter(options: CodexAdapterLaunchOptions): Pr
 	const session = new CodexOfficeSession(runtime.state, appServer, {
 		cwd: options.cwd,
 		sourceThreadId: options.sourceThreadId,
-		onApproval(value) { approval = value; },
 	});
 
 	const close = (): Promise<void> => {
@@ -97,13 +95,12 @@ export async function launchCodexAdapter(options: CodexAdapterLaunchOptions): Pr
 			},
 			controls: {
 				token,
-				status: () => ({ ...session.getStatus(), approval }),
+				status: () => session.getStatus(),
 				selectModel(model) { session.selectModel(model); return { ok: true, model }; },
 				prompt: (text, model) => session.prompt(text, model),
 				interrupt: () => session.interrupt(),
 				resolveApproval(id, allow, forSession) {
 					session.resolveApproval(id, allow, forSession);
-					approval = null;
 					return { ok: true };
 				},
 			},

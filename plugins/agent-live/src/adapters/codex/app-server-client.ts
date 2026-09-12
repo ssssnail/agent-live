@@ -46,6 +46,8 @@ export class CodexAppServerClient {
 		{ resolve(value: unknown): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout> }
 	>();
 	private readonly listeners = new Set<MessageListener>();
+	private readonly disconnectListeners = new Set<(error: Error) => void>();
+	private disconnected = false;
 
 	constructor(options: {
 			command?: string;
@@ -61,9 +63,22 @@ export class CodexAppServerClient {
 		return () => this.listeners.delete(listener);
 	}
 
+	onDisconnect(listener: (error: Error) => void): () => void {
+		this.disconnectListeners.add(listener);
+		return () => this.disconnectListeners.delete(listener);
+	}
+
+	private disconnect(error: Error): void {
+		this.failAll(error);
+		if (this.closing || this.disconnected) return;
+		this.disconnected = true;
+		for (const listener of this.disconnectListeners) listener(error);
+	}
+
 	async start(): Promise<JsonObject> {
 		if (this.child) throw new Error("Codex App Server is already running");
 		this.closing = false;
+		this.disconnected = false;
 		const command = this.options.command ?? defaultCodexCommand();
 		const args = this.options.args ?? ["app-server", "--stdio"];
 		const child = spawn(command, args, {
@@ -74,14 +89,14 @@ export class CodexAppServerClient {
 		this.child = child;
 		child.stderr.setEncoding("utf8");
 		child.stderr.on("data", (chunk: string) => this.options.onStderr?.(chunk));
-		child.stdin.on("error", (error) => this.failAll(error));
-		child.once("error", (error) => this.failAll(error));
+		child.stdin.on("error", (error) => this.disconnect(error));
+		child.once("error", (error) => this.disconnect(error));
 		child.once("exit", (code, signal) => {
 			this.child = null;
 			this.lines?.close();
 			this.lines = null;
 			if (!this.closing) {
-				this.failAll(new Error(`Codex App Server exited (${code ?? signal ?? "unknown"})`));
+				this.disconnect(new Error(`Codex App Server exited (${code ?? signal ?? "unknown"})`));
 			}
 		});
 

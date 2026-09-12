@@ -98,7 +98,7 @@ const completed = adapter.update({
 });
 assert.equal(completed.filter((event) => event.type === "action_end").length, 1);
 assert.equal(completed.filter((event) => event.type === "say").length, 1);
-assert.equal(completed.filter((event) => event.type === "usage").length, 1);
+assert.equal(completed.filter((event) => event.type === "usage").length, 0, "per-message usage must not overwrite the unchanged session total");
 assert.equal(completed.filter((event) => event.type === "agent_leave").length, 1);
 const finalObservation: DshObservation = {
   ...baseline,
@@ -109,6 +109,28 @@ const finalObservation: DshObservation = {
 };
 assert.deepEqual(adapter.update(finalObservation), []);
 assert.deepEqual(adapter.update(finalObservation).filter((event) => event.type === "action_end"), [], "completed DSH tools emitted duplicate action_end events");
+
+const latestChild = [...Array.from({ length: 15 }, (_, i) => ({ id: `old-${i}`, name: "Old", running: false })), { id: "new", name: "New", running: true }];
+assert.equal(adapter.update({ ...finalObservation, children: latestChild }).filter((e) => e.type === "agent_join").length, 1);
+const childSnapshot = new DshSnapshotAdapter().update({ ...finalObservation, children: latestChild })[0];
+assert(childSnapshot.type === "snapshot");
+assert(childSnapshot.agents.some((a) => a.id === "new"));
+
+const longSession: DshObservation = {
+	...baseline,
+	messages: Array.from({ length: 4100 }, (_, i) => ({ key: `long-${i}`, kind: "assistant", text: `Message ${i}`, at: i })),
+	tools: Array.from({ length: 4100 }, (_, i) => ({ callId: `tool-${i}`, name: "read", args: {}, at: i, running: false })),
+};
+const longAdapter = new DshSnapshotAdapter();
+const longSnapshot = longAdapter.update(longSession)[0];
+assert(longSnapshot.type === "snapshot" && longSnapshot.history.length <= 4000, "restored history must also stay bounded");
+assert.deepEqual(longAdapter.update(longSession), []);
+longSession.messages = [...longSession.messages, { key: "latest", kind: "assistant", text: "Latest", at: 5000 }];
+longSession.tools = [...longSession.tools, { callId: "latest-tool", name: "read", args: {}, at: 5000, running: false }];
+assert.equal(longAdapter.update(longSession).length, 3, "only the new message and tool pair should be emitted");
+assert.deepEqual(longAdapter.update(longSession), [], "bounded dedup must not replay old snapshots");
+const frameRuntime = await readFile(path.join(pluginRoot, "src/frame-runtime.ts"), "utf8");
+assert.match(frameRuntime, /createEnvironmentRuntime\(content\.environment\)/, "embedded frames must apply the selected Office environment");
 
 const crowded = new DshSnapshotAdapter(3000).update({
 	...baseline,

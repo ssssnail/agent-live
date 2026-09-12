@@ -101,15 +101,22 @@ async function loadOfficialOffice(presetId, limits) {
 function installContentReload(query) {
 	const officeId = query.get("office");
 	const events = new EventSource("/api/content-events?" + new URLSearchParams({ token }));
+	let reloadTimer;
 	events.onmessage = (event) => {
 		const change = JSON.parse(event.data);
 		if (change.type !== "office" || !change.officeId) return;
-		if (officeId === change.officeId) return location.reload();
-		const next = new URL(location.href);
-		next.searchParams.set("office", change.officeId);
-		next.searchParams.delete("preset");
-		location.replace(next);
+		// A customization saves and selects. Coalesce its notifications into one
+		// navigation instead of interrupting a page that is already reloading.
+		clearTimeout(reloadTimer);
+		reloadTimer = setTimeout(() => {
+			if (officeId === change.officeId) return location.reload();
+			const next = new URL(location.href);
+			next.searchParams.set("office", change.officeId);
+			next.searchParams.delete("preset");
+			location.replace(next);
+		}, 80);
 	};
+	window.addEventListener("pagehide", () => { clearTimeout(reloadTimer); events.close(); }, { once: true });
 }
 
 function applySceneLimits(content, limits) {

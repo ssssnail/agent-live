@@ -44,6 +44,8 @@ try {
 	await handlers.get("session_start")?.({}, ctx);
 	await commands.get("agent-live")?.handler("status", ctx);
 	const firstUrl = currentUrl();
+	await commands.get("agent-live")?.handler("custom", ctx);
+	await handlers.get("message_end")?.({ message: { role: "assistant", content: [], usage: { totalTokens: 900, cost: { total: 1 } } } }, ctx);
 	await new Promise<void>((resolve, reject) => {
 		const request = http.get(authenticatedEndpoint(firstUrl, "/events"), (response) => {
 			response.once("data", () => {
@@ -60,6 +62,26 @@ try {
 	await commands.get("agent-live")?.handler("status", ctx);
 	const reopenedUrl = currentUrl();
 	assert.equal((await fetch(authenticatedEndpoint(reopenedUrl, "/api/state"))).ok, true, "Pi Runtime could not restart after Viewer-driven shutdown");
+	const snapshot = await (await fetch(authenticatedEndpoint(reopenedUrl, "/api/state"))).json();
+	assert.equal(snapshot.agents[0].tokens, 900, "Viewer restart must retain session usage");
+	assert.equal(await handlers.get("before_agent_start")?.({ prompt: "fix login", systemPrompt: "normal" }, ctx), undefined, "Viewer shutdown must exit Creator Mode");
+	await commands.get("agent-live")?.handler("custom", ctx);
+	await commands.get("agent-live")?.handler("close", ctx);
+	await handlers.get("message_end")?.({ message: { role: "assistant", content: [], usage: { totalTokens: 100, cost: { total: 0 } } } }, ctx);
+	await commands.get("agent-live")?.handler("status", ctx);
+	const last = await (await fetch(authenticatedEndpoint(currentUrl(), "/api/state"))).json();
+	assert.equal(last.agents[0].tokens, 1000, "usage must include work while the viewer was closed");
+	assert.equal(await handlers.get("before_agent_start")?.({ prompt: "fix login", systemPrompt: "normal" }, ctx), undefined);
+	await handlers.get("session_shutdown")?.({}, ctx);
+	const restoredCtx = { ...ctx, sessionManager: { getBranch: () => [
+		{ message: { role: "user", content: "hello" } },
+		{ message: { role: "assistant", usage: { totalTokens: 300, cost: { total: 0.5 } } } },
+		{ message: { role: "assistant", usage: { totalTokens: 400, cost: { total: 0.5 } } } },
+	] } };
+	await handlers.get("session_start")?.({}, restoredCtx);
+	await commands.get("agent-live")?.handler("status", restoredCtx);
+	const restored = await (await fetch(authenticatedEndpoint(currentUrl(), "/api/state"))).json();
+	assert.equal(restored.agents[0].tokens, 700, "an existing host session must recover its own usage, not the previous session's counters");
 	console.log("pi lifecycle: last Viewer closes the instance and /agent-live can restart it");
 } finally {
 	await handlers.get("session_shutdown")?.({}, ctx);

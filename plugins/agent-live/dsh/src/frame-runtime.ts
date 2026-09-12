@@ -49,7 +49,8 @@ if (contentProblems.length) {
   window.AgentLiveClientKind = "dsh";
   window.OfficeContent = content;
   window.SceneLimits = { ...SCENE_LIMITS };
-  const environmentRuntime = createEnvironmentRuntime(environment);
+  const environmentRuntime = createEnvironmentRuntime(content.environment);
+  window.OfficeEnvironment = environmentRuntime;
   window.Office = createOfficeRenderer(content, environmentRuntime);
   window.Sprites = createSpriteRenderer(content);
   window.AgentLiveSubscribe = (listener: (event: unknown) => void) => {
@@ -111,6 +112,7 @@ declare global {
     OfficeContent: unknown;
     SceneLimits: unknown;
     Office: unknown;
+    OfficeEnvironment: unknown;
     Sprites: unknown;
     AgentLiveSubscribe: (listener: (event: any) => void) => () => void;
     AgentLiveGetSnapshot: () => Promise<any>;

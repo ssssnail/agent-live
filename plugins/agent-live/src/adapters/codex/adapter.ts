@@ -34,7 +34,6 @@ export class CodexOfficeSession {
 	private readonly options: {
 		cwd: string;
 		sourceThreadId?: string;
-		onApproval?: (approval: PendingApproval) => void;
 	};
 	private threadId = "";
 	private turnId = "";
@@ -46,6 +45,8 @@ export class CodexOfficeSession {
 	private readonly approvals = new Map<number | string, AppServerMessage>();
 	private readonly approvalTimers = new Map<number | string, ReturnType<typeof setTimeout>>();
 	private unsubscribe: (() => void) | null = null;
+	private unsubscribeDisconnect: (() => void) | null = null;
+	private connectionError: string | null = null;
 	private models: CodexModelOption[] = [];
 	private model = "";
 	private effort = "";
@@ -54,7 +55,6 @@ export class CodexOfficeSession {
 	constructor(state: OfficeState, client: CodexAppServerClient, options: {
 			cwd: string;
 			sourceThreadId?: string;
-			onApproval?: (approval: PendingApproval) => void;
 		}) {
 		this.state = state;
 		this.client = client;
@@ -64,6 +64,19 @@ export class CodexOfficeSession {
 
 	async start(): Promise<{ threadId: string; model: string; models: CodexModelOption[] }> {
 		this.unsubscribe = this.client.onMessage((message) => this.handleMessage(message));
+		this.unsubscribeDisconnect = this.client.onDisconnect((error) => {
+			this.connectionError = error.message;
+			this.turnId = "";
+			this.startingTurn = false;
+			this.interrupting = false;
+			this.clearApprovals(error.message, false);
+			for (const [id, action] of this.activeActions) this.state.endAction(action.agentId, id, false);
+			this.activeActions.clear();
+			this.settleChildren(false);
+			this.state.updateSession({ busy: false });
+			this.state.setState(MAIN, "error", error.message);
+			this.state.addLog(MAIN, "system", error.message);
+		});
 		await this.client.start();
 		this.models = await this.listModels();
 		const inherited = await this.readSourceConfiguration();
@@ -89,13 +102,16 @@ export class CodexOfficeSession {
 		return { threadId: this.threadId, model, models: this.models };
 	}
 
-	getStatus(): { threadId: string; model: string; models: CodexModelOption[]; busy: boolean; interrupting: boolean } {
+	getStatus(): { threadId: string; model: string; models: CodexModelOption[]; busy: boolean; interrupting: boolean; error: string | null; approval: PendingApproval | null } {
+		const request = this.approvals.values().next().value as AppServerMessage | undefined;
 		return {
 			threadId: this.threadId,
 			model: this.model,
 			models: this.models,
 			busy: this.state.sessionBusy(),
 			interrupting: this.interrupting,
+			error: this.connectionError,
+			approval: request ? this.approvalView(request) : null,
 		};
 	}
 
@@ -106,6 +122,7 @@ export class CodexOfficeSession {
 	}
 
 	async prompt(text: string, model?: string): Promise<{ turnId: string }> {
+		if (this.connectionError) throw new Error(this.connectionError);
 		const clean = text.replace(/\s+/g, " ").trim();
 		if (!clean) throw new Error("Prompt cannot be empty");
 		if (!this.threadId) throw new Error("Codex session has not started");
@@ -162,13 +179,15 @@ export class CodexOfficeSession {
 		} else {
 			this.client.respondError(id, -32601, "This approval type is not supported by Agent Live yet");
 		}
-		this.state.setState(MAIN, "thinking", allow ? "继续推进" : "调整方案");
+		this.state.setState(MAIN, this.approvals.size ? "waiting" : "thinking", this.approvals.size ? "等待你的确认" : allow ? "继续推进" : "调整方案");
 	}
 
 	async close(): Promise<void> {
+		this.unsubscribeDisconnect?.();
+		this.unsubscribeDisconnect = null;
 		this.unsubscribe?.();
 		this.unsubscribe = null;
-		this.clearApprovals("Agent Live closed before approval was resolved");
+		this.clearApprovals("Agent Live closed before approval was resolved", !this.connectionError);
 		for (const timer of this.childLeaveTimers.values()) clearTimeout(timer);
 		this.childLeaveTimers.clear();
 		this.childAgents.clear();
@@ -407,6 +426,7 @@ export class CodexOfficeSession {
 
 	private handleServerRequest(message: AppServerMessage): void {
 		if (message.id === undefined || !message.method) return;
+		if (this.approvals.has(message.id)) return;
 		if (!["item/commandExecution/requestApproval", "item/fileChange/requestApproval"].includes(message.method)) {
 			this.client.respondError(message.id, -32601, "Unsupported Agent Live client request");
 			return;
@@ -416,23 +436,27 @@ export class CodexOfficeSession {
 			if (!this.approvals.delete(message.id!)) return;
 			this.approvalTimers.delete(message.id!);
 			this.client.respond(message.id!, { decision: "decline" });
+			if (!this.approvals.size) this.state.setState(MAIN, this.state.sessionBusy() ? "thinking" : "idle", "Approval expired");
 		}, APPROVAL_TIMEOUT_MS);
 		timer.unref?.();
 		this.approvalTimers.set(message.id, timer);
-		const params = message.params ?? {};
-		const isCommand = message.method.includes("commandExecution");
-		const detail = String(isCommand ? params.command ?? params.reason ?? "执行命令" : params.reason ?? "修改文件");
 		this.state.setState(MAIN, "waiting", "等待你的确认");
-		this.options.onApproval?.({
-			id: message.id,
-			method: message.method,
-			title: isCommand ? "允许执行命令？" : "允许修改文件？",
-			detail: detail.slice(0, 300),
-		});
 	}
 
-	private clearApprovals(reason: string): void {
-		for (const [id] of this.approvals) this.client.respondError(id, -32000, reason);
+	private approvalView(message: AppServerMessage): PendingApproval {
+		const params = message.params ?? {};
+		const isCommand = message.method!.includes("commandExecution");
+		const detail = String(isCommand ? params.command ?? params.reason ?? "执行命令" : params.reason ?? "修改文件");
+		return {
+			id: message.id!,
+			method: message.method!,
+			title: isCommand ? "允许执行命令？" : "允许修改文件？",
+			detail: detail.slice(0, 300),
+		};
+	}
+
+	private clearApprovals(reason: string, respond = true): void {
+		if (respond) for (const [id] of this.approvals) this.client.respondError(id, -32000, reason);
 		this.approvals.clear();
 		for (const timer of this.approvalTimers.values()) clearTimeout(timer);
 		this.approvalTimers.clear();

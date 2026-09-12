@@ -8,16 +8,17 @@
 
 ## 1. 十分钟跑起来
 
-需要 Node.js 22 或更高版本；项目直接执行 TypeScript 源文件，没有前端构建步骤。
+使用当前 Node.js 22 LTS 补丁版本；源码校验直接执行 TypeScript，发布包与 DSH 嵌入页面有构建步骤。
 
 ```bash
 git clone https://github.com/ssssnail/agent-live.git
 cd agent-live
+npm ci
 npm run check
 npm run preview
 ```
 
-打开终端输出的 `/v2.html?demo=1` 地址。项目没有前端构建步骤、数据库或云端服务；浏览器直接加载 ES modules 与本地 JSON。
+打开终端输出的 `/v2.html?demo=1` 地址。独立 Viewer 直接加载 ES modules 与本地 JSON；项目没有数据库或云端服务。
 
 ## 2. 先选择你的接入层
 
@@ -165,10 +166,10 @@ Adapter 应把宿主能力归一为稳定的 `OfficeEvent`，不要直接控制�
 新的宿主不需要实现另一套 Creator。Adapter 只需提供三件事：
 
 1. 把 Creator Tool/Skill 暴露给宿主模型，并让模型只调用 `CreatorCommandRouter` 的受限操作。
-2. 在宿主任务内保存公共 `CreatorModeState`，每轮把 `creatorModeContext()` 注入模型上下文。
-3. 在保存、放弃、宿主任务结束和 Runtime 退出时清理状态。
+2. 宿主支持会话级 prompt hook 时，使用 `CreatorModeRegistry` 和 `CREATOR_MODE_CONTEXT`，提供明确的 `custom / exit` 命令；不支持时采用单轮显式自定义。
+3. 有效修改立即保存并生效，没有预览、保存确认、放弃或回退步骤。退出自定义、宿主会话结束或关闭集成时清理模式状态。
 
-Pi 使用内存中的 `CreatorModeController` 和 `before_agent_start`；Codex 使用按任务隔离的本地状态文件与 `UserPromptSubmit`/`SessionEnd` Hook。Adapter 不解析或修改 Office Spec，也不能绕过 Compiler 与 Validator。
+Pi 使用 `before_agent_start`，DSH 使用官方 system prompt 接口；Codex 使用单轮显式 Skill，不安装上述生命周期 Hook。`OfficeContentService`、`CreatorService`、`CreatorCommandRouter` 已通过公共 SDK 导出。完整接线与隔离测试见 [SDK 手册](ADAPTER-SDK.md) 和 [可运行示例](../examples/adapter/local-office.mjs)。Adapter 不解析或修改 Office Spec，也不能绕过 Compiler 与 Validator。
 
 ## 8. 提交前检查
 

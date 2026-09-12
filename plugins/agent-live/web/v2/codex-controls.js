@@ -9,9 +9,11 @@ export function installCodexControls(token) {
 	const approvalDetail = document.getElementById("approvalDetail");
 	let currentApproval = null;
 	let busy = false;
+	let disconnected = false;
 	let stopping = false;
 	let refreshTimer = 0;
 	let closed = false;
+	const originalPlaceholder = input.placeholder;
 	form.hidden = false;
 
 	async function post(path, body = {}) {
@@ -28,7 +30,7 @@ export function installCodexControls(token) {
 	form.addEventListener("submit", async (event) => {
 		event.preventDefault();
 		const text = input.value.trim();
-		if (!text || busy) return;
+		if (!text || busy || disconnected) return;
 		send.disabled = true;
 		try {
 			await post("prompt", { text });
@@ -38,7 +40,7 @@ export function installCodexControls(token) {
 			input.reportValidity();
 			input.setCustomValidity("");
 		} finally {
-			send.disabled = busy;
+			send.disabled = busy || disconnected;
 		}
 	});
 
@@ -69,8 +71,10 @@ export function installCodexControls(token) {
 			.then(() => {
 				currentApproval = null;
 				approval.hidden = true;
+				clearTimeout(refreshTimer);
+				void refresh();
 			})
-			.catch(() => {});
+			.catch((error) => { approvalDetail.textContent = error.message; });
 	});
 
 	async function refresh() {
@@ -81,6 +85,10 @@ export function installCodexControls(token) {
 				headers: { "x-agent-live-token": token },
 			});
 			const status = await response.json();
+			if (!response.ok) throw new Error(status.error ?? "Unable to read client status");
+			disconnected = Boolean(status.error);
+			input.disabled = disconnected;
+			input.placeholder = status.error ? `${status.error}. Reopen Agent Live to reconnect.` : originalPlaceholder;
 			currentApproval = status.approval;
 			approval.hidden = !currentApproval;
 			if (currentApproval) {
@@ -91,10 +99,11 @@ export function installCodexControls(token) {
 				stopping = busy && Boolean(status.interrupting);
 				stop.textContent = t(stopping ? "client.stopping" : "client.stop");
 				stop.disabled = !busy || stopping;
-				send.disabled = busy;
+				send.disabled = busy || disconnected;
 		} catch {
 			stop.disabled = true;
 		} finally {
+			clearTimeout(refreshTimer);
 			if (!closed && !document.hidden) refreshTimer = window.setTimeout(refresh, busy ? 750 : 2000);
 		}
 	}
