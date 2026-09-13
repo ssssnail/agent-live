@@ -140,8 +140,8 @@ content/compiler.ts     Preset / Seed + Patch → 校验后的候选 Office
 content/validator.ts    引用、容量、NPC、活动与环境校验
 content/registry.ts     Official / Custom Office 注册、保存与选择
 creator/service.ts      Patch 校验、原子保存与选择
-creator/commands.ts     所有宿主共用的九个受限内部操作
-creator/mode.ts         inactive / waiting / draft 模态状态合同
+creator/commands.ts     list_offices / list_components / customize 三个受限内部操作
+creator/mode.ts         按宿主 Session 隔离的 active / inactive 编辑范围
 ```
 
 官方 Preset 随 Agent Live 发布；Custom Office 保存在用户本地。只有官方 Engine、Adapter 或组件能力升级时，用户才需要更新 GitHub 插件。
@@ -206,11 +206,13 @@ creator     → content schema + validator；不依赖 Adapter
 
 统一显式入口为 `/agent-live custom`，普通模式下不隐式解释为办公室编辑。支持动态上下文的宿主会把状态保持在当前会话内，直到 `/agent-live exit`、会话结束或插件卸载。宿主 Agent 调用 Creator 的受限操作生成 Patch；公共服务完成校验、原子保存和选择，失败时继续使用上一个有效 Office。Codex Skill 当前只保证调用当轮的显式自定义，不声称持续接管后续普通对话。
 
-Pi 通过 `before_agent_start` 注入公共 Creator 状态；Codex 通过插件的 `UserPromptSubmit` Hook 注入同一合同。Hook 只负责保证模态状态和每轮可见提示，完整工作流仍在 Skill，实际数据修改仍在 Creator Command Router。未进入 Creator 时 Codex Hook 不输出任何上下文。
+Pi 通过 `before_agent_start` 在已进入 Creator Mode 的当前会话中注入公共 Creator 状态；DSH 通过自己的会话级命令、Tool 与系统提示扩展装配同一合同。两者都由 `/agent-live custom` 明确进入，并由 `/agent-live exit` 明确退出。
+
+Codex 当前不提供持续 Creator Mode：用户调用 Agent Live Skill 时同时描述本轮修改，Skill 在同一轮调用公共 Creator Command Router。它不会通过 Hook 接管之后的普通 Codex 对话。三种宿主最终都只把受限 Patch 交给同一 Creator Service；差异只在宿主如何提供上下文和 Tool 入口。
 
 ## 未来：Agent 日记
 
-当前回放只在一次 Runtime 生命周期内保存带时间戳的标准事件，页面和本地服务退出后随内存一起清除。未来可在此基础上增加 **Agent Diary**：
+当前回放只保存当前展示实例所需的有界、带时间戳标准事件。Pi / Codex 的记录随 Local Runtime 生命周期结束而清除；DSH 在 Web Client 内为最近使用的 Session 保留有界 journal，页面客户端结束后不会形成持久日记。未来可在此基础上增加 **Agent Diary**：
 
 - 按日期和 Agent 汇总任务、状态、工具动作、协作与结果。
 - 使用 Codex/Pi 等宿主保存的会话历史作为任务事实来源。

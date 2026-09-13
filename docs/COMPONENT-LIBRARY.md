@@ -1,6 +1,6 @@
 # Agent Live 基础组件库
 
-> 状态：目标内容架构 · 2026-09-07
+> 状态：当前内容架构 · 最后校准 2026-09-13
 
 ## 1. 核心定义
 
@@ -32,10 +32,11 @@ Office Spec
 | Official Preset | 官方命名、测试并发布的只读 Office Spec | 普通用户只能选择 |
 | Custom Office | 用户通过 Creator 生成并保存在本地的 Office Spec | 用户可继续迭代 |
 
-此外还有两个辅助概念：
+此外还有一个辅助概念：
 
 - **Capability Catalog**：Component Library 面向 Agent 的机器可读索引，只公布真实实现并已通过校验的能力。
-- **Draft**：尚未通过全部校验或尚未被用户确认的临时 Office Spec，只能预览，不能替换最后一个有效版本。
+
+Compiler 在内存中产生候选 Office 供校验，但这不是面向用户的 Draft、预览或保存状态。合法修改会原子保存并立即选择；失败时继续使用上一个有效 Office。
 
 ## 3. 基础组件的共同合同
 
@@ -208,4 +209,4 @@ oldschool（格子间）
 
 ## 9. 当前实现状态
 
-上述迁移已经完成：组件唯一 ID、NPC Template、Activity Recipe、Zone、Placement Slot、统一 Validator、Office Spec 编译、Official Office 重建、Draft 预览、撤销、保存和回滚均已进入主线。新增组件时应扩展 Library 与对应 Renderer/Runtime 能力；Creator 不会生成未登记组件或任意坐标。
+上述迁移已经完成：组件唯一 ID、NPC Template、Activity Recipe、Zone、Placement Slot、统一 Validator、Office Spec 编译、Official Office 重建，以及 Custom Office 的原子保存与失败隔离均已进入主线。当前没有面向用户的 Draft、预览、撤销或确认保存流程。新增组件时应扩展 Library 与对应 Renderer/Runtime 能力；Creator 不会生成未登记组件或任意坐标。

@@ -1,6 +1,8 @@
 # Agent Live 技术文档
 
-> 版本 0.1.0 · 最后更新 2026-09-07 · 对应 pi 0.84.2 / Node 22.23.2
+> 版本 0.3.0（开发中）· 最后校准 2026-09-13 · Node 22+
+
+> 本文主要记录最初的 Pi / Local Runtime / Browser 实现细节。跨宿主职责与最新公共合同以 [ARCHITECTURE.md](ARCHITECTURE.md)、[ADAPTER-SDK.md](ADAPTER-SDK.md) 和各宿主 Adapter 设计为准。
 
 ## 1. 架构总览
 
@@ -242,10 +244,11 @@ if (thinking.length > thinkingCursor) {
 | `MAX_LOG` | 200 | 内存里保留的日志条数 |
 | `THOUGHT_FLUSH_MS` | 180 | 思考批量刷新间隔 |
 | `MIN_THOUGHT_CHARS` | 12 | 非强制刷新的最小片段长度 |
-| `MAX_SEATS` | 8 | 工位总数 |
+| `SCENE_LIMITS.seats` | 8 | 可坐工位总数 |
+| `SCENE_LIMITS.agents` | 16 | 同一办公室中的真实 Agent 上限 |
 
 - `snapshot()` 只带**最后 60 条**日志，新连接的客户端不至于一次性灌进 200 条。
-- 座位用 `Set<number>` 管理，`claimSeat()` 取第一个空位，`leave()` 归还。座位满了则挤在最后一个。
+- 座位用 `Set<number>` 管理，`claimSeat()` 取第一个空位，`leave()` 归还。座位已满时返回 `-1`，Agent 不带 `seat` 字段，由 Engine 使用站立位置；人数和工位数量不再强绑定。
 - `addLog()` 的第四个参数 `broadcast` 控制是否额外发 `log` 事件。thought / say / tool 三类传 `false`，因为它们已有各自的专门事件，前端收到后自己写进动态栏（见 §11.7）；join / leave / delegate 传 `true`，由服务端直接广播。两类日志都会进 `snapshot` 的历史记录。
 
 ## 11. 前端渲染

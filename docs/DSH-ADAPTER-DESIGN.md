@@ -35,8 +35,8 @@ Chat | Agent Live | 其他 View
 
 - Chat 和 Agent Live 是同一个 Session 的两种 View，不创建新 Session。
 - 用户在 Chat 中继续操作；Agent Live 只观察，不截获输入。
-- View 切走后停止渲染和动画；Session 本身继续由 DSH 管理。
-- 再次打开 View 时，从 DSH 当前 Snapshot 重建画面，而不是依赖旧组件仍存活。
+- View 切走后 iframe 停止渲染和动画；Session 本身继续由 DSH 管理。
+- Adapter 在客户端内为最近使用的 Session 保留有界 journal 与增量游标。再次打开 View 时，先重放这份会话内 journal，再继续消费 DSH 当前 Snapshot；不依赖旧 iframe 仍存活，也不把 journal 写进 DSH Session 日志。
 - 第一阶段只展示当前 Session，不做跨 Session 总办公室。
 
 ## 3. 实际包内结构
@@ -49,7 +49,7 @@ src/adapters/dsh/
 
 dsh/
 ├── cordis.patch.yml    DSH Bundle 注册
-├── src/index.ts        空 Host 入口；不建立事件桥
+├── src/index.ts        Host 入口；注册受限 Creator 命令、Tool、Skill 与 Session Projection
 ├── src/client.tsx      Snapshot 选择、conversation.view 和生命周期
 ├── src/frame-runtime.ts 复用公共 Office Engine / Renderer
 ├── src/frame.html      View 内的隔离渲染文档
@@ -111,13 +111,13 @@ DSH Client Runtime 已负责历史窗口合并和实时更新。Adapter 不再�
 
 主 Agent 使用当前 Session 的稳定 identity，不使用昵称作为 ID。
 
-锁定版本通过 `subagentCatalog` projection 与 Session catalog/summary 同时提供稳定子 Session ID、父 Session 归属和 `running/inactive` 活动状态，因此本实现声明 `subagents: true`：
+锁定版本通过 `subagentCatalog` projection 与 Session catalog/summary 同时提供稳定子 Session ID、父 Session 归属和 `running/inactive` 活动状态，因此本实现会映射 Subagent：
 
 1. 子 Agent 的稳定 Session/Agent ID。
 2. 父 Agent 或 ownership/address 关系。
 3. 可判断加入与结束的生命周期信息。当前公开 activity 不提供结束结果，因此不会猜测成功或失败。
 
-缺少任意一项，就先把能力声明为 `false`，不根据名称、消息内容或工具文本猜测。多人容量、工位不足及视觉避让由公共 Core/Engine 处理，不写进 DSH Adapter。
+缺少任意一项，就不产生对应 Subagent 事实，并在宿主支持说明中记录该限制；不根据名称、消息内容或工具文本猜测。多人容量、工位不足及视觉避让由公共 Core/Engine 处理，不写进 DSH Adapter。
 
 ## 7. 实际接入边界
 
@@ -136,8 +136,8 @@ DSH 负责：
 DSH Adapter 负责：
 
 - 按 DSH 官方方式注册/注销 `conversation.view`。
-- 在 View mount 时创建本 Session 的 Adapter cursor 与 Agent Live Engine 实例。
-- 在 View unmount 时停止 Snapshot 订阅，并销毁该实例。
+- 在首次访问一个 Session 时创建它的 Adapter cursor 与有界 journal；最多保留最近使用的 24 个 Session，每个 journal 最多 800 个 OfficeEvent。
+- 在 View unmount 时停止该组件的 Snapshot 消费，并让 React 销毁 iframe、动画与渲染资源；会话级 cursor/journal 留在客户端内，供同一 Session 再次打开 View 时恢复，并按 LRU 上限淘汰。
 
 Agent Live 负责：
 
@@ -160,9 +160,9 @@ DSH 的持久化 Session Event 是任务事实来源。重新打开 View 时，A
 3. **Snapshot 基线（完成）**：可重建主 Agent、模型、Turn 和空闲/运行状态。
 4. **单 Turn 映射（完成）**：用户消息、完成回答、usage 和异常状态使用稳定 `seq` 去重。
 5. **工具映射（完成）**：`tool/call`/`tool/result` 由同一 `callId` 成对显示，也处理一次渲染间完成的短工具。
-6. **关闭与恢复（完成）**：View 卸载即销毁隔离文档、动画与内存 journal；重开从当前 Snapshot 重建。
+6. **关闭与恢复（完成）**：View 卸载销毁隔离文档与动画；会话级 journal/cursor 有界保留，重开时先恢复已有表现时间线，再与当前 Snapshot 增量同步。
 7. **Subagent（完成）**：稳定子 Session ID、父子关系和活动状态来自官方 projections/catalog。
-8. **性能门（完成）**：无额外服务和轮询；Renderer 仅随 View 存活，消息与参数在映射边界限长。
+8. **静态性能约束（完成）**：无额外服务和主动轮询；Renderer 仅随 View 存活，Snapshot 扫描窗口、会话 store、journal、消息与参数均有上限。真实宿主中的 CPU、内存和长时间切换仍需按发布检查实测，不能由静态约束代替。
 
 ## 11. 暂缓的第二阶段
 

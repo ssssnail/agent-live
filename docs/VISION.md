@@ -1,6 +1,6 @@
 # Live Agent Show 产品愿景
 
-> 状态：已收敛方向 · 2026-09-07
+> 状态：已收敛方向 · 最后校准 2026-09-13
 
 相关分析：[Pi / Codex / Cursor 平台能力](./PLATFORM-CAPABILITIES.md) · [产品形态与用户入口](./PRODUCT-FORMS.md) · [Office 可配置内容模型](./OFFICE-THEMES.md) · [基础组件库](./COMPONENT-LIBRARY.md)
 
@@ -10,7 +10,7 @@
 
 这里的 Show 不是舞台剧，也不是让用户创造任意世界；它表示“工作正在现场发生，并且看得见”。办公室是固定的产品世界观，读取文件、执行命令、编辑代码、任务委派、等待和完成，都有稳定的办公叙事。
 
-当前只做 Demo 规格的单层办公室。用户可以替换美术风格、单层布局、Agent 外观、NPC、物件、办公室生活、环境视觉和公共运行环境，但不能改变真实工作语义和基础运行规则。
+当前只做 Demo 规格的单层办公室。普通用户选择完整 Office；Creator 可以在当前 Office 已声明的能力内调整美术风格、Agent 外观、NPC、物件、办公室生活、环境视觉、公共运行环境和文字区，但不能单独更换 Layout，也不能改变真实工作语义和基础运行规则。新的房间结构由内容开发者通过源码新增为完整 Preset。
 
 一句话可以表达为：
 
@@ -25,10 +25,10 @@
 | OfficeEvent | 与宿主无关的真实工作事件 | Pi、Codex、DSH 官方事实的转换结果 |
 | Office Engine | 将事件转成办公室位置、动作和状态 | 当前 `OfficeState`、映射与前端状态机 |
 | Office Runtime | 单层办公室的渲染、移动、寻路、气泡和状态规则 | 当前 Demo 前端状态机 |
-| Component Library | 八类基础组件的唯一全集与 Capability Catalog | 当前内容目录正在迁移为该结构 |
+| Component Library | 八类基础组件的唯一全集与 Capability Catalog | 当前三个正式 Office 与 Custom Office 的共同内容来源 |
 | Office Spec | 一间办公室最终引用和实例化的组件集合 | Official Preset 与 Custom Office 的共同合同 |
 | Official Preset | 为普通用户准备的只读 Office Spec | 当前三个正式办公室 |
-| Custom Office | Creator 多轮生成、校验并保存在本地的 Office Spec | 后续 Creator 纵向链路 |
+| Custom Office | Creator 基于完整 Preset 修改、校验并保存在本地的 Office Spec | 已实现；Pi/DSH 支持会话级 custom/exit，Codex 使用当轮显式自定义 |
 | Episode | 一次可实时观看或回放的任务 | 一次 session / task |
 
 无论接入哪个宿主，核心体验都保持一致：Agent 在办公室中工作。不同宿主只会因为开放能力不同而出现信息精度差异，不会变成不同产品。
@@ -87,7 +87,7 @@ Component Library 是上述内容的唯一全集。Office Spec 从中组装一�
 
 ## 6. 建议路线图
 
-### 阶段一：把当前办公室做扎实
+### 阶段一：把当前办公室做扎实（已完成基础版本）
 
 - 完善 Pi 事件覆盖、多人委派、错误和等待状态。
 - 将当前 Demo 明确为唯一的空间规格，不建设 Company Scale。
@@ -95,7 +95,7 @@ Component Library 是上述内容的唯一全集。Office Spec 从中组装一�
 - 将现有 `OfficeAction` 从具体家具逐步提升为 `research / create / compute / plan / communicate / collaborate` 等工作语义。
 - 将项目整理成用户可一键安装的 Pi Package，并提供宿主内启动入口。
 
-### 阶段二：先验证办公室生活的完整链路
+### 阶段二：先验证办公室生活的完整链路（已完成）
 
 - 加入一个饮水机 Prop、一个保洁 NPC，以及接水和巡检两类 Life Activities。
 - 保证 Life Activity 只在空闲时触发，并能被新的 Work Event 立即打断。
@@ -109,23 +109,23 @@ Component Library 是上述内容的唯一全集。Office Spec 从中组装一�
 - 验证更换资源和视觉配置不影响事件语义与状态机。
 - 增加 Style 格式校验和资源缺失时的默认回退。
 
-### 阶段四：增加布局与角色内容（进行中）
+### 阶段四：增加布局与角色内容（已完成基础版本）
 
 - 已增加 `old-school-office` 与 `boardroom-office` 两个单层 Layout，用设施能力标签承载相同 Work Semantics。
 - 已增加前台、后勤、秘书和会务 NPC，以及文件流转、会议支持与茶水服务；保安、办公室猫和更多生活行为继续作为可选内容。
 - 已用 Office Preset 将八类内容组合成顶部一键选项，并把时间、天气、照明和 NPC 班次收敛进共享 Environment。
 
-### 阶段五：回放与更多宿主
+### 阶段五：回放与更多宿主（当前已有基础版本）
 
 - 保存标准 Show Event，支持时间轴、暂停、倍速和关键节点。
-- 为 Codex、Cursor 等宿主按其公开能力提供 Connector。
+- 当前已提供 Pi、Codex、DSH 三种官方 Adapter；未来宿主仍按其公开能力接入。
 - 在宿主能力不足时明确降级，而不是猜测或伪造状态。
 - 提供独立 Viewer / WebView，统一查看实时任务和历史 Episode。
 
-### 阶段六：有限开放内容创作
+### 阶段六：有限开放内容创作（基础版本已完成）
 
-- 先让用户选择经过验证的 Office Preset，再逐步开放八类内容的替换与参数配置。
-- 再提供模块与 Preset 的导入、导出、版本检查和分享。
+- 用户先选择经过验证的完整 Office，再通过受限 Creator 修改已实现内容；校验通过后直接保存并选择。
+- 导入、导出、版本检查和分享尚未实现，需要真实需求后再决定。
 - 只有真实需求出现后，再考虑可视化编辑器和内容市场。
 
 ## 7. 当前明确不做
@@ -143,4 +143,4 @@ Live Agent Show 的边界可以概括为：
 
 > **一个开放而可信的办公世界：真实 Agent 工作驱动主线，独立 Office Life 让它在空闲时也持续生活。**
 
-当前 Demo 的配置拆分、V2 原生渲染、Office Life、三套正式 Preset 与公共 Environment 已经完成。下一阶段聚焦真实宿主接入质量、开发者配置体验和发布流程，不扩张办公室世界边界。
+当前 Demo 的配置拆分、V2 原生渲染、Office Life、三套正式 Office、公共 Environment、基础 Creator 和 Pi/Codex/DSH Adapter 已经进入主线。下一阶段聚焦真实宿主接入质量、三个 Adapter 的可维护性、开发者体验和发布流程，不扩张办公室世界边界。

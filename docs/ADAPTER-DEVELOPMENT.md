@@ -319,4 +319,10 @@ Pi Adapter 使用 Pi Extension API 注册官方生命周期事件回调。它适
 
 Codex Adapter 使用 Codex App Server 协议，通过 JSON-RPC request 控制由客户端建立的 Thread/Turn，并读取 App Server notification。它适合参考外部客户端、审批、增量 Item、停止请求和子进程清理，但 Agent Live 的“控制/观察”分类不是 Codex 官方术语。
 
+### DeepSeek Harness
+
+入口：[`src/adapters/dsh/adapter.ts`](../plugins/agent-live/src/adapters/dsh/adapter.ts) 与 [`dsh/src/client.tsx`](../plugins/agent-live/dsh/src/client.tsx)
+
+DSH Adapter 使用官方 `conversation.view`，从 Web Client 已有的 Session、Conversation、模型、用量和 Subagent Projection 构造有界 Snapshot，再增量映射为 `OfficeEvent`。它适合参考宿主原生 View、Snapshot 差分、Tab 重建和无额外 HTTP Runtime 的集成；`dsh/src/index.ts` 只负责在 Host 侧注册 Creator 所需的正式扩展，不是第二条工作事件桥。
+
 选择参考实现时，应根据宿主官方扩展形态选择最接近的一套，而不是根据画面效果选择。
