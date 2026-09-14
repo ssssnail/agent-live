@@ -2,17 +2,29 @@
 
 [![CI](https://github.com/ssssnail/agent-live/actions/workflows/ci.yml/badge.svg)](https://github.com/ssssnail/agent-live/actions/workflows/ci.yml)
 
-Watch your coding agents work in a live pixel office.
+**Give your coding agents a live pixel office.**
 
-Agent Live is a local-first visualization engine. Host adapters translate supported coding-agent events into a shared `OfficeEvent` protocol; the common engine turns those events into movement, work, collaboration and office life. No cloud backend is required.
+Agent Live turns agent activity into a small, living workplace: agents think, use tools, collaborate, take breaks and finish their work in real time.
+
+## Why this project exists
+
+Agent Live began as a product manager's vibe-coding project—a hands-on way to explore how people might understand and collaborate with AI in the future.
+
+The pixel office is only one possible interface. The same foundation could become a visual work log, a documentary of how a task was completed, a social space for humans and agents, or even a game. This project is a small starting point for those questions, not a finished answer.
+
+There will be rough edges. Feedback, ideas and contributions are welcome; hopefully we can explore and maintain it together.
+
+## How it works
+
+Agent Live runs locally. An adapter translates events from a supported coding agent into a shared office language, and the common engine renders them:
 
 ```text
-Coding Agent → Adapter → OfficeEvent → Agent Live Engine → Viewer
+Coding Agent → Adapter → OfficeEvent → Agent Live → Pixel Office
 ```
 
-Official adapters currently cover Pi, Codex and DeepSeek Harness. The product ships three offices: `tech`, `meetingroom` and `oldschool`.
+Official adapters are available for Pi, Codex and DeepSeek Harness. Three offices are included: `tech`, `meetingroom` and `oldschool`.
 
-## Install
+## Install and use
 
 ### Pi
 
@@ -20,16 +32,16 @@ Official adapters currently cover Pi, Codex and DeepSeek Harness. The product sh
 pi install npm:@iniesta8888/agent-live-pi-adapter
 ```
 
-Restart Pi and run `/agent-live`. Use `/agent-live custom` to enter Creator Mode and `/agent-live exit` to return to normal work. See [Using Agent Live with Pi](docs/USING-PI.md).
+Restart Pi, then run `/agent-live`. [Pi guide](docs/USING-PI.md)
 
 ### Codex
 
 ```bash
-codex plugin marketplace add ssssnail/agent-live --ref main
+codex plugin marketplace add ssssnail/agent-live --ref v0.3.1
 codex plugin add agent-live@agent-live-marketplace
 ```
 
-Invoke the Agent Live Skill to open its local Codex client. Codex customization is an explicit single invocation. See [Using Agent Live with Codex](docs/USING-CODEX.md).
+Invoke the Agent Live Skill to open the local office. [Codex guide](docs/USING-CODEX.md)
 
 ### DeepSeek Harness
 
@@ -39,54 +51,31 @@ dsh plugin --profile web install
 dsh web
 ```
 
-Open a session and switch to the `Agent Live` view. See [Using Agent Live with DSH](docs/USING-DSH.md).
+Open a session and select the `Agent Live` view. [DeepSeek Harness guide](docs/USING-DSH.md)
 
-## Develop
+## Choose or customize an office
 
-Requires Node.js 22 or newer.
+Pi and DeepSeek Harness support these commands:
 
-```bash
-npm ci
-npm run check
-npm run preview
+```text
+/agent-live list presets
+/agent-live preset tech
+/agent-live custom
+/agent-live exit
 ```
 
-The preview command prints the configurable V2 demo URL and the frozen original visual baseline. Before release, run:
+While in Creator Mode, describe the change naturally—for example: “Rename the office Pixel Studio and add two colleagues.” Codex supports the same kind of customization as an explicit Agent Live Skill request. Changes are validated, saved locally and applied immediately.
 
-```bash
-npm run check:ci
-```
+## Build with Agent Live
 
-## Architecture
+The host-neutral package [`@iniesta8888/agent-live`](https://www.npmjs.com/package/@iniesta8888/agent-live) provides the engine and Adapter SDK. To create another host adapter, start with the [Adapter SDK](docs/ADAPTER-SDK.md) or give the included Adapter Builder Skill to your coding agent.
 
-- `plugins/agent-live/src/core` — shared protocol, state and work semantics.
-- `plugins/agent-live/src/runtime` — local Viewer service and owned-resource cleanup.
-- `plugins/agent-live/src/content` — Office Spec compiler, registry and validation.
-- `plugins/agent-live/src/creator` — constrained natural-language customization tools.
-- `plugins/agent-live/src/adapters/codex` — Codex App Server integration source.
-- `plugins/agent-live/web/v2` — office engine, renderers and packaged content.
-- `plugins/agent-live/dsh` — native DSH `conversation.view` source and npm package.
-- `packages/pi` — isolated Pi npm distribution.
-- `dist/codex-plugin` — generated self-contained Codex Marketplace distribution.
-- `skills/agent-live-adapter-builder` — guided third-party adapter scaffolding.
+Project documentation: [Architecture](docs/ARCHITECTURE.md) · [Developer Guide](docs/DEVELOPER.md) · [Customization](docs/CUSTOMIZATION.md)
 
-Start with [Architecture](docs/ARCHITECTURE.md), [Developer Guide](docs/DEVELOPER.md), [Adapter SDK](docs/ADAPTER-SDK.md), or [Customization Boundaries](docs/CUSTOMIZATION.md).
+## Local-first
 
-## Packages
+Agent Live requires no cloud backend. Standalone viewers bind to `127.0.0.1`; custom offices and lightweight replay data remain on the user's machine. Agent Live cleans up the local services and temporary resources it creates.
 
-- `@iniesta8888/agent-live` — host-neutral engine, viewer, Creator and Adapter SDK.
-- `@iniesta8888/agent-live-pi-adapter` — self-contained Pi extension.
-- `@iniesta8888/agent-live-dsh-adapter` — native DSH View plugin.
-- Codex installs from this repository's Marketplace and is not published to npm.
+## Inspiration and license
 
-## Local data and safety
-
-Agent Live binds its standalone service to `127.0.0.1`. Custom Offices and lightweight replay data stay on the user's machine. Adapters own their host-specific integration; Agent Live always cleans up the local services and temporary resources it creates itself.
-
-## Inspiration
-
-Agent Live was inspired by [ChatDev](https://github.com/OpenBMB/ChatDev). It began as a product manager's small vibe-coding experiment and grew into an exploration of how AI work, collaboration and organizations might become visible and understandable.
-
-## License
-
-[MIT](LICENSE)
+Inspired by [ChatDev](https://github.com/OpenBMB/ChatDev). Released under the [MIT License](LICENSE).
