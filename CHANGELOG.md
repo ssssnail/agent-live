@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 — Unreleased
+## 0.3.0 — 2026-09-14
 
 - Split release artifacts into the host-neutral `agent-live` Core, the `agent-live-pi-adapter` npm package, the `agent-live-dsh-adapter` npm package, and a self-contained Codex Marketplace plugin.
 - Added the shared Component Library, Office Spec, Compiler, Validator, and local Custom Office registry.
