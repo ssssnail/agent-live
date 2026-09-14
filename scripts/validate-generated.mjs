@@ -10,7 +10,7 @@ import path from "node:path";
  * build step; a diff means someone changed a source without rebuilding it.
  */
 const root = path.resolve(import.meta.dirname, "..");
-const paths = ["plugins/agent-live/dsh/lib"];
+const paths = ["plugins/agent-live/dsh/lib", "dist/codex-plugin"];
 const status = execFileSync("git", ["status", "--porcelain", "--", ...paths], { cwd: root, encoding: "utf8" }).trim();
 
 if (status) {

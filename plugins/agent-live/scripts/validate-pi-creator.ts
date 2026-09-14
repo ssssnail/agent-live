@@ -6,7 +6,7 @@ import { mock } from "node:test";
 import { AgentLiveRuntime } from "../src/runtime/agent-live-runtime.ts";
 
 process.env.AGENT_LIVE_PI_PORT = "0";
-const { default: installPiAdapter } = await import("../src/adapters/pi/adapter.ts");
+const { default: installPiAdapter } = await import("../../../packages/pi/src/adapter.ts");
 const handlers = new Map<string, (event: any, ctx: any) => Promise<any>>();
 const commands = new Map<string, any>();
 const tools = new Map<string, any>();

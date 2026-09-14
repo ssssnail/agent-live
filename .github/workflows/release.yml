@@ -22,7 +22,11 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: npm run check:ci
-      - run: npm pack --ignore-scripts
+      - name: Pack release artifacts
+        run: |
+          npm pack --ignore-scripts
+          npm pack ./packages/pi --ignore-scripts
+          npm pack ./plugins/agent-live/dsh --ignore-scripts
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}

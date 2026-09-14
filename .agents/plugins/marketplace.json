@@ -8,7 +8,7 @@
       "name": "agent-live",
       "source": {
         "source": "local",
-        "path": "./plugins/agent-live"
+        "path": "./dist/codex-plugin"
       },
       "policy": {
         "installation": "AVAILABLE",

@@ -19,7 +19,7 @@ assert.match(pkg.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
 assert.equal(manifest.name, "agent-live");
 assert.equal(manifest.version, pkg.version, "Codex manifest version differs from package version");
 assert.match(appServerClient, new RegExp(`version: ["']${pkg.version.replaceAll(".", "\\.")}["']`), "Codex App Server client version differs from package version");
-assert.ok(pkg.files.includes("!plugins/agent-live/dsh/node_modules"), "root package must exclude DSH development dependencies");
+assert.ok(!pkg.files.includes("plugins/agent-live"), "core package must not ship host-specific plugin sources");
 assert.equal(pkg.main, "./dist/index.js");
 assert.equal(pkg.types, "./dist/index.d.ts");
 assert.equal(pkg.exports["."].import, "./dist/index.js");
@@ -35,11 +35,18 @@ for (const relative of [
 	"skills/agent-live/SKILL.md",
 	"scripts/codex-client.ts",
 	"scripts/creator-command.ts",
-	"src/adapters/dsh/adapter.ts",
+	"dsh/src/adapter.ts",
 	"dsh/package.json",
 	"dsh/cordis.patch.yml",
 	"dsh/lib/client.js",
 ]) assert.equal(await exists(path.join(pluginRoot, relative)), true, `missing publish file ${relative}`);
+
+for (const relative of [
+	"packages/pi/package.json",
+	"packages/pi/README.md",
+	"scripts/build-distributions.mjs",
+	"scripts/validate-distributions.mjs",
+]) assert.equal(await exists(path.join(root, relative)), true, `missing distribution file ${relative}`);
 
 for (const relative of [
 	"CONTRIBUTING.md",

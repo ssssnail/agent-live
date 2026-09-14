@@ -119,7 +119,7 @@ interface AgentView {
 
 ## 6. pi 事件 → 办公室事件
 
-`plugins/agent-live/src/adapters/pi/adapter.ts` 的翻译规则：
+`packages/pi/src/adapter.ts` 的翻译规则：
 
 | pi 事件 | 处理 |
 | --- | --- |
@@ -365,17 +365,9 @@ endMeeting()     清 inMeeting，各自 retarget()
 
 ## 15. 安装与部署
 
-```bash
-ln -sfn /absolute/path/to/agent-live ~/.pi/agent/extensions/agent-live
-```
-
-pi 要求扩展位于 `~/.pi/agent/extensions/` 下的子目录，且入口是该目录根的 `index.ts`。项目的实际代码在 `plugins/agent-live/src/`，所以根 `index.ts` 只有一行：
-
-```ts
-export { default } from "./src/adapters/pi/adapter.ts";
-```
-
-这样既满足 pi 的发现规则，又不必把源码平铺到根目录，也不用改用户的 `settings.json`。
+Pi 用户安装独立的 `agent-live-pi-adapter` npm 包。其入口是
+`packages/pi/dist/adapter.js`，构建时只打包 Pi Adapter 与所需公共
+Runtime，并携带独立 Viewer；不会把 Codex 或 DSH 实现带给 Pi 用户。
 
 ## 16. 配置项
 

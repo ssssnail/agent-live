@@ -2,6 +2,7 @@
 
 ## 0.3.0 — Unreleased
 
+- Split release artifacts into the host-neutral `agent-live` Core, the `agent-live-pi-adapter` npm package, the `agent-live-dsh-adapter` npm package, and a self-contained Codex Marketplace plugin.
 - Added the shared Component Library, Office Spec, Compiler, Validator, and local Custom Office registry.
 - Added direct, atomic Creator changes: validation or save failure leaves the previous Office active, without preview, undo, confirmation, or draft state.
 - Added session-scoped `/agent-live custom` and `/agent-live exit` modes for Pi and DSH; Codex retains explicit single-turn Skill customization because its plugin surface cannot persistently inject later ordinary turns.

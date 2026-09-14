@@ -7,13 +7,7 @@
 发布到 npm 后，推荐一条命令安装：
 
 ```bash
-pi install npm:agent-live
-```
-
-也可以直接从公开仓库安装：
-
-```bash
-pi install git:github.com/ssssnail/agent-live
+pi install npm:agent-live-pi-adapter
 ```
 
 重启 Pi，然后输入：

@@ -1,0 +1,14 @@
+{
+	"schemaVersion": 1,
+	"kind": "preset-catalog",
+	"presets": [
+		{ "id": "tech-open-office", "name": "tech" },
+		{ "id": "boardroom-office", "name": "meetingroom" },
+		{ "id": "old-school-office", "name": "oldschool" },
+		{ "id": "refined-demo", "name": "Agent Live Demo", "visibility": "internal" },
+		{ "id": "demo-office", "name": "原版基准（Legacy）", "visibility": "internal" },
+		{ "id": "lively-office", "name": "有生活的像素办公室", "visibility": "internal" },
+		{ "id": "night-shift", "name": "雨夜加班办公室", "visibility": "internal" },
+		{ "id": "cozy-studio", "name": "暖调创意工作室", "visibility": "internal" }
+	]
+}

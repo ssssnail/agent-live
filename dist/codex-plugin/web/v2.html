@@ -1,0 +1,68 @@
+<!doctype html>
+	<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Agent Live</title>
+		<style>
+			html.file-mode body { display: grid; place-items: center; padding: 32px; background: #0d1017; color: #d7dee9; font: 14px ui-monospace, monospace; }
+			html.file-mode #app { display: none; }
+			#fileFallback { display: none; max-width: 520px; padding: 20px; border: 1px solid #2a3243; background: #151a24; }
+			html.file-mode #fileFallback { display: block; }
+			#fileFallback strong { display: block; margin-bottom: 8px; color: #ffcc4d; font-size: 18px; }
+		</style>
+		<script>if (location.protocol === "file:") document.documentElement.classList.add("file-mode");</script>
+		<link rel="stylesheet" href="/v2/style.css" />
+	</head>
+	<body>
+		<div id="fileFallback"><strong>Agent Live is not running</strong>This is a local source file, not a live office. Run <code>/agent-live</code> in Codex to open a new authenticated session.</div>
+		<div id="app">
+			<header id="bar">
+				<span class="brand">AGENT LIVE</span>
+				<span id="conn" class="pill offline" data-i18n="connection.connecting">Connecting…</span>
+				<span id="model" class="pill">model: —</span>
+				<span id="turns" class="pill">turn 0</span>
+				<span id="usage" class="pill">0 tok</span>
+				<span class="grow"></span>
+				<button id="language" class="btn" type="button" aria-label="Switch language">中文</button>
+				<div id="devControls" class="dev-controls" hidden>
+					<select id="preset" class="btn" title="Office preset" aria-label="Office preset" data-i18n-title="nav.preset"></select>
+					<button id="mute" class="btn">音效: 关</button>
+					<button id="demo" class="btn" data-i18n="nav.demo">Demo</button>
+				</div>
+			</header>
+
+			<main>
+				<div id="stageWrap">
+					<canvas id="stage"></canvas>
+					<div id="replayStatus" class="replay-status" hidden></div>
+					<div id="taskbar"><span class="k" data-i18n="task.label">Current task</span><span id="task" data-i18n="task.empty">Waiting for a task…</span></div>
+				</div>
+
+				<aside id="side">
+					<section class="panel">
+						<div class="panel-title"><h2 data-i18n="panel.crew">Team</h2><button id="replay" class="replay-btn" type="button" hidden></button></div>
+						<div id="crew" class="crew"></div>
+					</section>
+					<section class="panel grow">
+						<h2 data-i18n="panel.activity">Activity</h2>
+						<div id="log" class="log"></div>
+					</section>
+				</aside>
+			</main>
+
+			<form id="clientControls" class="client-controls" hidden>
+				<div id="approval" class="approval" hidden>
+					<div><strong id="approvalTitle"></strong><span id="approvalDetail"></span></div>
+					<button type="button" class="btn" data-approval="deny" data-i18n="approval.deny">Deny</button>
+					<button type="button" class="btn" data-approval="allow" data-i18n="approval.allow">Allow</button>
+				</div>
+				<textarea id="promptInput" rows="2" placeholder="Give Codex a task…" data-i18n-placeholder="client.prompt"></textarea>
+				<button id="stopTurn" type="button" class="btn" data-i18n="client.stop">Stop</button>
+				<button id="sendPrompt" type="submit" class="btn primary" data-i18n="client.send">Send</button>
+			</form>
+		</div>
+
+		<script type="module" src="/v2/bootstrap.js"></script>
+	</body>
+</html>

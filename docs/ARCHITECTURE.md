@@ -116,11 +116,11 @@ Runtime 是“独立浏览器 Viewer”这种展示形态的公共基础设施�
 
 ### Adapter
 
-`plugins/agent-live/src/adapters/` 中的每个目录都是完整的宿主集成包：
+三个官方 Adapter 按交付边界放置，而不是塞进 Core 包：
 
-- `pi/`：Pi Extension 入口、Observer 事件转换、Local Runtime 和 Pi 退出策略。
-- `codex/`：Codex App Server Client、事件转换、Controller、launcher 和 Local Runtime。
-- `dsh/`：注册 `conversation.view`，观察 DSH Client 已提供的 Session / Conversation Snapshot 并直接转换为 OfficeEvent；详细设计见 [DSH-ADAPTER-DESIGN.md](DSH-ADAPTER-DESIGN.md)。
+- `packages/pi/`：独立 Pi npm 包，包含 Extension 入口、Observer 事件转换和打包后的公共 Runtime/Viewer。
+- `plugins/agent-live/src/adapters/codex/`：Codex App Server Client、事件转换、Controller 和 launcher；构建为 `dist/codex-plugin/` Marketplace 插件。
+- `plugins/agent-live/dsh/`：独立 DSH npm 包，注册 `conversation.view` 并把 Session / Conversation Snapshot 转换为 OfficeEvent；详细设计见 [DSH-ADAPTER-DESIGN.md](DSH-ADAPTER-DESIGN.md)。
 
 Adapter 自行决定是否管理 Runtime、宿主服务或原生 View，但不能直接控制坐标、NPC 或画法。公共 SDK 根据实际实现的控制方法推导可选能力，不再维护第二份手写布尔声明。接入新 coding agent 时，开发者只需新增一个 Adapter Package，不需要理解额外的 Integration 架构层。
 

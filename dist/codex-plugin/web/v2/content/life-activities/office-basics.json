@@ -1,0 +1,39 @@
+{
+	"schemaVersion": 1,
+	"kind": "life-activities",
+	"id": "builtin/office-basics",
+	"name": "基础办公室生活",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"entries": [
+		{
+			"id": "get-water",
+			"name": "接水",
+			"participant": { "kind": "agent", "states": ["idle"] },
+			"requires": [{ "capability": "water" }],
+			"onlyWhenSessionIdle": true,
+			"interruptible": true,
+			"startBubble": "去接杯水",
+			"initialDelayMs": [4500, 7500],
+			"cooldownMs": [22000, 36000],
+			"steps": [
+				{ "target": "water", "durationMs": 3200, "pose": "stand", "bubble": "接杯水，歇一下", "hot": "water" }
+			]
+		},
+		{
+			"id": "cleaning-round",
+			"name": "清洁巡检",
+			"participant": { "kind": "npc", "roles": ["cleaner"] },
+			"requires": [],
+			"interruptible": false,
+			"initialDelayMs": [700, 1200],
+			"cooldownMs": [3500, 6000],
+			"steps": [
+				{ "target": "clean-north", "durationMs": 2300, "pose": "reach", "bubble": "擦擦桌面", "particle": "spark" },
+				{ "target": "clean-south", "durationMs": 2600, "pose": "reach", "bubble": "这边也收拾一下", "particle": "spark" },
+				{ "target": "clean-meeting", "durationMs": 2200, "pose": "reach", "bubble": "会议区整理好啦", "particle": "spark" }
+			]
+		}
+	]
+}

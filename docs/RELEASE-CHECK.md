@@ -20,4 +20,4 @@ For each official host, record the host version and validate this user path befo
 8. Close Agent Live's standalone viewer; verify its resources close. An embedded DSH view must not stop DSH.
 9. Disable/remove the plugin through the host; verify the host still starts.
 
-After these checks pass, merge the reviewed branch, confirm repository visibility and install links, date the changelog and create the matching version tag. The tag workflow creates the GitHub Release; npm publication is a separate decision.
+After these checks pass, merge the reviewed branch, confirm repository visibility and install links, date the changelog and create the matching version tag. The tag workflow packs the Core, Pi Adapter and DSH Adapter into the GitHub Release; npm publication of those three packages is a separate decision. Codex is distributed only through the repository Marketplace.

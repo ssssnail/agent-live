@@ -1,0 +1,25 @@
+{
+	"schemaVersion": 1,
+	"kind": "office-spec",
+	"id": "builtin/old-school-office",
+	"name": "oldschool",
+	"origin": "official",
+	"layout": "builtin/old-school-office",
+	"style": "builtin/warm-studio",
+	"agentSkin": "builtin/studio-team",
+	"placements": [
+		{ "id": "manager-fan", "component": "builtin/floor-fan", "slot": "manager-utility-1" },
+		{ "id": "coat-rack", "component": "builtin/coat-rack", "slot": "manager-utility-2" },
+		{ "id": "reception-main", "component": "builtin/reception-desk", "slot": "reception-service" },
+		{ "id": "water-main", "component": "builtin/water-cooler", "slot": "break-water" },
+		{ "id": "coffee-main", "component": "builtin/coffee-machine", "slot": "break-coffee" },
+		{ "id": "vending-main", "component": "builtin/vending-machine", "slot": "break-vending" }
+	],
+	"npcs": [
+		{ "id": "receptionist-chen", "template": "builtin/receptionist", "name": "陈姐", "title": "前台秘书", "gender": "female", "appearance": { "skin": "#d69f70", "hair": "#3d302a", "shirt": "#718b78", "trim": "#526a59", "badge": "#d7ae5b" }, "spawn": "reception", "pose": "stand" },
+		{ "id": "custodian-zhou", "template": "builtin/cleaner", "name": "老周", "title": "后勤", "gender": "male", "appearance": { "skin": "#b87a4f", "hair": "#69635a", "shirt": "#6d8171", "trim": "#4a5e50", "badge": "#b7d1bd" }, "spawn": "cleaner-entry", "pose": "stand" }
+	],
+	"activities": ["builtin/corridor-chat", "builtin/get-water", "builtin/paperwork-round", "builtin/facility-round"],
+	"atmosphere": "builtin/default-atmosphere",
+	"environment": "builtin/local-office-environment"
+}

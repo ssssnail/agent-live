@@ -1,0 +1,122 @@
+{
+	"schemaVersion": 1,
+	"kind": "layout",
+	"id": "builtin/boardroom-office",
+	"name": "大会议室长桌办公布局",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"canvas": { "width": 384, "height": 216 },
+	"wallHeight": 54,
+	"camera": { "mode": "fixed", "fit": "contain", "integerScale": true },
+	"zones": [
+		{ "id": "presentation", "name": "Presentation Front", "x": 82, "y": 54, "width": 220, "height": 30 },
+		{ "id": "table-left", "name": "Left Work Side", "x": 82, "y": 76, "width": 110, "height": 126 },
+		{ "id": "table-right", "name": "Right Work Side", "x": 192, "y": 76, "width": 110, "height": 126 },
+		{ "id": "service-left", "name": "Document & Refreshment Service", "x": 10, "y": 60, "width": 72, "height": 150 },
+		{ "id": "service-right", "name": "AV & Water Service", "x": 302, "y": 60, "width": 72, "height": 150 },
+		{ "id": "circulation", "name": "Meeting Room Circulation", "x": 0, "y": 54, "width": 384, "height": 162 }
+	],
+	"textSlots": [{"id":"company","name":"Company name / text logo","x":125,"y":11,"width":132,"height":12,"maxLength":24,"defaultText":""},{"id":"notice","name":"Notice","x":125,"y":27,"width":132,"height":12,"maxLength":48,"defaultText":""},{"id":"slogan","name":"Area slogan","x":18,"y":128,"width":52,"height":11,"maxLength":48,"defaultText":""}],
+		"placementSlots": [
+		{"id":"extra-1","zone":"circulation","x":14,"y":111,"accepts":["plant"],"maxSize":{"width":14,"height":22},"required":false},
+		{"id":"extra-2","zone":"circulation","x":362,"y":117,"accepts":["plant"],"maxSize":{"width":14,"height":22},"required":false},
+		{"id":"extra-3","zone":"circulation","x":306,"y":121,"accepts":["water-cooler","vending-machine"],"maxSize":{"width":18,"height":28},"required":false},
+		{ "id": "front-decoration-left", "zone": "presentation", "x": 91, "y": 69, "accepts": ["plant"], "maxSize": { "width": 14, "height": 22 }, "required": false, "occupiedBy": "plant-front-left" },
+		{ "id": "front-decoration-right", "zone": "presentation", "x": 295, "y": 69, "accepts": ["plant"], "maxSize": { "width": 14, "height": 22 }, "required": false, "occupiedBy": "plant-front-right" },
+		{ "id": "left-refreshment", "zone": "service-left", "x": 48, "y": 105, "accepts": ["coffee-machine"], "maxSize": { "width": 26, "height": 22 }, "required": false, "occupiedBy": "coffee-main" },
+		{ "id": "left-service-storage", "zone": "service-left", "x": 18, "y": 161, "accepts": ["service-cart", "sideboard"], "maxSize": { "width": 55, "height": 30 }, "required": false, "occupiedBy": "archive-main" },
+		{ "id": "right-refreshment", "zone": "service-right", "x": 344, "y": 170, "accepts": ["water-cooler", "vending-machine"], "maxSize": { "width": 18, "height": 28 }, "required": false, "occupiedBy": "water-main" }
+	],
+	"navigation": {
+		"lanes": [60, 112, 146, 198],
+		"connectors": [10, 80, 192, 304, 374],
+		"perimeter": { "leftX": 82, "rightX": 302, "topY": 60, "bottomY": 210 }
+	},
+	"interactions": { "handoff": "seated", "directorNpcRole": "boss" },
+	"seats": [
+		{ "index": 0, "cx": 127, "renderer": "boardroom-seat", "desk": { "x": 145, "y": 88, "width": 15, "height": 10 }, "anchor": { "x": 127, "y": 101, "dir": "right", "lane": 1, "zone": "left" } },
+		{ "index": 1, "cx": 257, "renderer": "boardroom-seat", "desk": { "x": 224, "y": 88, "width": 15, "height": 10 }, "anchor": { "x": 257, "y": 101, "dir": "left", "lane": 1, "zone": "right" } },
+		{ "index": 2, "cx": 119, "renderer": "boardroom-seat", "desk": { "x": 141, "y": 112, "width": 15, "height": 10 }, "anchor": { "x": 119, "y": 125, "dir": "right", "lane": 1, "zone": "left" } },
+		{ "index": 3, "cx": 265, "renderer": "boardroom-seat", "desk": { "x": 228, "y": 112, "width": 15, "height": 10 }, "anchor": { "x": 265, "y": 125, "dir": "left", "lane": 1, "zone": "right" } },
+		{ "index": 4, "cx": 111, "renderer": "boardroom-seat", "desk": { "x": 137, "y": 138, "width": 15, "height": 10 }, "anchor": { "x": 111, "y": 151, "dir": "right", "lane": 2, "zone": "left" } },
+		{ "index": 5, "cx": 273, "renderer": "boardroom-seat", "desk": { "x": 232, "y": 138, "width": 15, "height": 10 }, "anchor": { "x": 273, "y": 151, "dir": "left", "lane": 2, "zone": "right" } },
+		{ "index": 6, "cx": 103, "renderer": "boardroom-seat", "desk": { "x": 133, "y": 164, "width": 15, "height": 10 }, "anchor": { "x": 103, "y": 177, "dir": "right", "lane": 3, "zone": "left" } },
+		{ "index": 7, "cx": 281, "renderer": "boardroom-seat", "desk": { "x": 236, "y": 164, "width": 15, "height": 10 }, "anchor": { "x": 281, "y": 177, "dir": "left", "lane": 3, "zone": "right" } }
+	],
+	"standingAnchors": [
+		{ "x": 82, "y": 86, "dir": "right", "lane": 1, "zone": "circulation" },
+		{ "x": 302, "y": 86, "dir": "left", "lane": 1, "zone": "circulation" },
+		{ "x": 82, "y": 132, "dir": "right", "lane": 2, "zone": "circulation" },
+		{ "x": 302, "y": 132, "dir": "left", "lane": 2, "zone": "circulation" },
+		{ "x": 82, "y": 198, "dir": "right", "lane": 3, "zone": "circulation" },
+		{ "x": 302, "y": 198, "dir": "left", "lane": 3, "zone": "circulation" },
+		{ "x": 112, "y": 60, "dir": "down", "lane": 0, "zone": "circulation" },
+		{ "x": 272, "y": 60, "dir": "down", "lane": 0, "zone": "circulation" }
+	],
+	"targets": {
+		"staff-entry": {"x":10,"y":60,"dir":"right","lane":0,"zone":"top"},
+		"archive": { "x": 68, "y": 184, "dir": "left", "lane": 3 },
+		"server": { "x": 336, "y": 111, "dir": "up", "lane": 1 },
+		"whiteboard": { "x": 50, "y": 116, "dir": "up", "lane": 1 },
+		"phone": { "x": 192, "y": 151, "dir": "up", "lane": 2 },
+		"coffee": { "x": 68, "y": 148, "dir": "left", "lane": 2 },
+		"water": { "x": 352, "y": 198, "dir": "right", "lane": 3 },
+		"meetA": { "x": 145, "y": 139, "dir": "right", "lane": 2 },
+		"meetB": { "x": 239, "y": 139, "dir": "left", "lane": 2 },
+		"entry": { "x": 10, "y": 60, "dir": "right", "lane": 0, "zone": "top" },
+		"boss-seat": { "x": 192, "y": 68, "dir": "down", "lane": 0, "zone": "top" },
+		"secretary-entry": { "x": 10, "y": 198, "dir": "right", "lane": 3, "zone": "left" },
+		"service-entry": { "x": 374, "y": 198, "dir": "left", "lane": 3, "zone": "right" },
+		"decision-wall": { "x": 50, "y": 116, "dir": "up", "lane": 1, "zone": "left" },
+		"table-service-left": { "x": 82, "y": 151, "dir": "right", "lane": 2, "zone": "left" },
+		"table-service-right": { "x": 302, "y": 151, "dir": "left", "lane": 2, "zone": "right" }
+	},
+	"stations": {
+		"research": { "kind": "seat" },
+		"create": { "kind": "seat" },
+		"compute": { "kind": "seat" },
+		"plan": { "kind": "seat" },
+		"communicate": { "kind": "seat" },
+		"collaborate": { "kind": "seat", "meetingTargets": ["meetA", "meetB"] },
+		"coffee": { "kind": "target", "target": "coffee" },
+		"water": { "kind": "target", "target": "water" }
+	},
+	"legacyActions": {
+		"type": "create",
+		"archive": "research",
+		"server": "compute",
+		"whiteboard": "plan",
+		"phone": "communicate",
+		"delegate": "collaborate",
+		"coffee": "coffee"
+	},
+	"furniture": {
+		"archive": { "x": 18, "y": 161, "w": 50, "h": 30 },
+		"server": { "x": 306, "y": 64, "w": 60, "h": 45 },
+		"coffee": { "x": 48, "y": 108, "w": 26, "h": 22 },
+		"water": { "x": 344, "y": 170, "w": 16, "h": 26 },
+		"phone": { "x": 181, "y": 143, "w": 22, "h": 12 },
+		"whiteboard": { "x": 15, "y": 64, "w": 65, "h": 45 },
+		"meeting": { "x": 90, "y": 76, "w": 204, "h": 125 }
+	},
+	"propInstances": [
+		{ "id": "boardroom-rug", "type": "rug", "x": 75, "y": 70, "width": 234, "height": 140 },
+		{ "id": "entry-door", "type": "door", "x": 2, "y": 12, "width": 24, "height": 42 },
+		{ "id": "city-window-left", "type": "window", "x": 32, "y": 8, "width": 67, "height": 38 },
+		{ "id": "city-window-right", "type": "window", "x": 285, "y": 8, "width": 67, "height": 38 },
+		{ "id": "presentation-main", "type": "presentation-screen", "x": 111, "y": 6 },
+		{ "id": "decision-board", "type": "whiteboard", "x": 15, "y": 64, "width": 65, "height": 45 },
+		{ "id": "av-main", "type": "av-console", "x": 306, "y": 64 },
+		{ "id": "meeting-main", "type": "boardroom-table", "x": 90, "y": 76 },
+		{ "id": "coffee-sideboard", "type": "sideboard", "x": 16, "y": 126 },
+		{ "id": "coffee-main", "type": "coffee-machine", "x": 48, "y": 105 },
+		{ "id": "archive-main", "type": "service-cart", "x": 18, "y": 161 },
+		{ "id": "water-main", "type": "water-cooler", "x": 344, "y": 170 },
+		{ "id": "service-cabinet", "type": "sideboard", "x": 318, "y": 157, "width": 45, "height": 42 },
+		{ "id": "plant-front-left", "type": "plant", "x": 91, "y": 69 },
+		{ "id": "plant-front-right", "type": "plant", "x": 295, "y": 69 },
+		{ "id": "wall-clock", "type": "office-clock", "x": 362, "y": 8 }
+	],
+	"npcSpawns": ["staff-entry", "boss-seat", "secretary-entry", "service-entry"]
+}

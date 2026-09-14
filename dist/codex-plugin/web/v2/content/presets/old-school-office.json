@@ -1,0 +1,20 @@
+{
+	"schemaVersion": 1,
+	"kind": "preset",
+	"id": "builtin/old-school-office",
+	"name": "oldschool",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"officeSpec": "official-offices/old-school-office.json",
+	"content": {
+		"style": "warm-studio",
+		"layout": "old-school-office",
+		"agentSkin": "studio-team",
+		"props": "extended-office",
+		"npcs": "old-school-staff",
+		"lifeActivities": "old-school-routines",
+		"atmosphere": "default",
+		"environment": "local-office"
+	}
+}

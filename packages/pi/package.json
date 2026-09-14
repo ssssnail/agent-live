@@ -1,0 +1,23 @@
+{
+  "name": "agent-live-pi-adapter",
+  "version": "0.3.0",
+  "type": "module",
+  "description": "Pi adapter for the Agent Live pixel office",
+  "keywords": ["pi-extension", "coding-agent", "agent-live", "pixel-office"],
+  "author": "ssssnail",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ssssnail/agent-live.git",
+    "directory": "packages/pi"
+  },
+  "files": ["dist", "web", "README.md", "LICENSE"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "node ../../scripts/build-distributions.mjs",
+    "prepack": "npm run build"
+  },
+  "pi": {
+    "extensions": ["./dist/adapter.js"]
+  }
+}

@@ -139,7 +139,7 @@ var SCENE_LIMITS = Object.freeze({
   queuedBubbles: 8
 });
 
-// ../src/adapters/dsh/adapter.ts
+// src/adapter.ts
 var short2 = (value, max) => {
   const clean = value.replace(/\s+/g, " ").trim();
   return clean.length > max ? `${clean.slice(0, max)}\u2026` : clean;

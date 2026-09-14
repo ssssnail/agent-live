@@ -1,14 +1,14 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { actionForTool, describeDelegation, isDelegationTool, labelForTool } from "../../core/mapping.ts";
-import type { OfficeServer } from "../../runtime/server.ts";
-import { OfficeState } from "../../core/state.ts";
-import { AgentLiveRuntime } from "../../runtime/agent-live-runtime.ts";
-import { AgentRegistry } from "../../core/agents.ts";
+import { actionForTool, describeDelegation, isDelegationTool, labelForTool } from "../../../plugins/agent-live/src/core/mapping.ts";
+import type { OfficeServer } from "../../../plugins/agent-live/src/runtime/server.ts";
+import { OfficeState } from "../../../plugins/agent-live/src/core/state.ts";
+import { AgentLiveRuntime } from "../../../plugins/agent-live/src/runtime/agent-live-runtime.ts";
+import { AgentRegistry } from "../../../plugins/agent-live/src/core/agents.ts";
 import { randomBytes } from "node:crypto";
-import { OfficeContentService } from "../../runtime/content-service.ts";
-import { CreatorService } from "../../creator/service.ts";
-import { CreatorCommandRouter } from "../../creator/commands.ts";
-import { CreatorModeRegistry, CREATOR_MODE_CONTEXT } from "../../creator/mode.ts";
+import { OfficeContentService } from "../../../plugins/agent-live/src/runtime/content-service.ts";
+import { CreatorService } from "../../../plugins/agent-live/src/creator/service.ts";
+import { CreatorCommandRouter } from "../../../plugins/agent-live/src/creator/commands.ts";
+import { CreatorModeRegistry, CREATOR_MODE_CONTEXT } from "../../../plugins/agent-live/src/creator/mode.ts";
 
 const MAIN = "main";
 const PI_CREATOR_SESSION = "pi-current-session";

@@ -1,0 +1,19 @@
+{
+  "name": "agent-live",
+  "version": "0.3.0",
+  "description": "Watch Codex work in a lightweight local pixel office.",
+  "author": {
+    "name": "ssssnail",
+    "url": "https://github.com/ssssnail/agent-live"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Agent Live",
+    "shortDescription": "Give your coding agent a live office.",
+    "longDescription": "Open a lightweight local pixel office that reflects Codex thinking, tool calls, messages, approvals, and idle state.",
+    "developerName": "ssssnail",
+    "category": "Productivity",
+    "capabilities": ["Visualization"],
+    "defaultPrompt": "Open Agent Live and show this Codex agent working in its local office."
+  }
+}

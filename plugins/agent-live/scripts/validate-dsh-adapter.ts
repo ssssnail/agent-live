@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { DshSnapshotAdapter, type DshObservation } from "../src/adapters/dsh/adapter.ts";
+import { DshSnapshotAdapter, type DshObservation } from "../dsh/src/adapter.ts";
 
 const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../dsh");
 const json = async (file: string) => JSON.parse(await readFile(file, "utf8"));

@@ -8,7 +8,7 @@ import type {} from "@deepseek-ai/dsh-subagent/client";
 import React from "react";
 import frameDocument from "agent-live-frame-document";
 import type {} from "./creator.ts";
-import { DshSnapshotAdapter, type DshChildRecord, type DshMessageRecord, type DshObservation, type DshToolRecord } from "../../src/adapters/dsh/adapter.ts";
+import { DshSnapshotAdapter, type DshChildRecord, type DshMessageRecord, type DshObservation, type DshToolRecord } from "./adapter.ts";
 import type { OfficeEvent } from "../../src/core/protocol.ts";
 
 export const inject = ["slots"];

@@ -11,7 +11,7 @@
 	},
 	"include": [
 		"index.ts",
-		"pi.ts",
+		"packages/pi/src/**/*.ts",
 		"plugins/agent-live/src/**/*.ts",
 		"plugins/agent-live/scripts/**/*.ts",
 		"plugins/agent-live/types/**/*.d.ts"

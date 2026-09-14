@@ -1,0 +1,67 @@
+{
+	"schemaVersion": 1,
+	"kind": "life-activities",
+	"id": "builtin/boardroom-routines",
+	"name": "大会议室日常",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"entries": [
+		{
+			"id": "boss-briefing",
+			"name": "老板主持会议",
+			"participant": { "kind": "npc", "roles": ["boss"] },
+			"requires": [{ "capability": "plan" }],
+			"interruptible": false,
+			"initialDelayMs": [500, 900],
+			"cooldownMs": [9000, 14000],
+			"steps": [
+				{ "target": "boss-seat", "durationMs": 4800, "pose": "talk", "bubble": "先看今天的重点" },
+				{ "target": "boss-seat", "durationMs": 3200, "pose": "talk", "bubble": "这里需要重点推进", "hot": "whiteboard" },
+				{ "target": "boss-seat", "durationMs": 3800, "pose": "talk", "bubble": "负责人按节点同步" }
+			]
+		},
+		{
+			"id": "get-water",
+			"name": "接水",
+			"participant": { "kind": "agent", "states": ["idle"] },
+			"requires": [{ "capability": "water" }],
+			"onlyWhenSessionIdle": true,
+			"interruptible": true,
+			"startBubble": "去接杯水",
+			"initialDelayMs": [5500, 8500],
+			"cooldownMs": [25000, 40000],
+			"steps": [
+				{ "target": "water", "durationMs": 2800, "pose": "stand", "bubble": "喝口水继续", "hot": "water" }
+			]
+		},
+		{
+			"id": "briefing-support",
+			"name": "会前资料",
+			"participant": { "kind": "npc", "roles": ["secretary"] },
+			"requires": [{ "capability": "research" }],
+			"interruptible": false,
+			"initialDelayMs": [800, 1400],
+			"cooldownMs": [5000, 7600],
+			"steps": [
+				{ "target": "decision-wall", "durationMs": 2200, "pose": "reach", "bubble": "更新议程", "particle": "paper" },
+				{ "target": "table-service-left", "durationMs": 2300, "pose": "reach", "bubble": "资料放桌上了" },
+				{ "target": "secretary-entry", "durationMs": 1800, "pose": "stand" }
+			]
+		},
+		{
+			"id": "refreshment-round",
+			"name": "茶水服务",
+			"participant": { "kind": "npc", "roles": ["attendant"] },
+			"requires": [{ "capability": "coffee" }],
+			"interruptible": false,
+			"initialDelayMs": [1300, 1900],
+			"cooldownMs": [4800, 7200],
+			"steps": [
+				{ "target": "coffee", "durationMs": 1800, "pose": "reach", "bubble": "补充咖啡", "hot": "coffee" },
+				{ "target": "table-service-right", "durationMs": 2400, "pose": "reach", "bubble": "请用茶" },
+				{ "target": "service-entry", "durationMs": 1800, "pose": "stand" }
+			]
+		}
+	]
+}

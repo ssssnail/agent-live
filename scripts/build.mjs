@@ -10,3 +10,9 @@ await new Promise((resolve, reject) => {
 	child.once("exit", (code) => code === 0 ? resolve() : reject(new Error(`TypeScript build exited with ${code}`)));
 });
 await cp(path.join(root, "plugins/agent-live/web"), path.join(root, "dist/web"), { recursive: true });
+await rm(path.join(root, "dist/web/v2/codex-controls.js"), { force: true });
+await new Promise((resolve, reject) => {
+	const child = spawn(process.execPath, [path.join(root, "scripts/build-distributions.mjs")], { cwd: root, stdio: "inherit" });
+	child.once("error", reject);
+	child.once("exit", (code) => code === 0 ? resolve() : reject(new Error(`Distribution build exited with ${code}`)));
+});

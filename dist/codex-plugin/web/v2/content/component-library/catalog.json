@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"kind": "component-library",
+	"id": "builtin/agent-live-components",
+	"version": "1.0.0",
+	"contract": "single-office-v1",
+	"registries": {
+		"props": "props.json",
+		"npcTemplates": "npc-templates.json",
+		"agentProfileTemplates": "agent-profile-templates.json",
+		"activityRecipes": "activity-recipes.json",
+		"activityImplementations": "activity-implementations.json"
+	},
+	"styles": [
+		{ "id": "builtin/pixel-classic", "name": "Pixel Classic", "description": "Crisp, high-contrast pixel office art.", "tags": ["pixel", "modern", "high-contrast"] },
+		{ "id": "builtin/warm-studio", "name": "Warm Studio", "description": "Warm wood and muted-color pixel office art.", "tags": ["pixel", "warm", "traditional"] }
+	],
+	"layouts": [
+		{ "id": "builtin/boardroom-office", "name": "Boardroom Office", "description": "A long-table meeting room led from the front.", "tags": ["meeting", "formal", "long-table"] },
+		{ "id": "builtin/demo-office", "name": "Demo Office", "description": "The preserved original single-room demo layout.", "tags": ["office", "baseline", "compact"] },
+		{ "id": "builtin/lively-office", "name": "Lively Office", "description": "A compact office with shared break facilities.", "tags": ["office", "social", "compact"] },
+		{ "id": "builtin/old-school-office", "name": "Old-school Office", "description": "A compartmentalized traditional office with administration and service areas.", "tags": ["office", "traditional", "cubicle"] },
+		{ "id": "builtin/tech-open-office", "name": "Tech Open Office", "description": "An informal open office for a modern technology team.", "tags": ["office", "technology", "open-plan"] }
+	],
+	"agentSkins": [
+		{ "id": "builtin/studio-team", "name": "Studio Team", "description": "A warm-toned pixel character palette.", "tags": ["pixel", "warm", "character"] },
+		{ "id": "builtin/tiny-developers", "name": "Tiny Developers", "description": "The default colorful coding-agent character palette.", "tags": ["pixel", "technology", "character"] }
+	],
+	"atmospheres": [
+		{ "id": "builtin/default-atmosphere", "name": "Default Atmosphere", "description": "Uses the selected style without additional ambience.", "tags": ["neutral", "day-night"] },
+		{ "id": "builtin/rainy-night", "name": "Rainy Night", "description": "Adds rainy windows and a darker nighttime mood.", "tags": ["rain", "night", "ambient"] }
+	],
+	"environments": [
+		{ "id": "builtin/local-office-environment", "name": "Local Office Time", "description": "Follows the user's local clock and accepts host weather input.", "tags": ["local-time", "dynamic", "weather"] },
+		{ "id": "builtin/rainy-night-environment", "name": "Fixed Rainy Night", "description": "A fixed nighttime environment with rain enabled.", "tags": ["fixed-time", "rain", "night"] },
+		{ "id": "builtin/static-office-environment", "name": "Static Office Time", "description": "A deterministic fixed-time environment for demos and tests.", "tags": ["fixed-time", "testing"] }
+	]
+}

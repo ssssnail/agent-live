@@ -8,7 +8,7 @@ process.env.AGENT_LIVE_PI_PORT = "0";
 process.env.AGENT_LIVE_VIEWER_CLOSE_GRACE_MS = "10";
 const root = await mkdtemp(path.join(os.tmpdir(), "agent-live-pi-lifecycle-"));
 process.env.AGENT_LIVE_DATA_DIR = path.join(root, "data");
-const { default: installPiAdapter } = await import("../src/adapters/pi/adapter.ts");
+const { default: installPiAdapter } = await import("../../../packages/pi/src/adapter.ts");
 
 const handlers = new Map<string, (event: unknown, ctx: any) => Promise<unknown>>();
 const commands = new Map<string, { handler(args: string, ctx: any): Promise<void> }>();

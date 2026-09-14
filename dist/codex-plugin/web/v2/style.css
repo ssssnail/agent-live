@@ -1,0 +1,140 @@
+@import url("/style.css");
+
+.dev-controls {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.dev-controls[hidden] {
+	display: none;
+}
+
+.panel-title {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.panel-title h2 {
+	margin: 0;
+}
+
+.replay-btn {
+	max-width: 190px;
+	padding: 6px 10px;
+	overflow: hidden;
+	color: #17130a;
+	background: var(--accent);
+	border: 1px solid #ffe59a;
+	border-radius: 3px;
+	box-shadow: 0 2px 0 #8d6b14;
+	font: inherit;
+	font-size: 11px;
+	font-weight: 800;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.replay-btn:hover:not(:disabled) {
+	filter: brightness(1.08);
+	transform: translateY(-1px);
+}
+
+.replay-btn:disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+
+.replay-status {
+	position: absolute;
+	top: 12px;
+	left: 50%;
+	z-index: 4;
+	padding: 7px 12px;
+	transform: translateX(-50%);
+	color: #17130a;
+	background: var(--accent);
+	border: 2px solid #fff0b8;
+	box-shadow: 0 3px 0 #76570c;
+	font-size: 12px;
+	font-weight: 800;
+	pointer-events: none;
+}
+
+.replay-status[hidden] {
+	display: none;
+}
+
+.client-controls {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto auto;
+	gap: 8px;
+	padding: 9px 12px;
+	background: var(--panel);
+	border-top: 2px solid var(--line);
+}
+
+.client-controls .model-select {
+	min-width: 0;
+	text-overflow: ellipsis;
+}
+
+.client-controls[hidden] {
+	display: none;
+}
+
+.client-controls textarea {
+	min-width: 0;
+	resize: none;
+	padding: 7px 9px;
+	background: var(--bg);
+	color: var(--ink);
+	border: 1px solid var(--line);
+	font: inherit;
+	font-size: 12px;
+}
+
+.client-controls textarea:focus {
+	outline: none;
+	border-color: var(--accent);
+}
+
+.client-controls .primary {
+	color: var(--accent);
+}
+
+.approval {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 9px;
+	background: #211b2c;
+	border: 1px solid #594070;
+	font-size: 12px;
+}
+
+.approval[hidden] {
+	display: none;
+}
+
+.approval > div {
+	min-width: 0;
+	flex: 1;
+}
+
+.approval strong,
+.approval span {
+	display: block;
+}
+
+.approval span {
+	margin-top: 3px;
+	color: var(--dim);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}

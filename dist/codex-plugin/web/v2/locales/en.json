@@ -1,0 +1,209 @@
+{
+	"locale": "en",
+	"strings": {
+		"connection.connecting": "Connecting…",
+		"connection.connected": "Connected",
+		"connection.reconnecting": "Reconnecting…",
+		"nav.preset": "Office preset",
+		"nav.soundOff": "Sound: off",
+		"nav.soundOn": "Sound: on",
+		"nav.demo": "Demo",
+		"nav.language": "Switch language",
+		"task.label": "Current task",
+		"task.empty": "Waiting for a task…",
+		"panel.crew": "Team",
+		"panel.activity": "Activity",
+		"replay.day": "{name}'s Day",
+		"replay.playing": "Replaying at 3×",
+		"replay.empty": "No history yet",
+		"replay.noActivity": "No activity to replay",
+		"replay.progress": "Replay {current}/{total} · 3×",
+		"replay.complete": "Replay complete · Idle",
+		"approval.deny": "Deny",
+		"approval.allow": "Allow",
+		"client.model": "Codex model",
+		"client.loadingModels": "Loading models…",
+		"client.prompt": "Give Codex a task…",
+		"client.stop": "Stop",
+		"client.stopping": "Stopping…",
+		"client.send": "Send",
+		"status.running": "running",
+		"state.idle": "Idle",
+		"state.thinking": "Thinking",
+		"state.working": "Working",
+		"state.waiting": "Waiting",
+		"state.talking": "Reporting",
+		"state.done": "Done",
+		"state.error": "Error",
+		"npc.arrival": "Starting my shift",
+		"npc.departure": "Heading home",
+		"agent.joined": "I'm here",
+		"agent.teammate": "{name}'s Teammate{index}",
+		"delegate.owner": "{name} will take this",
+		"delegate.assign": "Assign: {task}",
+		"config.error": "Configuration error"
+	},
+	"text": {
+		"原版基准（Legacy）": "Original Baseline (Legacy)",
+		"有生活的像素办公室": "Lively Pixel Office",
+		"雨夜加班办公室": "Rainy Night Office",
+		"暖调创意工作室": "Warm Creative Studio",
+		"啊派": "A Pi",
+		"阿派": "A Pi",
+		"科迪": "Cody",
+		"老板": "Boss",
+		"林姨": "Lin",
+		"陈姐": "Chen",
+		"老周": "Zhou",
+		"主管": "Lead",
+		"外援": "Teammate",
+		"保洁": "Cleaner",
+		"会议主持": "Meeting host",
+		"行政秘书": "Executive assistant",
+		"会议服务": "Meeting support",
+		"侦察员": "Scout",
+		"规划师": "Planner",
+		"评审员": "Reviewer",
+		"工程师": "Engineer",
+		"文案": "Writer",
+		"程序员": "Developer",
+		"设计师": "Designer",
+		"顾问": "Advisor",
+		"前台秘书": "Receptionist",
+		"后勤": "Facilities",
+		"综合办公区": "General Office",
+		"主任室": "Manager's Office",
+		"小会议室": "Meeting Room",
+		"档案室": "Records",
+		"机房": "Server Room",
+		"行政前台": "Reception",
+		"茶水间": "Break Room",
+		"上班啦": "Starting my shift",
+		"下班啦": "Heading home",
+		"聊两句？": "Quick chat?",
+		"最近进展怎么样？": "How is it going?",
+		"刚处理完一块，歇一下": "Wrapped up a piece—taking a breather",
+		"出去走走？": "Want to take a walk?",
+		"透口气": "Getting some fresh air",
+		"走一圈再回来": "One lap, then back to work",
+		"摸会儿鱼": "Taking a quick break",
+		"刷一下手机": "Checking my phone",
+		"去趟洗手间": "Heading to the restroom",
+		"稍等一下": "Back in a moment",
+		"整理一下桌面": "Tidying the desks",
+		"这边也收拾好": "This area is tidy too",
+		"休息区整理好了": "The lounge is all set",
+		"接到新需求": "New task received",
+		"构思中": "Planning",
+		"思考中": "Thinking",
+		"汇报中": "Preparing an update",
+		"继续推进": "Continuing",
+		"处理报错": "Handling an error",
+		"任务失败": "Task failed",
+		"待命": "Standing by",
+		"修改代码": "Editing code",
+		"联网检索": "Searching the web",
+		"查看图片": "Viewing an image",
+		"协调同事": "Coordinating teammates",
+		"更新任务板": "Updating the task board"
+		,"任务启动失败": "Task failed to start"
+		,"调整方案": "Adjusting the plan"
+		,"等待你的确认": "Waiting for your approval"
+		,"执行命令": "Run command"
+		,"修改文件": "Edit files"
+		,"允许执行命令？": "Allow this command?"
+		,"允许修改文件？": "Allow these file changes?"
+		,"先看今天的重点": "Let's review today's priorities"
+		,"这里需要重点推进": "This needs focused progress"
+		,"负责人按节点同步": "Owners, report at each milestone"
+		,"去接杯水": "Getting some water"
+		,"喝口水继续": "A sip, then back to it"
+		,"接杯水，歇一下": "Getting water and taking a breather"
+		,"更新议程": "Updating the agenda"
+		,"资料放桌上了": "The materials are on the table"
+		,"补充咖啡": "Refilling the coffee"
+		,"请用茶": "Tea is ready"
+		,"出去聊两句？": "Quick chat in the hall?"
+		,"这个文件你看了吗？": "Have you reviewed this file?"
+		,"刚送过来，正准备看": "It just arrived—I'm about to review it"
+		,"泡杯茶": "Making some tea"
+		,"茶缸续上水": "Refilling the tea mug"
+		,"喂，这里是办公室": "Hello, this is the office"
+		,"复印归档": "Copying and filing"
+		,"盖章登记好了": "Stamped and registered"
+		,"看看格子间": "Checking the cubicles"
+		,"整理一下": "Tidying up"
+		,"风扇别忘了关": "Remember to turn off the fan"
+		,"会议室收好了": "The meeting room is ready"
+		,"擦擦桌面": "Wiping the desks"
+		,"这边也收拾一下": "Tidying this side too"
+		,"会议区整理好啦": "The meeting area is ready"
+		,"暖调工作室团队": "Warm Studio Team"
+		,"测试员": "Tester"
+		,"原版像素员工": "Original Pixel Team"
+		,"原版环境": "Original Environment"
+		,"雨夜加班": "Rainy Night Shift"
+		,"老板主持会议": "Boss-led Meeting"
+		,"会前资料": "Meeting Materials"
+		,"接水": "Get Water"
+		,"茶水服务": "Refreshments"
+		,"清洁巡检": "Cleaning Round"
+		,"走廊聊两句": "Hallway Chat"
+		,"后勤巡检": "Facilities Round"
+		,"泡茶": "Make Tea"
+		,"文件流转": "Document Run"
+		,"老板给员工打气": "Team Pep Talk"
+		,"兄弟们加油努力干！": "Team, let's keep pushing!"
+		,"大家加油，冲一冲！": "Come on, team—let's go!"
+		,"老板巡视规划": "Boss Planning Round"
+		,"看看今天的计划": "Let's review today's plan"
+		,"老板接水": "Boss Gets Water"
+		,"接杯水": "Getting a glass of water"
+		,"保洁巡回": "Cleaner Round"
+		,"和同事聊聊天": "Chat with a colleague"
+		,"和同事出去溜达": "Take a walk with a colleague"
+		,"摸鱼玩手机": "Take a phone break"
+		,"林姨浇花": "Lin Waters the Plants"
+		,"给花浇点水": "Giving the plants some water"
+		,"喝饱水，长得精神点": "Drink up and grow strong"
+		,"这盆也不能落下": "Can't forget this one"
+		,"去洗手间": "Visit the Restroom"
+		,"本地真实环境": "Local Live Environment"
+		,"固定雨夜环境": "Fixed Rainy Night Environment"
+		,"静态兼容环境": "Static Compatibility Environment"
+		,"大会议室长桌办公布局": "Boardroom Layout"
+		,"原版办公室布局": "Original Office Layout"
+		,"有生活的原版办公室布局": "Lively Original Office Layout"
+		,"老派企业办公室布局": "Old-school Office Layout"
+		,"Tech 开放式办公室布局": "Tech Open Office Layout"
+		,"大会议室日常": "Boardroom Routines"
+		,"不启用办公室生活": "Office Life Disabled"
+		,"基础办公室生活": "Basic Office Routines"
+		,"老派办公室日常": "Old-school Office Routines"
+		,"Tech 办公室日常": "Tech Office Routines"
+		,"会议室支持人员": "Boardroom Support Staff"
+		,"秘书": "Secretary"
+		,"会务": "Meeting Attendant"
+		,"不启用 NPC": "NPCs Disabled"
+		,"办公室基础员工": "Basic Office Staff"
+		,"老派办公室职员": "Old-school Office Staff"
+		,"Tech 办公室 NPC": "Tech Office NPCs"
+		,"Agent Live 原版": "Agent Live Original"
+		,"原版办公室物件": "Original Office Props"
+		,"扩展办公室物件": "Extended Office Props"
+		,"Tech 开放式办公室物件": "Tech Open Office Props"
+		,"经典像素": "Classic Pixel"
+	},
+	"patterns": [
+		{ "source": "^(.+) 上班了$", "replace": "$1 started work" },
+		{ "source": "^(.+) 交付完成，下班$", "replace": "$1 finished and signed off" },
+		{ "source": "^(.+) 异常退出$", "replace": "$1 exited unexpectedly" },
+		{ "source": "^查阅 (.+)$", "replace": "Read $1" },
+		{ "source": "^翻找 (.+)$", "replace": "Browse $1" },
+		{ "source": "^检索 (.+)$", "replace": "Search $1" },
+		{ "source": "^新建 (.+)$", "replace": "Create $1" },
+		{ "source": "^修改 (.+)$", "replace": "Edit $1" },
+		{ "source": "^执行 (.+)$", "replace": "Run $1" },
+		{ "source": "^等待 (.+) 位同事$", "replace": "Waiting for $1 teammates" }
+	]
+}

@@ -1,6 +1,6 @@
-import { actionForTool, labelForTool } from "../../core/mapping.ts";
-import type { AgentState, AgentView, LogItem, OfficeDelta, OfficeEvent, RecordedOfficeEvent, SessionInfo } from "../../core/protocol.ts";
-import { SCENE_LIMITS } from "../../core/limits.ts";
+import { actionForTool, labelForTool } from "../../src/core/mapping.ts";
+import type { AgentState, AgentView, LogItem, OfficeDelta, OfficeEvent, RecordedOfficeEvent, SessionInfo } from "../../src/core/protocol.ts";
+import { SCENE_LIMITS } from "../../src/core/limits.ts";
 
 export interface DshMessageRecord {
 	key: string;

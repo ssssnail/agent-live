@@ -1,4 +1,4 @@
-import type { OfficeEvent } from "../../core/protocol.ts";
+import type { OfficeEvent } from "../../src/core/protocol.ts";
 export interface DshMessageRecord {
     key: string;
     kind: "user" | "assistant" | "turn-error";

@@ -1,0 +1,74 @@
+{
+	"schemaVersion": 1,
+	"kind": "life-activities",
+	"id": "builtin/old-school-routines",
+	"name": "老派办公室日常",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"entries": [
+		{
+			"id": "corridor-chat",
+			"name": "走廊聊两句",
+			"participant": { "kind": "agent", "states": ["idle", "waiting", "done"], "minAgents": 2 },
+			"requires": [],
+			"onlyWhenSessionIdle": true,
+			"interruptible": true,
+			"startBubble": "出去聊两句？",
+			"initialDelayMs": [8000, 12000],
+			"cooldownMs": [36000, 56000],
+			"steps": [
+				{
+					"target": "corridor-chat-a",
+					"targets": ["corridor-chat-a", "corridor-chat-b"],
+					"durationMs": 4800,
+					"pose": "talk",
+					"bubbles": ["这个文件你看了吗？", "刚送过来，正准备看"]
+				}
+			]
+		},
+		{
+			"id": "get-water",
+			"name": "泡茶",
+			"participant": { "kind": "agent", "states": ["idle"] },
+			"requires": [{ "capability": "water" }],
+			"onlyWhenSessionIdle": true,
+			"interruptible": true,
+			"startBubble": "泡杯茶",
+			"initialDelayMs": [5000, 8000],
+			"cooldownMs": [24000, 38000],
+			"steps": [
+				{ "target": "water", "durationMs": 3000, "pose": "stand", "bubble": "茶缸续上水", "hot": "water" }
+			]
+		},
+		{
+			"id": "paperwork-round",
+			"name": "文件流转",
+			"participant": { "kind": "npc", "roles": ["receptionist"] },
+			"requires": [{ "capability": "research" }],
+			"interruptible": false,
+			"initialDelayMs": [900, 1500],
+			"cooldownMs": [5200, 7600],
+			"steps": [
+				{ "target": "reception-phone", "durationMs": 2100, "pose": "talk", "bubble": "喂，这里是办公室" },
+				{ "target": "archive", "durationMs": 2300, "pose": "reach", "bubble": "复印归档", "hot": "archive", "particle": "paper" },
+				{ "target": "reception", "durationMs": 2600, "pose": "reach", "bubble": "盖章登记好了", "particle": "paper" }
+			]
+		},
+		{
+			"id": "facility-round",
+			"name": "后勤巡检",
+			"participant": { "kind": "npc", "roles": ["cleaner"] },
+			"requires": [],
+			"interruptible": false,
+			"initialDelayMs": [1200, 1800],
+			"cooldownMs": [4800, 7000],
+			"steps": [
+				{ "target": "clean-north", "durationMs": 2100, "pose": "reach", "bubble": "看看格子间", "particle": "spark" },
+				{ "target": "clean-south", "durationMs": 2200, "pose": "reach", "bubble": "整理一下" },
+				{ "target": "check-fan", "durationMs": 1900, "pose": "reach", "bubble": "风扇别忘了关" },
+				{ "target": "clean-meeting", "durationMs": 2100, "pose": "reach", "bubble": "会议室收好了" }
+			]
+		}
+	]
+}

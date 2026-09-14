@@ -44,11 +44,9 @@ Chat | Agent Live | 其他 View
 对开发者而言它仍是一个 DSH Adapter Package，Host/Client 文件只是 DSH 官方构建方式要求的两个运行面，不是 Agent Live 新架构层。
 
 ```text
-src/adapters/dsh/
-└── adapter.ts          标准化 Snapshot 的增量游标与 OfficeEvent 映射
-
-dsh/
+plugins/agent-live/dsh/
 ├── cordis.patch.yml    DSH Bundle 注册
+├── src/adapter.ts      标准化 Snapshot 的增量游标与 OfficeEvent 映射
 ├── src/index.ts        Host 入口；注册受限 Creator 命令、Tool、Skill 与 Session Projection
 ├── src/client.tsx      Snapshot 选择、conversation.view 和生命周期
 ├── src/frame-runtime.ts 复用公共 Office Engine / Renderer

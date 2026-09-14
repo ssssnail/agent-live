@@ -1,8 +1,14 @@
 .DS_Store
 node_modules/
 dist/
+!dist/
+dist/*
+!dist/codex-plugin/
+!dist/codex-plugin/**
 coverage/
 *.log
 *.tgz
+packages/pi/dist/
+packages/pi/web/
 notes/DRAFT-AI-WORKPLACE.md
 prototypes/

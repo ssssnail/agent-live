@@ -309,7 +309,7 @@ npm run validate:package
 
 ### Pi
 
-入口：[`src/adapters/pi/adapter.ts`](../plugins/agent-live/src/adapters/pi/adapter.ts)
+入口：[`packages/pi/src/adapter.ts`](../packages/pi/src/adapter.ts)
 
 Pi Adapter 使用 Pi Extension API 注册官方生命周期事件回调。它适合参考进程内实时观察、模型变化、工具调用和 Subagent 映射，但 Pi 专用事件名不能复制到其他宿主。
 
@@ -321,7 +321,7 @@ Codex Adapter 使用 Codex App Server 协议，通过 JSON-RPC request 控制由
 
 ### DeepSeek Harness
 
-入口：[`src/adapters/dsh/adapter.ts`](../plugins/agent-live/src/adapters/dsh/adapter.ts) 与 [`dsh/src/client.tsx`](../plugins/agent-live/dsh/src/client.tsx)
+入口：[`dsh/src/adapter.ts`](../plugins/agent-live/dsh/src/adapter.ts) 与 [`dsh/src/client.tsx`](../plugins/agent-live/dsh/src/client.tsx)
 
 DSH Adapter 使用官方 `conversation.view`，从 Web Client 已有的 Session、Conversation、模型、用量和 Subagent Projection 构造有界 Snapshot，再增量映射为 `OfficeEvent`。它适合参考宿主原生 View、Snapshot 差分、Tab 重建和无额外 HTTP Runtime 的集成；`dsh/src/index.ts` 只负责在 Host 侧注册 Creator 所需的正式扩展，不是第二条工作事件桥。
 

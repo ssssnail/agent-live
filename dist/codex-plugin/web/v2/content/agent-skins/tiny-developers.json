@@ -1,0 +1,33 @@
+{
+	"schemaVersion": 1,
+	"kind": "agent-skin",
+	"id": "builtin/tiny-developers",
+	"name": "原版像素员工",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "pixel-character-v1",
+	"animations": ["idle", "walk", "sit", "type", "reach", "talk"],
+	"palettes": {
+		"skin": ["#f0cba3", "#e8b98f", "#d69f70", "#b87a4f"],
+		"hair": ["#2f2418", "#1f2430", "#4a2f22", "#3b3b45", "#5c3b1e"],
+		"fallbackShirts": ["#4a78c8", "#4f9d69", "#c8913f", "#b8574f", "#7b57b8", "#4fb8b0"],
+		"defaultTrim": "#2b3242",
+		"leadBadge": "#ffcc4d",
+		"agentBadge": "#8fb8ff"
+	},
+	"roles": {
+		"scout": { "title": "侦察员", "shirt": "#4f9d69", "trim": "#37714b" },
+		"planner": { "title": "规划师", "shirt": "#4a78c8", "trim": "#33569a" },
+		"reviewer": { "title": "评审员", "shirt": "#b8574f", "trim": "#8d3f38" },
+		"worker": { "title": "工程师", "shirt": "#c8913f", "trim": "#9a6c28" },
+		"tester": { "title": "测试员", "shirt": "#7b57b8", "trim": "#5b3d8d" },
+		"writer": { "title": "文案", "shirt": "#c85f9b", "trim": "#9a4577" },
+		"ceo": { "title": "CEO", "shirt": "#d8d2c4", "trim": "#a8a294" },
+		"cto": { "title": "CTO", "shirt": "#5f7fa8", "trim": "#455f80" },
+		"cpo": { "title": "CPO", "shirt": "#a87fc8", "trim": "#7f5c9a" },
+		"programmer": { "title": "程序员", "shirt": "#c8913f", "trim": "#9a6c28" },
+		"designer": { "title": "设计师", "shirt": "#4fb8b0", "trim": "#379088" },
+		"counselor": { "title": "顾问", "shirt": "#8f8f9f", "trim": "#6b6b7a" },
+		"hr": { "title": "HR", "shirt": "#c8a04f", "trim": "#9a7a33" }
+	}
+}

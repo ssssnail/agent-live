@@ -116,7 +116,7 @@ Agent 必须先把一次输入拆成独立需求，再逐项分类：
 | 新人物画法或动画 | `plugins/agent-live/web/v2/sprite-renderer.js`、`plugins/agent-live/web/v2/content/agent-skins/` |
 | 新生活行为机制或 step | `plugins/agent-live/web/app.js`、`plugins/agent-live/web/v2/content/life-activities/` |
 | 新工作语义或工具映射 | `plugins/agent-live/src/core/protocol.ts`、`plugins/agent-live/src/core/mapping.ts`、`plugins/agent-live/web/app.js` |
-| 新宿主事件或 Connector | `plugins/agent-live/src/adapters/pi/adapter.ts`、`plugins/agent-live/src/core/protocol.ts` |
+| 新宿主事件或 Connector | `packages/pi/src/adapter.ts`、`plugins/agent-live/src/core/protocol.ts` |
 | 新空间合同、寻路或碰撞规则 | `plugins/agent-live/web/v2/office-renderer.js`、`docs/OFFICE-THEMES.md` |
 | 新时间、天气或班次机制 | `plugins/agent-live/web/v2/environment-runtime.js`、`plugins/agent-live/web/v2/content/environments/` |
 

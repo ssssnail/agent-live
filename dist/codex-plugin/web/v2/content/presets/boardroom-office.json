@@ -1,0 +1,21 @@
+{
+	"schemaVersion": 1,
+	"kind": "preset",
+	"id": "builtin/boardroom-office",
+	"name": "meetingroom",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"officeSpec": "official-offices/boardroom-office.json",
+	"render": { "detail": "rich" },
+	"content": {
+		"style": "pixel-classic",
+		"layout": "boardroom-office",
+		"agentSkin": "tiny-developers",
+		"props": "extended-office",
+		"npcs": "boardroom-staff",
+		"lifeActivities": "boardroom-routines",
+		"atmosphere": "default",
+		"environment": "local-office"
+	}
+}

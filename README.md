@@ -17,7 +17,7 @@ Official adapters currently cover Pi, Codex and DeepSeek Harness. The product sh
 ### Pi
 
 ```bash
-pi install git:github.com/ssssnail/agent-live
+pi install npm:agent-live-pi-adapter
 ```
 
 Restart Pi and run `/agent-live`. Use `/agent-live custom` to enter Creator Mode and `/agent-live exit` to return to normal work. See [Using Agent Live with Pi](docs/USING-PI.md).
@@ -33,12 +33,9 @@ Invoke the Agent Live Skill to open its local Codex client. Codex customization 
 
 ### DeepSeek Harness
 
-Until the adapter is published to a package registry, build and add it from this repository:
-
 ```bash
-npm ci --prefix plugins/agent-live/dsh
-npm run build --prefix plugins/agent-live/dsh
-dsh plugin --profile web add ./plugins/agent-live/dsh
+dsh plugin --profile web add agent-live-dsh-adapter
+dsh plugin --profile web install
 dsh web
 ```
 
@@ -66,12 +63,21 @@ npm run check:ci
 - `plugins/agent-live/src/runtime` — local Viewer service and owned-resource cleanup.
 - `plugins/agent-live/src/content` — Office Spec compiler, registry and validation.
 - `plugins/agent-live/src/creator` — constrained natural-language customization tools.
-- `plugins/agent-live/src/adapters` — official host event mappings.
+- `plugins/agent-live/src/adapters/codex` — Codex App Server integration source.
 - `plugins/agent-live/web/v2` — office engine, renderers and packaged content.
-- `plugins/agent-live/dsh` — native DSH `conversation.view` bundle.
+- `plugins/agent-live/dsh` — native DSH `conversation.view` source and npm package.
+- `packages/pi` — isolated Pi npm distribution.
+- `dist/codex-plugin` — generated self-contained Codex Marketplace distribution.
 - `skills/agent-live-adapter-builder` — guided third-party adapter scaffolding.
 
 Start with [Architecture](docs/ARCHITECTURE.md), [Developer Guide](docs/DEVELOPER.md), [Adapter SDK](docs/ADAPTER-SDK.md), or [Customization Boundaries](docs/CUSTOMIZATION.md).
+
+## Packages
+
+- `agent-live` — host-neutral engine, viewer, Creator and Adapter SDK.
+- `agent-live-pi-adapter` — self-contained Pi extension.
+- `agent-live-dsh-adapter` — native DSH View plugin.
+- Codex installs from this repository's Marketplace and is not published to npm.
 
 ## Local data and safety
 
