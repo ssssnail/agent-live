@@ -15,6 +15,8 @@ const buildScript = await readFile(path.join(pluginRoot, "build.mjs"), "utf8");
 const creator = await readFile(path.join(pluginRoot, "src/creator.ts"), "utf8");
 const renderer = await readFile(path.join(pluginRoot, "../web/app.js"), "utf8");
 const officeRenderer = await readFile(path.join(pluginRoot, "../web/v2/office-renderer.js"), "utf8");
+const frameRuntime = await readFile(path.join(pluginRoot, "src/frame-runtime.ts"), "utf8");
+const frameHtml = await readFile(path.join(pluginRoot, "src/frame.html"), "utf8");
 
 assert.equal(pkg.dsh.client.platform, "web");
 assert.equal(pkg.dsh.bundle.patch, "./cordis.patch.yml");
@@ -32,6 +34,9 @@ assert.match(buildScript, /web\/style\.css/);
 assert.match(buildScript, /web\/v2\/style\.css/);
 assert.match(renderer, /new ResizeObserver\(scheduleResize\)/);
 assert.match(renderer, /visibilitychange/);
+assert.match(frameRuntime, /import chinese from .*zh-CN\.json/, "DSH view must bundle the Chinese locale");
+assert.match(frameRuntime, /applyLocale\(activeLocale === "en" \? "zh-CN" : "en"\)/, "DSH view must switch locales without restarting its host session");
+assert.match(frameHtml, /id="language"/, "DSH view must expose the shared language control");
 assert.match(officeRenderer, /const UI = content\.style\.tokens\.css/, "room signs must use the shared shell palette");
 assert.match(officeRenderer, /slot\.id === "company"[\s\S]*UI\.accent[\s\S]*slot\.id === "slogan"[\s\S]*UI\.dim/, "room signs must preserve the shared UI hierarchy");
 assert.match(renderer, /displayAgentName\(view, isLead\)/, "renderer must resolve fallback teammate names after Agent Profile overrides");
@@ -134,7 +139,6 @@ longSession.messages = [...longSession.messages, { key: "latest", kind: "assista
 longSession.tools = [...longSession.tools, { callId: "latest-tool", name: "read", args: {}, at: 5000, running: false }];
 assert.equal(longAdapter.update(longSession).length, 3, "only the new message and tool pair should be emitted");
 assert.deepEqual(longAdapter.update(longSession), [], "bounded dedup must not replay old snapshots");
-const frameRuntime = await readFile(path.join(pluginRoot, "src/frame-runtime.ts"), "utf8");
 assert.match(frameRuntime, /createEnvironmentRuntime\(content\.environment\)/, "embedded frames must apply the selected Office environment");
 
 const crowded = new DshSnapshotAdapter(3000).update({

@@ -12,7 +12,8 @@ import npcs from "../../web/v2/content/npcs/tech-office-staff.json";
 import lifeActivities from "../../web/v2/content/life-activities/tech-office-routines.json";
 import atmosphere from "../../web/v2/content/atmospheres/default.json";
 import environment from "../../web/v2/content/environments/local-office.json";
-import locale from "../../web/v2/locales/en.json";
+import english from "../../web/v2/locales/en.json";
+import chinese from "../../web/v2/locales/zh-CN.json";
 
 const fallbackContent = {
   preset, style, layout, agentSkin, props, npcs, lifeActivities, atmosphere, environment,
@@ -37,15 +38,49 @@ if (contentProblems.length) {
     return value;
   };
 
-  window.AgentLiveI18n = {
-    locale: "en",
+  const bundles = { en: english, "zh-CN": chinese } as const;
+  type Locale = keyof typeof bundles;
+  let activeLocale: Locale = "en";
+  let locale = bundles[activeLocale];
+  const i18n = {
+    locale: activeLocale,
     t(key: string, vars?: Record<string, unknown>) {
       return interpolate((locale as { strings?: Record<string, string> }).strings?.[key] ?? key, vars);
     },
     text(value: unknown) {
-      return (locale as { text?: Record<string, string> }).text?.[String(value ?? "")] ?? String(value ?? "");
+      const source = String(value ?? "");
+      const exact = (locale as { text?: Record<string, string> }).text?.[source];
+      if (exact) return exact;
+      for (const pattern of (locale as { patterns?: Array<{ source: string; replace: string }> }).patterns ?? []) {
+        const expression = new RegExp(pattern.source);
+        if (expression.test(source)) return source.replace(expression, pattern.replace);
+      }
+      return source;
     },
   };
+  window.AgentLiveI18n = i18n;
+
+  const applyLocale = (next: Locale) => {
+    activeLocale = next;
+    locale = bundles[next];
+    i18n.locale = next;
+    document.documentElement.lang = next;
+    for (const element of document.querySelectorAll<HTMLElement>("[data-i18n]")) {
+      element.textContent = i18n.t(element.dataset.i18n ?? "");
+    }
+    const language = document.getElementById("language");
+    if (language) {
+      language.textContent = next === "en" ? "中文" : "EN";
+      language.setAttribute("aria-label", i18n.t("nav.language"));
+    }
+  };
+  document.getElementById("language")?.addEventListener("click", () => {
+    applyLocale(activeLocale === "en" ? "zh-CN" : "en");
+    // Re-project the current host snapshot so dynamic cards, task text and the
+    // activity feed switch language together with the static frame labels.
+    if (latest) for (const listener of listeners) listener(latest);
+  });
+  applyLocale("en");
   window.AgentLiveClientKind = "dsh";
   window.OfficeContent = content;
   window.SceneLimits = { ...SCENE_LIMITS };
