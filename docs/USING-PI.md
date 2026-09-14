@@ -4,6 +4,14 @@
 
 ## 安装和启动
 
+发布到 npm 后，推荐一条命令安装：
+
+```bash
+pi install npm:agent-live
+```
+
+也可以直接从公开仓库安装：
+
 ```bash
 pi install git:github.com/ssssnail/agent-live
 ```
@@ -36,7 +44,7 @@ pi install git:github.com/ssssnail/agent-live
 然后直接描述修改，例如：
 
 ```text
-把 Agent 改名为小鲸鱼，公司叫 DeepSeek，再增加两名同事。
+把 Agent 改名为主程序，办公室名称改成像素工作室，再增加两名同事。
 ```
 
 完成后退出：

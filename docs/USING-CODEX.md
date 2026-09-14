@@ -16,7 +16,7 @@ codex plugin add agent-live@agent-live-marketplace
 Codex 当前采用单轮显式自定义：调用 Skill 时把修改要求写在同一句中，例如：
 
 ```text
-/agent-live custom：将 Boss 改名为 Tibo，公司名称改成 Codex，并去掉 slogan。
+/agent-live custom：将 Boss 改名为负责人，办公室名称改成创意工作间，并去掉 slogan。
 ```
 
 修改成功后会立即保存并启用，不需要预览或确认。Custom Office 只保存在本机，不会改动官方 Preset。

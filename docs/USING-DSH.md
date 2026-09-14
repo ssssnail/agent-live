@@ -32,7 +32,7 @@ dsh web
 进入 Creator Mode 后直接描述修改，例如：
 
 ```text
-将 Agent 改名为小鲸鱼，Boss 改名为 Mr. L，再增加两名同事，公司名称改成 DeepSeek Harness。
+将 Agent 改名为主程序，Boss 改名为负责人，再增加两名同事，办公室名称改成协作空间。
 ```
 
 完成后执行：
