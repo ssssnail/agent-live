@@ -13,12 +13,7 @@ const server = await startServer(state, {
 });
 
 console.log(`Agent Live preview: ${server.url}/v2.html?demo=1`);
-console.log(`Product page: ${server.url}/product.html`);
 console.log(`Original demo baseline: ${server.url}/?demo=1`);
-console.log(`Activity Hub prototype: ${server.url}/activity-hub.html`);
-console.log(`Old-School Office prototype: ${server.url}/old-school-office.html`);
-console.log(`Boardroom Office prototype: ${server.url}/boardroom-office.html`);
-console.log(`Big Company concept: ${server.url}/big-company.html`);
 
 process.on("SIGINT", () => {
 	void server.close().then(() => process.exit(0));

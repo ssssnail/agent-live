@@ -2,7 +2,7 @@
 
 > 状态：已收敛方向 · 最后校准 2026-09-13
 
-相关分析：[Pi / Codex / Cursor 平台能力](./PLATFORM-CAPABILITIES.md) · [产品形态与用户入口](./PRODUCT-FORMS.md) · [Office 可配置内容模型](./OFFICE-THEMES.md) · [基础组件库](./COMPONENT-LIBRARY.md)
+相关设计：[Office 可配置内容模型](./OFFICE-THEMES.md) · [基础组件库](./COMPONENT-LIBRARY.md) · [系统架构](./ARCHITECTURE.md)
 
 ## 1. 产品定义
 
