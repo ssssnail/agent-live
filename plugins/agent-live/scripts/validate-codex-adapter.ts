@@ -83,6 +83,12 @@ assert.deepEqual(interruptRequests, [
 	{ method: "turn/interrupt", params: { threadId: "main-thread", turnId: "main-turn" } },
 	{ method: "turn/interrupt", params: { threadId: "unknown-child", turnId: "child-turn" } },
 ]);
+(interruptSession as any).handleMessage({ method: "turn/started", params: { threadId: "late-child", turn: { id: "late-turn" } } });
+await Promise.resolve();
+assert.deepEqual(interruptRequests.at(-1), {
+	method: "turn/interrupt",
+	params: { threadId: "late-child", turnId: "late-turn" },
+}, "a child turn that started after Stop escaped the cancellation barrier");
 (interruptSession as any).handleMessage({
 	method: "item/completed",
 	params: { threadId: "main-thread", item: { type: "subAgentActivity", id: "root-activity", kind: "started", agentThreadId: "main-thread", agentPath: "/root" } },

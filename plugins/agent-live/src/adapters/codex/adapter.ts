@@ -52,6 +52,7 @@ export class CodexOfficeSession {
 	private model = "";
 	private effort = "";
 	private interrupting = false;
+	private stopRequested = false;
 
 	constructor(state: OfficeState, client: CodexAppServerClient, options: {
 			cwd: string;
@@ -71,6 +72,7 @@ export class CodexOfficeSession {
 			this.activeTurns.clear();
 			this.startingTurn = false;
 			this.interrupting = false;
+			this.stopRequested = false;
 			this.clearApprovals(error.message, false);
 			for (const [id, action] of this.activeActions) this.state.endAction(action.agentId, id, false);
 			this.activeActions.clear();
@@ -130,6 +132,7 @@ export class CodexOfficeSession {
 		if (!this.threadId) throw new Error("Codex session has not started");
 		if (this.turnId || this.startingTurn) throw new Error("Codex is already working");
 		this.startingTurn = true;
+		this.stopRequested = false;
 		try {
 			if (model && model !== this.model) this.selectModel(model);
 			this.state.setTask(MAIN, clean.slice(0, 300));
@@ -165,6 +168,7 @@ export class CodexOfficeSession {
 		}
 		if (!turns.length) return;
 		this.interrupting = true;
+		this.stopRequested = true;
 		this.state.setState(MAIN, "waiting", "正在停止");
 		try {
 			const results = await Promise.allSettled(turns.map(([threadId, turnId]) =>
@@ -261,6 +265,15 @@ export class CodexOfficeSession {
 				const eventTurnId = String((params.turn as JsonObject | undefined)?.id ?? "");
 				if (eventThreadId && eventTurnId) this.activeTurns.set(eventThreadId, eventTurnId);
 				this.syncBusyState();
+				// Stop is a barrier for the current task, not a one-time snapshot of
+				// active turns. Codex may start a delegated child after the user clicks
+				// Stop; interrupt that late turn immediately as well.
+				if (this.stopRequested && eventThreadId && eventTurnId) {
+					void this.client.request("turn/interrupt", { threadId: eventThreadId, turnId: eventTurnId }).catch((error) => {
+						this.state.addLog(MAIN, "system", `Unable to stop late Codex turn: ${error instanceof Error ? error.message : String(error)}`);
+					});
+					break;
+				}
 				// Only the session's own thread may control the main turn lifecycle.
 				// Subagent notifications can arrive before their collaboration item;
 				// treating an unknown thread as MAIN would overwrite the turn id and
@@ -271,7 +284,6 @@ export class CodexOfficeSession {
 					break;
 				}
 				this.turnId = String((params.turn as JsonObject | undefined)?.id ?? this.turnId);
-				this.interrupting = false;
 				this.state.updateSession({ busy: true });
 				this.state.setState(MAIN, "thinking", "构思中");
 				break;

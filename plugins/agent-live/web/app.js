@@ -72,13 +72,11 @@
 		if (!document.hidden) {
 			lastFrameAt = performance.now();
 			scheduleResize();
-			void reconcileAuthoritativeAgents();
 		}
 	});
 	window.addEventListener("pageshow", () => {
 		lastFrameAt = performance.now();
 		scheduleResize();
-		void reconcileAuthoritativeAgents();
 	});
 	const sizeObserver = typeof ResizeObserver === "function" ? new ResizeObserver(scheduleResize) : null;
 	sizeObserver?.observe(canvas.parentElement);
@@ -153,8 +151,6 @@
 			bubble: null,
 			inMeeting: false,
 			leaving: false,
-			leaveBy: 0,
-			leaveTimer: null,
 			actions: new Map(),
 			life: null,
 			lifeCycle: 0,
@@ -172,6 +168,10 @@
 	/** Pick where a character should be, given what it is currently doing. */
 	function retarget(actor) {
 		if (actor.inMeeting || actor.leaving) return;
+		if (actor.isNpc) {
+			goTo(actor, Office.TARGETS[actor.workTarget] ?? Office.TARGETS.entry);
+			return;
+		}
 		goTo(actor, Office.anchorFor(actor.action, actor.seat, actor.placementKey));
 	}
 
@@ -430,6 +430,7 @@
 			bubble: null,
 			inMeeting: false,
 			leaving: false,
+			actions: new Map(),
 			life: null,
 			lifeCycle: 0,
 			nextLifeAt: 0,
@@ -501,7 +502,6 @@
 		switch (ev.type) {
 			case "snapshot": {
 				eventHistory = Array.isArray(ev.history) ? ev.history.slice(-MAX_EVENT_HISTORY) : eventHistory;
-				for (const actor of actors.values()) if (actor.leaveTimer) clearTimeout(actor.leaveTimer);
 				actors.clear();
 				particles.length = 0;
 				hot.clear();
@@ -524,18 +524,12 @@
 				renderCrew();
 				break;
 			}
-			case "session": {
-				const wasBusy = Boolean(session.busy);
+			case "session":
 				session = ev.session;
 				if (session.busy) {
 					for (const actor of actors.values()) if (!actor.isNpc) cancelLife(actor);
 				}
-				// SSE drives animation, but the snapshot is authoritative. Reconcile at
-				// the terminal boundary so a missed/out-of-order leave can never leave a
-				// ghost Agent in Canvas state.
-				if (wasBusy && !session.busy) void reconcileAuthoritativeAgents();
 				break;
-			}
 			case "agent_join": {
 				const existing = actors.get(ev.agent.id);
 				if (existing) {
@@ -566,16 +560,6 @@
 				hot.clear();
 				for (const current of actors.values()) for (const action of current.actions.values()) hot.add(Office.stationKey(action, current.seat));
 				actor.leaving = true;
-				// Leaving is a presentation owned by Agent Live, not a second host
-				// lifecycle. Browser background throttling must never keep a character
-				// after the authoritative state has removed it.
-				actor.leaveBy = performance.now() + 3200;
-				if (actor.leaveTimer) clearTimeout(actor.leaveTimer);
-				actor.leaveTimer = setTimeout(() => {
-					if (actors.get(actor.id) !== actor || !actor.leaving) return;
-					actors.delete(actor.id);
-					renderCrew();
-				}, 3300);
 				actor.inMeeting = false;
 				if (ev.ok !== undefined) spawn(ev.ok ? "check" : "cross", actor.x, actor.y - 26, { life: 1.1 });
 				goTo(actor, Office.TARGETS.entry);
@@ -760,17 +744,12 @@
 		updateMeeting(now, dt);
 
 		for (const actor of [...actors.values()]) {
-			if (actor.leaving && actor.leaveBy && now >= actor.leaveBy) {
-				actors.delete(actor.id);
-				renderCrew();
-				continue;
-			}
 			if (actor.path.length) {
 				const next = actor.path[0];
 				const dx = next.x - actor.x;
 				const dy = next.y - actor.y;
 				const dist = Math.abs(dx) + Math.abs(dy);
-				const move = SPEED * dt * (actor.leaving ? 2.4 : 1);
+				const move = SPEED * dt;
 				if (dist <= move) {
 					actor.x = next.x;
 					actor.y = next.y;
@@ -1075,26 +1054,6 @@
 			if (response.ok) apply(await response.json());
 		} catch {
 			// The live SSE stream will deliver the next authoritative event.
-		}
-	}
-
-	async function getLiveSnapshot() {
-		if (typeof window.AgentLiveGetSnapshot === "function") return window.AgentLiveGetSnapshot();
-		try {
-			const response = await authenticatedFetch("/api/state");
-			return response.ok ? response.json() : null;
-		} catch {
-			return null;
-		}
-	}
-
-	async function reconcileAuthoritativeAgents() {
-		const latest = await getLiveSnapshot();
-		if (!latest) return;
-		const liveIds = new Set((latest.agents ?? []).map((agent) => agent.id));
-		for (const actor of [...actors.values()]) {
-			if (actor.isNpc || liveIds.has(actor.id) || actor.leaving) continue;
-			apply({ type: "agent_leave", id: actor.id });
 		}
 	}
 
