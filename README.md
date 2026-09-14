@@ -39,6 +39,8 @@ Coding Agent 宿主 ──> Adapter ──OfficeEvent──> Agent Live Engine �
 
 下面选择自己的宿主安装；三个 Adapter 共用同一套 Engine、OfficeEvent、内容和 Creator 校验。
 
+面向普通用户的简明说明：[Pi](docs/USING-PI.md) · [Codex](docs/USING-CODEX.md) · [DeepSeek Harness](docs/USING-DSH.md)
+
 ### Pi
 
 从 GitHub 安装：
