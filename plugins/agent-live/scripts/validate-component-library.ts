@@ -48,7 +48,7 @@ validateEntries(npcTemplates.entries, "NPC template");
 validateEntries(agentProfileTemplates.entries, "Agent Profile template");
 validateEntries(activityRecipes.entries, "activity recipe");
 
-const allowedCapabilities = new Set(["research", "create", "compute", "plan", "communicate", "collaborate", "coffee", "water"]);
+const allowedCapabilities = new Set(["research", "create", "compute", "plan", "communicate", "collaborate", "coffee", "water", "entry", "restroom"]);
 const propByType = new Map<string, any>();
 for (const entry of props.entries) {
 	ok(entry.renderer === entry.id.slice("builtin/".length), `${entry.id} renderer must retain the stable legacy type`);

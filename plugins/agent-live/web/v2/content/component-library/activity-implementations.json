@@ -18,7 +18,9 @@
 					]
 				},
 				"requires": [
-					"presentation-main"
+					{
+						"capability": "plan"
+					}
 				],
 				"interruptible": false,
 				"initialDelayMs": [
@@ -65,7 +67,9 @@
 					]
 				},
 				"requires": [
-					"archive-main"
+					{
+						"capability": "research"
+					}
 				],
 				"interruptible": false,
 				"initialDelayMs": [
@@ -111,7 +115,9 @@
 					]
 				},
 				"requires": [
-					"water-main"
+					{
+						"capability": "water"
+					}
 				],
 				"onlyWhenSessionIdle": true,
 				"interruptible": true,
@@ -148,7 +154,9 @@
 					]
 				},
 				"requires": [
-					"coffee-main"
+					{
+						"capability": "coffee"
+					}
 				],
 				"interruptible": false,
 				"initialDelayMs": [
@@ -241,7 +249,9 @@
 					]
 				},
 				"requires": [
-					"water-main"
+					{
+						"capability": "water"
+					}
 				],
 				"onlyWhenSessionIdle": true,
 				"interruptible": true,
@@ -373,7 +383,9 @@
 					]
 				},
 				"requires": [
-					"water-main"
+					{
+						"capability": "water"
+					}
 				],
 				"onlyWhenSessionIdle": true,
 				"interruptible": true,
@@ -410,7 +422,9 @@
 					]
 				},
 				"requires": [
-					"copy-main"
+					{
+						"capability": "research"
+					}
 				],
 				"interruptible": false,
 				"initialDelayMs": [
@@ -506,7 +520,9 @@
 					]
 				},
 				"requires": [
-					"whiteboard-main"
+					{
+						"capability": "plan"
+					}
 				],
 				"interruptible": false,
 				"initialDelayMs": [
@@ -545,7 +561,9 @@
 					]
 				},
 				"requires": [
-					"water-main"
+					{
+						"capability": "water"
+					}
 				],
 				"interruptible": false,
 				"initialDelayMs": [
@@ -634,7 +652,9 @@
 					"minAgents": 2
 				},
 				"requires": [
-					"meeting-main"
+					{
+						"capability": "collaborate"
+					}
 				],
 				"onlyWhenSessionIdle": true,
 				"interruptible": true,
@@ -683,7 +703,9 @@
 					"minAgents": 2
 				},
 				"requires": [
-					"entry-door"
+					{
+						"capability": "entry"
+					}
 				],
 				"onlyWhenSessionIdle": true,
 				"interruptible": true,
@@ -822,7 +844,9 @@
 					]
 				},
 				"requires": [
-					"restroom-door"
+					{
+						"capability": "restroom"
+					}
 				],
 				"onlyWhenSessionIdle": true,
 				"interruptible": true,

@@ -293,7 +293,7 @@ Agent 接水示例：
   "id": "get-water",
   "name": "接水",
   "participant": { "kind": "agent", "states": ["idle"] },
-  "requires": ["water-main"],
+  "requires": [{ "capability": "water" }],
   "onlyWhenSessionIdle": true,
   "interruptible": true,
   "startBubble": "去接杯水",
@@ -328,9 +328,10 @@ NPC 多步骤巡检示例：
 - `participant.kind`：`agent` 或 `npc`。
 - `states`：允许参与的真实 Agent 状态；生活行为建议只使用 `idle`。
 - `roles`：允许参与的 NPC role。
-- `requires`：活动需要的道具依赖，两种写法都合法。
-  - 具名实例：`"water-main"` 或 `{ "prop": "water-main" }` —— 绑定到 Layout 或 Office Spec 中存在的那个 Prop Instance ID，适合门、出口这类确实需要固定位置的东西。
-  - 能力需求：`{ "capability": "water" }` —— 由编译器解析成当前办公室中第一个提供该能力的道具，跨 Layout 复用同一份实现，也让"把水冷机换成没有 water 能力的道具"变成明确的校验失败而不是静默失效。道具能力以 `component-library/props.json` 的 `capabilities` 为准。
+- `requires`：活动需要的道具依赖，两种写法都合法，**内置实现默认用能力需求**。
+  - 能力需求：`{ "capability": "water" }` —— 由编译器解析成当前办公室中第一个提供该能力的道具（Layout 里的实例在前，Office Spec 新加的放置在后），跨 Layout 复用同一份实现，也让"把水冷机换成没有 water 能力的道具"变成明确的校验失败而不是静默失效。取水、接咖啡、白板、复印、会议室、出口门（`entry`）和洗手间门（`restroom`）都用这一种；道具能力以 `component-library/props.json` 的 `capabilities` 为准。
+  - 具名实例：`"water-main"` 或 `{ "prop": "water-main" }` —— 绑定到指定的 Prop Instance ID，只在房间里有多个同类道具、必须固定用某一个时才需要（例如三台水冷机只允许用靠门那台）；该实例改名或被删掉，活动就会失效。
+  - 两种写法的解析结果都会记录在编译产物的 `bindings` 里，排查"到底绑到了哪一台"时看它。
 - `onlyWhenSessionIdle`：整个真实会话空闲时才允许开始。
 - `interruptible`：是否允许工作事件打断；Agent Life 必须设置为 `true`。
 - `initialDelayMs` / `cooldownMs`：可以是固定数字，也可以是 `[最小值, 最大值]`。

@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { SCENE_LIMITS } from "../src/core/limits.ts";
-import { DYNAMIC_ACTIVITY_TARGETS } from "../src/content/graph-validator.ts";
+import { DYNAMIC_ACTIVITY_TARGETS, resolveActivityRequirements } from "../src/content/graph-validator.ts";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const contentRoot = path.join(projectRoot, "web", "v2", "content");
@@ -80,12 +80,16 @@ function validatePreset(filename: string) {
 		if (station.kind === "target") ok(layout.targets[station.target], `${filename}/layout: missing target ${station.target}`);
 	}
 
-	const instanceIds = new Set<string>();
+	// Requirements are resolved with the shared rule the runtime and the browser use,
+	// so a capability requirement needs a prop that provides it and a named one needs
+	// that exact instance.
+	const instances = new Map<string, string>();
 	for (const instance of layout.propInstances) {
 		ok(props.types[instance.type], `${filename}/layout: unknown prop type ${instance.type}`);
-		ok(!instanceIds.has(instance.id), `${filename}/layout: duplicate prop instance ${instance.id}`);
-		instanceIds.add(instance.id);
+		ok(!instances.has(instance.id), `${filename}/layout: duplicate prop instance ${instance.id}`);
+		instances.set(instance.id, instance.type);
 	}
+	const capabilitiesOf = (type: string): readonly string[] => props.types[type]?.capabilities ?? [];
 
 	const npcIds = new Set<string>();
 	for (const npc of npcs.entries) {
@@ -105,8 +109,8 @@ function validatePreset(filename: string) {
 			ok(Number.isInteger(activity.participant.minAgents) && activity.participant.minAgents >= 2, `${filename}/life: invalid minAgents`);
 		}
 		ok(Array.isArray(activity.steps) && activity.steps.length > 0, `${filename}/life: activity ${activity.id} has no steps`);
-		for (const required of activity.requires ?? []) {
-			ok(instanceIds.has(required), `${filename}/life: activity ${activity.id} requires missing prop ${required}`);
+		for (const issue of resolveActivityRequirements(activity.requires, instances, capabilitiesOf, activity.id).issues) {
+			ok(false, `${filename}/life: ${issue.message}`);
 		}
 		for (const step of activity.steps) {
 			ok(layout.targets[step.target] || DYNAMIC_ACTIVITY_TARGETS.has(step.target), `${filename}/life: activity ${activity.id} targets missing ${step.target}`);

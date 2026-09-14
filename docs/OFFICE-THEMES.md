@@ -372,7 +372,7 @@ NPC 没有宿主 `agentId`、token、工具调用和真实工作状态。侧栏�
   "kind": "life-activity",
   "id": "builtin/get-water",
   "participants": { "kinds": ["agent", "npc"], "min": 1, "max": 1 },
-  "requires": ["water"],
+  "requires": [{ "capability": "water" }],
   "timing": { "durationMs": 9000, "cooldownMs": 120000, "weight": 1 },
   "interruptible": true,
   "steps": [

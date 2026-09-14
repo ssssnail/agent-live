@@ -11,7 +11,7 @@
 			"id": "get-water",
 			"name": "接水",
 			"participant": { "kind": "agent", "states": ["idle"] },
-			"requires": ["water-main"],
+			"requires": [{ "capability": "water" }],
 			"onlyWhenSessionIdle": true,
 			"interruptible": true,
 			"startBubble": "去接杯水",

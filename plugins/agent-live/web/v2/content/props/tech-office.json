@@ -8,8 +8,8 @@
 	"contract": "single-office-v1",
 	"types": {
 		"rug": { "size": { "width": 146, "height": 42 }, "capabilities": [], "renderer": "rug" },
-		"door": { "size": { "width": 36, "height": 30 }, "capabilities": [], "renderer": "door" },
-		"restroom-door": { "size": { "width": 28, "height": 30 }, "capabilities": [], "renderer": "restroom-door" },
+		"door": { "size": { "width": 36, "height": 30 }, "capabilities": ["entry"], "renderer": "door" },
+		"restroom-door": { "size": { "width": 28, "height": 30 }, "capabilities": ["restroom"], "renderer": "restroom-door" },
 		"window": { "size": { "width": 44, "height": 22 }, "capabilities": [], "renderer": "window" },
 		"office-clock": { "size": { "width": 14, "height": 14 }, "capabilities": [], "renderer": "office-clock" },
 		"boss-desk": { "size": { "width": 36, "height": 16 }, "capabilities": [], "renderer": "boss-desk" },

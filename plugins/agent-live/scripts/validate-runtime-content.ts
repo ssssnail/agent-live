@@ -91,25 +91,32 @@ for (const entry of content.lifeActivities.entries as any[]) {
 	assert.equal(entry.bindings?.length, (entry.requires ?? []).length, `${entry.id} must expose one binding per requirement`);
 }
 
-// Capability requirements resolve against the props actually present.
-const CAPABILITY_KEY = "builtin/tech-open-office|builtin/boss-water-break";
-const capabilityLibrary = { ...library, activityImplementations: new Map(library.activityImplementations) };
-const waterImplementation = library.activityImplementations.get(CAPABILITY_KEY);
-capabilityLibrary.activityImplementations.set(CAPABILITY_KEY, {
-	...waterImplementation,
-	definition: { ...waterImplementation.definition, requires: [{ capability: "water" }] },
-});
-assert.ok(validateOfficeSpec(base, capabilityLibrary).valid, "a capability this office provides must satisfy the requirement");
+// Capability requirements resolve against the props actually present, so an
+// equivalent prop is enough: only losing the capability is an error.
+const waterImplementation = library.activityImplementations.get("builtin/tech-open-office|builtin/boss-water-break");
+assert.deepEqual(waterImplementation.definition.requires, [{ capability: "water" }], "built-in routines must ask for a capability, not for one instance");
+assert.ok(validateOfficeSpec(base, library).valid, "a capability this office provides must satisfy the requirement");
+const equivalent = compileOfficePatch(base, {
+	schemaVersion: 1, kind: "office-patch", base: base.id,
+	placements: { remove: ["water-main"], upsert: [{ id: "water-cooler-2", component: "builtin/water-cooler", slot: "lounge-service-1" }] },
+}, library);
+assert.ok(equivalent.draft, "another prop providing the same capability must satisfy the routine");
+const equivalentGraph = await resolveRuntimeContent(equivalent.draft, contentRoot, library);
+assert.deepEqual(
+	equivalentGraph.lifeActivities.entries.find((entry: any) => entry.id === "boss-water-break")?.bindings,
+	["water-cooler-2"],
+	"the binding must point at the prop that provides the capability",
+);
 const withoutWater = compileOfficePatch(base, {
 	schemaVersion: 1, kind: "office-patch", base: base.id,
 	placements: { upsert: [{ id: "water-main", component: "builtin/vending-machine", slot: "lounge-service-1" }] },
-}, capabilityLibrary);
+}, library);
 assert.equal(withoutWater.draft, undefined, "swapping the water source must stop satisfying a water requirement");
 assert.ok(withoutWater.errors.some((issue) => issue.code === "missing-activity-capability"), "the failure must name the missing capability");
 const removedWater = compileOfficePatch(base, {
 	schemaVersion: 1, kind: "office-patch", base: base.id,
 	placements: { remove: ["water-main"] },
-}, capabilityLibrary);
+}, library);
 assert.equal(removedWater.draft, undefined, "a removed fixture must not satisfy an active routine");
 const signed = compileOfficePatch(base, {
 	schemaVersion: 1, kind: "office-patch", base: base.id,
