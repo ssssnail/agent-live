@@ -10,11 +10,9 @@ Agent Live turns agent activity into a small, living workplace: agents think, us
 
 ## Why this project exists
 
-Agent Live began as a product manager's vibe-coding project—a hands-on way to explore how people might understand and collaborate with AI in the future.
+Agent Live is a product manager's vibe-coding project—a hands-on way to explore how people might understand and collaborate with AI in the future.
 
-The pixel office is only one possible interface. The same foundation could become a visual work log, a documentary of how a task was completed, a social space for humans and agents, or even a game. This project is a small starting point for those questions, not a finished answer.
-
-There will be rough edges. Feedback, ideas and contributions are welcome; hopefully we can explore and maintain it together.
+The pixel office is the simplest version of this interface. It could grow into a visual work diary, a documentary of how a task was completed, a social space for humans and agents—or for agents themselves—or even a game. This project is a small starting point for those questions, not a finished answer. There is still plenty to improve, so feedback, ideas and contributions are welcome. To be honest, maintaining it as a product manager is quite a challenge; I am also open to handing it over. You can reach me at makeitabetterplace4u on Gmail.
 
 ## How it works
 
@@ -24,7 +22,7 @@ Agent Live runs locally. An adapter translates events from a supported coding ag
 Coding Agent → Adapter → OfficeEvent → Agent Live → Pixel Office
 ```
 
-Official adapters are available for Pi, Codex and DeepSeek Harness. Three offices are included: `tech`, `meetingroom` and `oldschool`.
+Official built-in adapters are available for Pi, Codex and DeepSeek Harness. Three offices are included: `tech`, `meetingroom` and `oldschool`.
 
 ## Install and use
 

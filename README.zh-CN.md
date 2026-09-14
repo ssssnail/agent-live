@@ -10,30 +10,25 @@ Agent Live 将 Agent 的工作过程变成一个有生活感的小型办公空�
 
 ## 为什么做这个项目
 
-Agent Live 最初是一个产品经理的 vibe coding 项目，也是一次亲手体验和思考未来人类如何理解 AI、与 AI 协作的尝试。
+Agent Live 是一个产品经理的 vibe coding 项目，也是一次亲手体验和思考未来人类如何理解 AI、与 AI 协作的尝试。
 
-像素办公室只是其中一种交互界面。同一套基础能力还可以成为工作的可视化记录、任务完成过程的纪录片、人类与 Agent 的社交空间，甚至一款游戏。这个项目只是对这些问题的一次抛砖引玉，而不是最终答案。
-
-项目一定还有很多不足，也欢迎大家提出想法、参与改进，一起探索和维护它。
+像素办公室是最简单的一种交互界面。还可以拓展成为工作的可视化日记、任务完成过程的纪录片、人类与 Agent / Agent 与 Agent 的社交空间，甚至一款游戏。这个项目只是对这些问题的一次抛砖引玉，而不是最终答案。项目还有很多不足，也欢迎大家提出想法、参与改进，一起探索和维护它。（说实话作为一个产品经理维护起来挺费劲的，愿意转交，可联系 makeitabetterplace4u Gmail）
 
 ## 工作方式
 
 Agent Live 在本地运行。Adapter 将 Coding Agent 的事件转换成统一的办公室语言，再由公共引擎渲染画面：
-
 ```text
 Coding Agent → Adapter → OfficeEvent → Agent Live → 像素办公室
 ```
 
-目前官方支持 Pi、Codex 和 DeepSeek Harness，并内置三种办公室：`tech`、`meetingroom` 和 `oldschool`。
+目前官方内置支持 Pi、Codex 和 DeepSeek Harness，并内置三种办公室：`tech`、`meetingroom` 和 `oldschool`。
 
 ## 安装和使用
 
 ### Pi
-
 ```bash
 pi install npm:@iniesta8888/agent-live-pi-adapter
 ```
-
 重启 Pi，然后运行 `/agent-live`。[Pi 使用说明](docs/USING-PI.md)
 
 ### Codex
