@@ -1,5 +1,7 @@
 # Agent Live
 
+[English](README.md) · [简体中文](README.zh-CN.md)
+
 [![CI](https://github.com/ssssnail/agent-live/actions/workflows/ci.yml/badge.svg)](https://github.com/ssssnail/agent-live/actions/workflows/ci.yml)
 
 **Give your coding agents a live pixel office.**
