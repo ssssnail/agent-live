@@ -54,5 +54,22 @@ try {
 	const reopened = new OfficeRegistry({ root, library, officialOffices: await loadOfficialOffices(contentRoot) });
 	assert.equal((await reopened.selected()).texts?.slogan, "Welcome", "custom text must survive a new instance");
 	assert.deepEqual((await reopened.list()).slice(0, 3).map((office) => office.name), ["tech", "meetingroom", "oldschool"]);
+
+	// A patch may name the Office it creates, but it must never overwrite another
+	// Office: the model cannot see which Office it would destroy.
+	const neighbour = await creator.customize({ id: "local/neighbour", name: "Neighbour" }, "builtin/tech-open-office");
+	assert.equal(neighbour.saved, true);
+	assert.equal((await registry.get("local/neighbour"))?.name, "Neighbour");
+	const selectionBefore = (await registry.selected()).id;
+	const clobber = await creator.customize({ id: "local/neighbour", name: "Hijacked", texts: { company: "taken" } }, "builtin/boardroom-office");
+	assert.equal(clobber.saved, false, "a patch must not overwrite a different existing Office");
+	assert.equal(clobber.errors?.some((issue) => issue.path === "$.id"), true, "the rejection must name the id that would be overwritten");
+	assert.equal((await registry.get("local/neighbour"))?.name, "Neighbour", "the existing Office must stay untouched");
+	assert.equal((await registry.get("local/neighbour"))?.texts?.company, undefined, "the existing Office must keep its own text areas");
+	assert.equal((await registry.selected()).id, selectionBefore, "a rejected change must not move the selection");
+	// Editing the Office a Preset already owns stays the normal path.
+	const ownCopy = await creator.customize({ texts: { company: "Snail Lab" } }, "builtin/boardroom-office");
+	assert.equal(ownCopy.saved, true, "the single editable copy of a Preset Office must remain writable");
+	assert.equal(ownCopy.office?.id, "local/boardroom-office");
 	console.log("creator service: direct save/select, full-content Office copies, defaults and failed-change isolation passed");
 } finally { await rm(root, { recursive: true, force: true }); }

@@ -1,4 +1,4 @@
-import { compileOfficePatch } from "../content/compiler.ts";
+import { compileOfficePatch, patchOfficeId } from "../content/compiler.ts";
 import type { OfficePatch, OfficeSpec } from "../content/schema.ts";
 import type { ComponentLibraryView } from "../content/validator.ts";
 import { OfficeRegistry } from "../content/registry.ts";
@@ -119,6 +119,16 @@ export class CreatorService {
 		} as OfficePatch;
 		const compiled = compileOfficePatch(base, patch, this.#library);
 		if (!compiled.draft) return { saved: false, errors: compiled.errors, adjustments: compiled.adjustments };
+		// A patch may name the Office it creates, but it must never resolve onto a
+		// different Office that already exists: that would overwrite it silently,
+		// and the model cannot see which Office it just destroyed.
+		if (compiled.draft.id !== patchOfficeId(base) && await this.#registry.get(compiled.draft.id)) {
+			return {
+				saved: false,
+				errors: [{ code: "id-conflict", path: "$.id", message: `${compiled.draft.id} already exists; a patch cannot overwrite another Office` }],
+				adjustments: compiled.adjustments,
+			};
+		}
 		const saved = await this.#registry.save(compiled.draft);
 		if (!saved.saved) return { saved: false, errors: saved.issues, adjustments: compiled.adjustments };
 		await this.#registry.select(compiled.draft.id);

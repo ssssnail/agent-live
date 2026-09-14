@@ -577,6 +577,9 @@ function duplicates(values) {
   const seen = /* @__PURE__ */ new Set();
   return values.filter((value) => seen.has(value) || !seen.add(value));
 }
+function patchOfficeId(base) {
+  return base.origin === "custom" ? base.id : `local/${base.id.replace(/^builtin\//, "")}`;
+}
 function compileOfficePatch(base, patchInput, library) {
   const shapeIssues = validateOfficePatchShape(patchInput).map((entry) => ({ ...entry, code: "invalid-patch-shape" }));
   if (shapeIssues.length) return { errors: shapeIssues, adjustments: [] };
@@ -613,7 +616,7 @@ function compileOfficePatch(base, patchInput, library) {
   const draft = {
     schemaVersion: OFFICE_SPEC_SCHEMA_VERSION,
     kind: "office-spec",
-    id: patch.id ?? (base.origin === "custom" ? base.id : `local/${base.id.replace(/^builtin\//, "")}`),
+    id: patch.id ?? patchOfficeId(base),
     name: patch.name ?? base.name,
     origin: "custom",
     basePreset: base.origin === "official" ? base.id : base.basePreset,
@@ -739,6 +742,13 @@ var CreatorService = class {
     };
     const compiled = compileOfficePatch(base, patch, this.#library);
     if (!compiled.draft) return { saved: false, errors: compiled.errors, adjustments: compiled.adjustments };
+    if (compiled.draft.id !== patchOfficeId(base) && await this.#registry.get(compiled.draft.id)) {
+      return {
+        saved: false,
+        errors: [{ code: "id-conflict", path: "$.id", message: `${compiled.draft.id} already exists; a patch cannot overwrite another Office` }],
+        adjustments: compiled.adjustments
+      };
+    }
     const saved = await this.#registry.save(compiled.draft);
     if (!saved.saved) return { saved: false, errors: saved.issues, adjustments: compiled.adjustments };
     await this.#registry.select(compiled.draft.id);
@@ -1026,14 +1036,8 @@ async function resolveRuntimeContent(spec, contentRoot, library) {
   };
   const capabilitiesOf = (type) => propTypes[type]?.capabilities ?? [];
   const activityInstances = (layout.propInstances ?? []).map((entry) => [entry.id, entry.type]);
-  const activityIds = new Set(spec.activities);
-  for (const npc of spec.npcs) {
-    const template = library.npcTemplates.get(npc.template ?? library.defaultNpcTemplate);
-    for (const id of template?.defaultActivities ?? []) {
-      if (library.activityImplementations.has(`${spec.layout}|${id}`)) activityIds.add(id);
-    }
-  }
-  const entries = [...activityIds].map((id) => {
+  const activityIds = [...spec.activities];
+  const entries = activityIds.map((id) => {
     const implementation = library.activityImplementations.get(`${spec.layout}|${id}`);
     if (!implementation) throw new Error(`activity ${id} has no implementation compatible with ${spec.layout}`);
     const definition = structuredClone(implementation.definition);

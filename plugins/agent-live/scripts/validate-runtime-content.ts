@@ -53,6 +53,25 @@ assert.equal(content.environment.weather.fallback, "rain");
 assert.equal(content.agentProfile.name, "Ada");
 assert.equal(content.agentProfile.appearance.shirt, "#112233");
 
+// Disabling a routine must survive until the graph is served. NPC template
+// defaults are already part of the saved spec, so unioning them while serving
+// used to bring every disabled routine back (an Office that saved 3 routines
+// served 9).
+const trimmed = compileOfficePatch(result.draft, {
+	schemaVersion: 1, kind: "office-patch", base: result.draft.id,
+	activities: { disable: ["builtin/colleague-chat", "builtin/outside-walk", "builtin/phone-break", "builtin/restroom-break", "builtin/boss-cheer-round", "builtin/plant-watering"] },
+}, library);
+assert.ok(trimmed.draft, "disabling routines must still compile");
+const trimmedGraph = await resolveRuntimeContent(trimmed.draft, contentRoot, library);
+assert.deepEqual(
+	trimmedGraph.lifeActivities.entries.map((entry: any) => `builtin/${entry.id}`).sort(),
+	[...trimmed.draft.activities].sort(),
+	"the served routines must be exactly the saved ones",
+);
+for (const disabled of ["colleague-chat", "plant-watering", "boss-cheer-round"]) {
+	assert.equal(trimmedGraph.lifeActivities.entries.some((entry: any) => entry.id === disabled), false, `${disabled} must stay disabled while the graph is served`);
+}
+
 // A layout the browser would refuse must also be refused when saving.
 const structureLibrary = { ...library, layouts: new Map(library.layouts) };
 const techLayout = library.layouts.get("builtin/tech-open-office");

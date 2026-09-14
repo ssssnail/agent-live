@@ -147,6 +147,14 @@ function duplicates(values: string[]) {
 	return values.filter((value) => seen.has(value) || !seen.add(value));
 }
 
+/**
+ * The id a patch targets when it does not name one: a Custom Office keeps its
+ * identity, a Preset Office is copied into its single editable local Office.
+ */
+export function patchOfficeId(base: OfficeSpec): string {
+	return base.origin === "custom" ? base.id : `local/${base.id.replace(/^builtin\//, "")}`;
+}
+
 export function compileOfficePatch(base: OfficeSpec, patchInput: unknown, library: ComponentLibraryView): CompileResult {
 	const shapeIssues = validateOfficePatchShape(patchInput).map((entry) => ({ ...entry, code: "invalid-patch-shape" }));
 	if (shapeIssues.length) return { errors: shapeIssues, adjustments: [] };
@@ -186,7 +194,7 @@ export function compileOfficePatch(base: OfficeSpec, patchInput: unknown, librar
 	const draft: OfficeSpec = {
 		schemaVersion: OFFICE_SPEC_SCHEMA_VERSION,
 		kind: "office-spec",
-		id: patch.id ?? (base.origin === "custom" ? base.id : `local/${base.id.replace(/^builtin\//, "")}`),
+		id: patch.id ?? patchOfficeId(base),
 		name: patch.name ?? base.name,
 		origin: "custom",
 		basePreset: base.origin === "official" ? base.id : base.basePreset,
