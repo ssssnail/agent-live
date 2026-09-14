@@ -118,6 +118,19 @@ const removedWater = compileOfficePatch(base, {
 	placements: { remove: ["water-main"] },
 }, library);
 assert.equal(removedWater.draft, undefined, "a removed fixture must not satisfy an active routine");
+// A prop may be replaced in place, but moving it away from its authored stand
+// target would leave the routine performing at the old position.
+const movedWater = compileOfficePatch(base, {
+	schemaVersion: 1, kind: "office-patch", base: base.id,
+	placements: { upsert: [{ id: "water-main", component: "builtin/water-cooler", slot: "extra-3" }] },
+}, library);
+assert.equal(movedWater.draft, undefined, "a prop an active routine depends on must not change slot");
+assert.ok(movedWater.errors.some((issue) => issue.code === "capability-prop-moved"), "the refusal must name the position problem");
+const movedPlant = compileOfficePatch(base, {
+	schemaVersion: 1, kind: "office-patch", base: base.id,
+	placements: { upsert: [{ id: "plant-1", component: "builtin/plant", slot: "extra-1" }] },
+}, library);
+assert.ok(movedPlant.draft, "a prop no active routine depends on may still move");
 const signed = compileOfficePatch(base, {
 	schemaVersion: 1, kind: "office-patch", base: base.id,
 	texts: { company: "Snail Lab", notice: "Welcome", slogan: "Build together" },

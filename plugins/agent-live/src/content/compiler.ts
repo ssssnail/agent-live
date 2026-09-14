@@ -201,6 +201,35 @@ export function compileOfficePatch(base: OfficeSpec, patchInput: unknown, librar
 	}
 	for (const id of patch.activities?.enable ?? []) activities.add(id);
 
+	// Interim: a routine still walks to the layout's fixed stand target, so a prop
+	// that satisfies an active routine may keep its slot but must not move to
+	// another one — the routine would keep standing where the prop used to be.
+	// Drop this once step targets resolve to the prop the requirement bound.
+	const requiredCapabilities = new Set<string>();
+	for (const id of activities) {
+		for (const requirement of library.activityImplementations.get(`${layoutId}|${id}`)?.definition?.requires ?? []) {
+			if (requirement && typeof requirement === "object" && typeof requirement.capability === "string") requiredCapabilities.add(requirement.capability);
+		}
+	}
+	if (requiredCapabilities.size) {
+		const slotsBefore = new Map(base.placements.map((placement) => [placement.id, placement.slot]));
+		for (const placement of placements) {
+			const previousSlot = slotsBefore.get(placement.id);
+			if (previousSlot === undefined || previousSlot === placement.slot) continue;
+			const provides = (library.props.get(placement.component)?.capabilities ?? []).filter((capability: string) => requiredCapabilities.has(capability));
+			if (provides.length) {
+				return {
+					errors: [{
+						code: "capability-prop-moved",
+						path: "$.placements.upsert",
+						message: `${placement.id} provides ${provides.join(", ")}, which an active routine needs; it may be replaced in place but not moved to another slot`,
+					}],
+					adjustments,
+				};
+			}
+		}
+	}
+
 	const draft: OfficeSpec = {
 		schemaVersion: OFFICE_SPEC_SCHEMA_VERSION,
 		kind: "office-spec",

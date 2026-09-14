@@ -619,6 +619,30 @@ function compileOfficePatch(base, patchInput, library) {
     if (!activities.delete(id)) adjustments.push({ code: "disable-missing", path: "$.activities.disable", message: `${id} was not enabled and was ignored` });
   }
   for (const id of patch.activities?.enable ?? []) activities.add(id);
+  const requiredCapabilities = /* @__PURE__ */ new Set();
+  for (const id of activities) {
+    for (const requirement of library.activityImplementations.get(`${layoutId}|${id}`)?.definition?.requires ?? []) {
+      if (requirement && typeof requirement === "object" && typeof requirement.capability === "string") requiredCapabilities.add(requirement.capability);
+    }
+  }
+  if (requiredCapabilities.size) {
+    const slotsBefore = new Map(base.placements.map((placement) => [placement.id, placement.slot]));
+    for (const placement of placements) {
+      const previousSlot = slotsBefore.get(placement.id);
+      if (previousSlot === void 0 || previousSlot === placement.slot) continue;
+      const provides = (library.props.get(placement.component)?.capabilities ?? []).filter((capability) => requiredCapabilities.has(capability));
+      if (provides.length) {
+        return {
+          errors: [{
+            code: "capability-prop-moved",
+            path: "$.placements.upsert",
+            message: `${placement.id} provides ${provides.join(", ")}, which an active routine needs; it may be replaced in place but not moved to another slot`
+          }],
+          adjustments
+        };
+      }
+    }
+  }
   const draft = {
     schemaVersion: OFFICE_SPEC_SCHEMA_VERSION,
     kind: "office-spec",
