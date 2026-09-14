@@ -151,6 +151,7 @@
 			bubble: null,
 			inMeeting: false,
 			leaving: false,
+			leaveBy: 0,
 			actions: new Map(),
 			life: null,
 			lifeCycle: 0,
@@ -552,6 +553,10 @@
 				hot.clear();
 				for (const current of actors.values()) for (const action of current.actions.values()) hot.add(Office.stationKey(action, current.seat));
 				actor.leaving = true;
+				// Leaving is a presentation owned by Agent Live, not a second host
+				// lifecycle. Browser background throttling must never keep a character
+				// after the authoritative state has removed it.
+				actor.leaveBy = performance.now() + 3200;
 				actor.inMeeting = false;
 				if (ev.ok !== undefined) spawn(ev.ok ? "check" : "cross", actor.x, actor.y - 26, { life: 1.1 });
 				goTo(actor, Office.TARGETS.entry);
@@ -736,12 +741,17 @@
 		updateMeeting(now, dt);
 
 		for (const actor of [...actors.values()]) {
+			if (actor.leaving && actor.leaveBy && now >= actor.leaveBy) {
+				actors.delete(actor.id);
+				renderCrew();
+				continue;
+			}
 			if (actor.path.length) {
 				const next = actor.path[0];
 				const dx = next.x - actor.x;
 				const dy = next.y - actor.y;
 				const dist = Math.abs(dx) + Math.abs(dy);
-				const move = SPEED * dt;
+				const move = SPEED * dt * (actor.leaving ? 2.4 : 1);
 				if (dist <= move) {
 					actor.x = next.x;
 					actor.y = next.y;
