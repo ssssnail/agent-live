@@ -16,6 +16,12 @@ for (const name of ["tech-open-office", "boardroom-office", "old-school-office"]
 	assert.ok(engine.anchorFor("type", 0));
 	assert.ok(engine.stationKey("type", 0));
 	assert.equal(engine.isNpcOnDuty("coworker"), true);
+	assert.deepEqual(engine.npcHomeTarget({ role: "colleague", spawn: "staff-entry" }, 0), engine.seatAnchor(1));
+	assert.deepEqual(engine.npcHomeTarget({ role: "colleague", spawn: "staff-entry" }, 4), engine.seatAnchor(5));
+	assert.deepEqual(
+		engine.npcHomeTarget({ role: "boss", spawn: "boss-desk" }),
+		engine.TARGETS["boss-desk"] ?? engine.TARGETS.entry,
+	);
 }
 
 console.log("Office engine validation passed: navigation, stations and environment fallback for 3 official layouts");

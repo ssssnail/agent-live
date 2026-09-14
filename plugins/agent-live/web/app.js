@@ -169,7 +169,7 @@
 	function retarget(actor) {
 		if (actor.inMeeting || actor.leaving) return;
 		if (actor.isNpc) {
-			goTo(actor, Office.TARGETS[actor.workTarget] ?? Office.TARGETS.entry);
+			goTo(actor, actor.homeTarget ?? Office.TARGETS.entry);
 			return;
 		}
 		goTo(actor, Office.anchorFor(actor.action, actor.seat, actor.placementKey));
@@ -395,9 +395,7 @@
 		const colleagueSeat = entry.role === "colleague" && seatCount > 1
 			? 1 + Math.max(0, colleagueIndex) % (seatCount - 1)
 			: -1;
-		const workPoint = colleagueSeat >= 0
-			? Office.seatAnchor(colleagueSeat)
-			: Office.TARGETS[entry.spawn] ?? Office.TARGETS.entry;
+		const workPoint = Office.npcHomeTarget(entry, colleagueIndex);
 		const spawnPoint = fromEntry ? Office.TARGETS.entry : workPoint;
 		return {
 			id: `npc:${entry.id}`,
@@ -416,7 +414,10 @@
 			dir: spawnPoint.dir,
 			pose: entry.pose ?? "stand",
 			idlePose: entry.pose ?? "stand",
-			workTarget: entry.spawn,
+			// `entry.spawn` describes the configured role location/entrance. It is
+			// not necessarily where this concrete NPC should return after an
+			// activity: ordinary colleagues are assigned a real desk above.
+			homeTarget: { ...workPoint },
 			shift: entry.shift,
 			walkPhase: 0,
 			path: [],
@@ -445,7 +446,7 @@
 			actors.set(npc.id, npc);
 			if (fromEntry) {
 				bubble(npc, "life", tx(Office.npcShiftLabel?.("arrival") ?? t("npc.arrival")));
-				goTo(npc, Office.TARGETS[entry.spawn] ?? Office.TARGETS.entry);
+				retarget(npc);
 			}
 		}
 	}
@@ -470,7 +471,7 @@
 		const npc = makeNpc(entry, true);
 		actors.set(id, npc);
 		bubble(npc, "life", tx(Office.npcShiftLabel?.("arrival") ?? t("npc.arrival")));
-		goTo(npc, Office.TARGETS[entry.spawn] ?? Office.TARGETS.entry);
+		retarget(npc);
 	}
 
 	function syncNpcShift(now) {

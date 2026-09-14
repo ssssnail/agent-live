@@ -40,6 +40,16 @@ export function createOfficeEngine(content, environment = null) {
 		return slots[Math.abs(Number(key) || 0) % slots.length];
 	}
 
+	function npcHomeTarget(entry, roleIndex = 0) {
+		// Seat 0 belongs to the real Agent. Ordinary colleagues occupy the
+		// remaining desks; their configured spawn remains only their entrance or
+		// role fallback, not the place they return to after every activity.
+		if (entry?.role === "colleague" && seats.length > 1) {
+			return seatAnchor(1 + Math.max(0, roleIndex) % (seats.length - 1));
+		}
+		return targets[entry?.spawn] ?? targets.entry;
+	}
+
 	function anchorFor(action, seatIndex, fallbackKey = 0) {
 		const capability = layout.legacyActions[action ?? "type"] ?? "create";
 		const station = layout.stations[capability];
@@ -126,7 +136,7 @@ export function createOfficeEngine(content, environment = null) {
 		W: layout.canvas.width, H: layout.canvas.height, WALL_H: layout.wallHeight,
 		LANES: lanes, SEATS: seats, TARGETS: targets,
 		interactions: Object.freeze({ ...(layout.interactions ?? {}) }),
-		currentEnvironment, anchorFor, seatAnchor, standingAnchor, path, stationKey,
+		currentEnvironment, anchorFor, seatAnchor, standingAnchor, npcHomeTarget, path, stationKey,
 		startDayPreview: (durationMs = 24000) => environment?.startPreview?.(durationMs) ?? false,
 		getOfficeTime: currentEnvironment,
 		isNpcOnDuty: (role, shift, identity) => environment?.isNpcOnDuty?.(role, shift, identity) ?? true,
