@@ -23,4 +23,8 @@ export declare function compileOfficeSeed(input: unknown, library: ComponentLibr
  * identity, a Preset Office is copied into its single editable local Office.
  */
 export declare function patchOfficeId(base: OfficeSpec): string;
+/** The Preset a `local/<preset>` Office id is reserved for. */
+export declare function presetIdForLocalId(localId: string): string | undefined;
+/** The Preset an Office descends from; an official Office is its own Preset. */
+export declare function ownerPresetId(base: OfficeSpec): string | undefined;
 export declare function compileOfficePatch(base: OfficeSpec, patchInput: unknown, library: ComponentLibraryView): CompileResult;

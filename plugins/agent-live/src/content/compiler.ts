@@ -155,6 +155,16 @@ export function patchOfficeId(base: OfficeSpec): string {
 	return base.origin === "custom" ? base.id : `local/${base.id.replace(/^builtin\//, "")}`;
 }
 
+/** The Preset a `local/<preset>` Office id is reserved for. */
+export function presetIdForLocalId(localId: string): string | undefined {
+	return localId.startsWith("local/") ? `builtin/${localId.slice("local/".length)}` : undefined;
+}
+
+/** The Preset an Office descends from; an official Office is its own Preset. */
+export function ownerPresetId(base: OfficeSpec): string | undefined {
+	return base.origin === "official" ? base.id : base.basePreset;
+}
+
 export function compileOfficePatch(base: OfficeSpec, patchInput: unknown, library: ComponentLibraryView): CompileResult {
 	const shapeIssues = validateOfficePatchShape(patchInput).map((entry) => ({ ...entry, code: "invalid-patch-shape" }));
 	if (shapeIssues.length) return { errors: shapeIssues, adjustments: [] };

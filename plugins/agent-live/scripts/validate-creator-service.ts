@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -71,5 +71,30 @@ try {
 	const ownCopy = await creator.customize({ texts: { company: "Snail Lab" } }, "builtin/boardroom-office");
 	assert.equal(ownCopy.saved, true, "the single editable copy of a Preset Office must remain writable");
 	assert.equal(ownCopy.office?.id, "local/boardroom-office");
+
+	// A Preset's standard local id belongs to that Preset's copy. Another Preset
+	// must not be able to occupy it while it is still free, and the rightful Preset
+	// must still be able to claim it afterwards.
+	assert.equal(await registry.get("local/tech-open-office"), undefined);
+	const occupied = await creator.customize({ id: "local/tech-open-office", name: "Occupied" }, "builtin/old-school-office");
+	assert.equal(occupied.saved, false, "another Preset's standard local id must not be occupiable");
+	assert.equal(occupied.errors?.some((issue) => issue.path === "$.id" && issue.code === "reserved-office-id"), true, "the rejection must name why the id is reserved");
+	assert.equal(await registry.get("local/tech-open-office"), undefined, "a rejected patch must not claim the reserved id");
+	const rightful = await creator.customize({ name: "Tech copy" }, "builtin/tech-open-office");
+	assert.equal(rightful.saved, true, "the Preset that owns the id must still be able to claim it");
+	assert.equal(rightful.office?.id, "local/tech-open-office");
+
+	// An Office that already sits on this Preset's local id but descends from a
+	// different Preset must not be overwritten silently: the id says "tech", the
+	// Office says "boardroom".
+	const occupantPath = path.join(root, "offices", "tech-open-office.json");
+	const stored = JSON.parse(await readFile(occupantPath, "utf8"));
+	assert.equal(stored.basePreset, "builtin/tech-open-office");
+	await writeFile(occupantPath, `${JSON.stringify({ ...stored, name: "Boardroom squatter", basePreset: "builtin/boardroom-office" }, null, "\t")}\n`);
+	const blocked = await creator.customize({ texts: { company: "taken" } }, "builtin/tech-open-office");
+	assert.equal(blocked.saved, false, "an Office from another Preset must not be overwritten through this Preset's id");
+	assert.equal(blocked.errors?.some((issue) => issue.path === "$.id" && issue.code === "id-conflict"), true, "the rejection must point at the id");
+	assert.equal((await registry.get("local/tech-open-office"))?.name, "Boardroom squatter", "the occupying Office must stay untouched");
+	assert.equal((await registry.get("local/tech-open-office"))?.basePreset, "builtin/boardroom-office", "the occupying Office must keep its own Preset");
 	console.log("creator service: direct save/select, full-content Office copies, defaults and failed-change isolation passed");
 } finally { await rm(root, { recursive: true, force: true }); }

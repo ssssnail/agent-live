@@ -1,4 +1,4 @@
-import { compileOfficePatch, patchOfficeId } from "../content/compiler.ts";
+import { compileOfficePatch, ownerPresetId, patchOfficeId, presetIdForLocalId } from "../content/compiler.ts";
 import type { OfficePatch, OfficeSpec } from "../content/schema.ts";
 import type { ComponentLibraryView } from "../content/validator.ts";
 import { OfficeRegistry } from "../content/registry.ts";
@@ -119,15 +119,31 @@ export class CreatorService {
 		} as OfficePatch;
 		const compiled = compileOfficePatch(base, patch, this.#library);
 		if (!compiled.draft) return { saved: false, errors: compiled.errors, adjustments: compiled.adjustments };
-		// A patch may name the Office it creates, but it must never resolve onto a
-		// different Office that already exists: that would overwrite it silently,
-		// and the model cannot see which Office it just destroyed.
-		if (compiled.draft.id !== patchOfficeId(base) && await this.#registry.get(compiled.draft.id)) {
-			return {
-				saved: false,
-				errors: [{ code: "id-conflict", path: "$.id", message: `${compiled.draft.id} already exists; a patch cannot overwrite another Office` }],
-				adjustments: compiled.adjustments,
-			};
+		const owner = ownerPresetId(base);
+		const targetId = patchOfficeId(base);
+		const refuse = (code: string, message: string) => ({
+			saved: false,
+			errors: [{ code, path: "$.id", message }],
+			adjustments: compiled.adjustments,
+		});
+		if (compiled.draft.id !== targetId) {
+			// A patch may name the Office it creates, but it must not resolve onto an
+			// Office that already exists, and a `local/<preset>` id belongs to that
+			// Preset's own copy — taking it would leave that Preset unable to be edited.
+			if (await this.#registry.get(compiled.draft.id)) {
+				return refuse("id-conflict", `${compiled.draft.id} already exists; a patch cannot overwrite another Office`);
+			}
+			const reserved = presetIdForLocalId(compiled.draft.id);
+			if (reserved && reserved !== owner && await this.#registry.get(reserved)) {
+				return refuse("reserved-office-id", `${compiled.draft.id} is the editable copy of ${reserved}`);
+			}
+		} else {
+			// The id this Office owns must not be held by an Office that descends from
+			// another Preset: overwriting it would replace a different room silently.
+			const existing = await this.#registry.get(targetId);
+			if (existing?.basePreset && existing.basePreset !== owner) {
+				return refuse("id-conflict", `${targetId} already holds an Office based on ${existing.basePreset}`);
+			}
 		}
 		const saved = await this.#registry.save(compiled.draft);
 		if (!saved.saved) return { saved: false, errors: saved.issues, adjustments: compiled.adjustments };

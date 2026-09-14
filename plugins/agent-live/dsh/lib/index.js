@@ -580,6 +580,12 @@ function duplicates(values) {
 function patchOfficeId(base) {
   return base.origin === "custom" ? base.id : `local/${base.id.replace(/^builtin\//, "")}`;
 }
+function presetIdForLocalId(localId) {
+  return localId.startsWith("local/") ? `builtin/${localId.slice("local/".length)}` : void 0;
+}
+function ownerPresetId(base) {
+  return base.origin === "official" ? base.id : base.basePreset;
+}
 function compileOfficePatch(base, patchInput, library) {
   const shapeIssues = validateOfficePatchShape(patchInput).map((entry) => ({ ...entry, code: "invalid-patch-shape" }));
   if (shapeIssues.length) return { errors: shapeIssues, adjustments: [] };
@@ -742,12 +748,26 @@ var CreatorService = class {
     };
     const compiled = compileOfficePatch(base, patch, this.#library);
     if (!compiled.draft) return { saved: false, errors: compiled.errors, adjustments: compiled.adjustments };
-    if (compiled.draft.id !== patchOfficeId(base) && await this.#registry.get(compiled.draft.id)) {
-      return {
-        saved: false,
-        errors: [{ code: "id-conflict", path: "$.id", message: `${compiled.draft.id} already exists; a patch cannot overwrite another Office` }],
-        adjustments: compiled.adjustments
-      };
+    const owner = ownerPresetId(base);
+    const targetId = patchOfficeId(base);
+    const refuse = (code, message) => ({
+      saved: false,
+      errors: [{ code, path: "$.id", message }],
+      adjustments: compiled.adjustments
+    });
+    if (compiled.draft.id !== targetId) {
+      if (await this.#registry.get(compiled.draft.id)) {
+        return refuse("id-conflict", `${compiled.draft.id} already exists; a patch cannot overwrite another Office`);
+      }
+      const reserved = presetIdForLocalId(compiled.draft.id);
+      if (reserved && reserved !== owner && await this.#registry.get(reserved)) {
+        return refuse("reserved-office-id", `${compiled.draft.id} is the editable copy of ${reserved}`);
+      }
+    } else {
+      const existing = await this.#registry.get(targetId);
+      if (existing?.basePreset && existing.basePreset !== owner) {
+        return refuse("id-conflict", `${targetId} already holds an Office based on ${existing.basePreset}`);
+      }
     }
     const saved = await this.#registry.save(compiled.draft);
     if (!saved.saved) return { saved: false, errors: saved.issues, adjustments: compiled.adjustments };
