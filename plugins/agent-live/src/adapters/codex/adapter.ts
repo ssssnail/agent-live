@@ -310,7 +310,8 @@ export class CodexOfficeSession {
 				if (!agentId) break;
 				if (agentId !== MAIN) {
 					const childStatus = String((params.turn as JsonObject | undefined)?.status ?? "completed");
-					this.finishChild(agentId, childStatus === "completed");
+					const childCancelled = this.interrupting || ["interrupted", "cancelled"].includes(childStatus);
+					this.finishChild(agentId, childCancelled ? undefined : childStatus === "completed");
 					if (!this.activeTurns.size && !this.turnId) {
 						this.interrupting = false;
 						this.state.setState(MAIN, "idle", "待命");
@@ -319,20 +320,24 @@ export class CodexOfficeSession {
 				}
 				this.state.flushThoughts();
 				this.clearApprovals("Turn completed before approval was resolved");
+				const status = String((params.turn as JsonObject | undefined)?.status ?? "completed");
+				const cancelled = this.interrupting || ["interrupted", "cancelled"].includes(status);
 				for (const [id, action] of this.activeActions) {
 					if (action.agentId !== MAIN) continue;
-					this.state.endAction(action.agentId, id, false);
+					// OfficeEvent currently has success/failure only. A user cancellation is
+					// not a tool failure, so clear its animation without painting an error.
+					this.state.endAction(action.agentId, id, cancelled);
 					this.activeActions.delete(id);
 				}
-				const status = String((params.turn as JsonObject | undefined)?.status ?? "completed");
 				this.turnId = "";
 				if (!this.activeTurns.size) this.interrupting = false;
 				this.turns += 1;
 				this.state.updateSession({ busy: this.activeTurns.size > 0, turns: this.turns });
-				if (status === "failed") this.state.setState(MAIN, "error", "任务失败");
+				if (cancelled) this.state.setState(MAIN, "idle", "已停止");
+				else if (status === "failed") this.state.setState(MAIN, "error", "任务失败");
 				else if (this.activeTurns.size) this.state.setState(MAIN, "waiting", `等待 ${this.activeTurns.size} 位同事`);
 				else this.state.setState(MAIN, "idle", "待命");
-				if (!this.activeTurns.size) this.settleChildren(status !== "failed");
+				if (!this.activeTurns.size) this.settleChildren(cancelled ? undefined : status !== "failed");
 				break;
 			}
 		}
@@ -455,13 +460,15 @@ export class CodexOfficeSession {
 		}
 	}
 
-	private settleChildren(ok: boolean): void {
-		this.agents.settleChildren(ok);
+	private settleChildren(outcome: boolean | undefined): void {
+		if (outcome === undefined) this.agents.cancelChildren();
+		else this.agents.settleChildren(outcome);
 	}
 
-	private finishChild(childId: string, ok: boolean): void {
+	private finishChild(childId: string, outcome: boolean | undefined): void {
 		if (!this.state.getAgent(childId) || this.childLeaveTimers.has(childId)) return;
-		this.agents.complete(childId, ok);
+		if (outcome === undefined) this.agents.cancel(childId);
+		else this.agents.complete(childId, outcome);
 		const timer = setTimeout(() => {
 			this.childLeaveTimers.delete(childId);
 			for (const [threadId, id] of this.childAgents) if (id === childId) this.childAgents.delete(threadId);

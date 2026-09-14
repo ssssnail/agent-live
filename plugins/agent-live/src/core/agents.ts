@@ -97,15 +97,23 @@ export class AgentRegistry {
 	}
 
 	complete(id: string, ok: boolean, detail = ok ? "已交付" : "未完成"): void {
+		this.finish(id, ok, detail);
+	}
+
+	cancel(id: string, detail = "已停止"): void {
+		this.finish(id, undefined, detail);
+	}
+
+	private finish(id: string, outcome: boolean | undefined, detail: string): void {
 		if (!this.state.getAgent(id) || this.leaveTimers.has(id)) return;
 		this.completed.add(id);
-		this.state.setState(id, ok ? "done" : "error", detail);
+		this.state.setState(id, outcome === false ? "error" : "done", detail);
 		this.syncParentState();
 		const timer = setTimeout(() => {
 			this.leaveTimers.delete(id);
 			this.children.delete(id);
 			this.completed.delete(id);
-			this.state.leave(id, ok);
+			this.state.leave(id, outcome);
 			this.syncParentState();
 		}, this.leaveDelayMs);
 		timer.unref?.();
@@ -114,6 +122,10 @@ export class AgentRegistry {
 
 	settleChildren(ok: boolean): void {
 		for (const id of this.children) this.complete(id, ok);
+	}
+
+	cancelChildren(): void {
+		for (const id of this.children) this.cancel(id);
 	}
 
 	has(id: string): boolean {

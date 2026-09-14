@@ -88,6 +88,16 @@ assert.deepEqual(interruptRequests, [
 	params: { threadId: "main-thread", item: { type: "subAgentActivity", id: "root-activity", kind: "started", agentThreadId: "main-thread", agentPath: "/root" } },
 });
 assert.equal(interruptState.getAgent("codex:main-thread"), undefined, "root activity was rendered as a child agent");
+(interruptSession as any).handleMessage({
+	method: "item/completed",
+	params: { threadId: "main-thread", item: { type: "subAgentActivity", id: "child-activity", kind: "started", agentThreadId: "unknown-child", agentPath: "/root/scout" } },
+});
+(interruptSession as any).handleMessage({ method: "turn/completed", params: { threadId: "unknown-child", turn: { status: "interrupted" } } });
+assert.equal(interruptState.getAgent("codex:unknown-child")?.state, "done", "an interrupted child was painted as an error");
+assert.equal(interruptState.getAgent("codex:unknown-child")?.detail, "已停止");
+(interruptSession as any).handleMessage({ method: "turn/completed", params: { threadId: "main-thread", turn: { status: "interrupted" } } });
+assert.equal(interruptState.getAgent("main")?.state, "idle", "an interrupted main turn was painted as an error");
+assert.equal(interruptState.getAgent("main")?.detail, "已停止");
 await interruptSession.close();
 interruptState.dispose();
 
