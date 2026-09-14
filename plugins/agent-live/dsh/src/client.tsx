@@ -21,6 +21,36 @@ interface ViewSessionStore {
 
 const viewSessions = new Map<string, ViewSessionStore>();
 const MAX_VIEW_SESSIONS = 24;
+const LOCALE_STORAGE_KEY = "agent-live:locale";
+type Locale = "en" | "zh-CN";
+
+function readLocale(value: unknown): Locale {
+  return String(value ?? "").toLowerCase().startsWith("zh") ? "zh-CN" : "en";
+}
+
+function savedLocale(): Locale {
+  try {
+    return readLocale(localStorage.getItem(LOCALE_STORAGE_KEY));
+  } catch {
+    return "en";
+  }
+}
+
+// The language choice is a product preference, not a per-view one: every open
+// conversation view switches together and the choice survives a page reload.
+let activeLocale: Locale = savedLocale();
+const localeWatchers = new Set<(locale: Locale) => void>();
+
+function applyLocale(next: Locale): void {
+  if (next === activeLocale) return;
+  activeLocale = next;
+  try {
+    localStorage.setItem(LOCALE_STORAGE_KEY, next);
+  } catch {
+    // Storage may be disabled; the choice still holds for this page.
+  }
+  for (const watcher of localeWatchers) watcher(next);
+}
 
 function viewSession(id: string): ViewSessionStore {
   const existing = viewSessions.get(id);
@@ -141,6 +171,7 @@ function buildObservation(input: {
 function AgentLiveView({ sessionId, useSession, useConversation, useProjection, useSessions }: ConvViewProps) {
   const iframe = React.useRef<HTMLIFrameElement>(null);
   const ready = React.useRef(false);
+  const [locale, setLocale] = React.useState<Locale>(activeLocale);
   const id = String(sessionId);
   const store = React.useMemo(() => viewSession(id), [id]);
   const running = useSession((snapshot: SessionSnapshot) => snapshot.running);
@@ -178,8 +209,28 @@ function AgentLiveView({ sessionId, useSession, useConversation, useProjection, 
   }, [observation, store]);
 
   React.useEffect(() => {
+    localeWatchers.add(setLocale);
+    setLocale(activeLocale);
+    return () => {
+      localeWatchers.delete(setLocale);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    // A locale switch re-creates the frame, so the next deltas wait for its
+    // handshake and are replayed from the journal with it.
+    ready.current = false;
+  }, [locale]);
+
+  React.useEffect(() => {
     const receive = (message: MessageEvent) => {
       if (message.source !== iframe.current?.contentWindow || message.data?.source !== "agent-live-dsh-frame") return;
+      // A locale switch re-creates the frame below; the new frame asks for the
+      // journal with its own handshake, so this message must not replay it here.
+      if (message.data.type === "locale") {
+        applyLocale(readLocale(message.data.locale));
+        return;
+      }
       ready.current = true;
       for (const event of store.journal) iframe.current?.contentWindow?.postMessage({ source: "agent-live-dsh", event }, "*");
     };
@@ -190,8 +241,8 @@ function AgentLiveView({ sessionId, useSession, useConversation, useProjection, 
     };
   }, [id, store]);
 
-	const document = React.useMemo(() => frameDocument(office?.content), [office?.revision]);
-	return <iframe key={office?.revision ?? "default"} ref={iframe} title="Agent Live" srcDoc={document} sandbox="allow-scripts" style={{ border: 0, display: "block", height: "100%", width: "100%" }} />;
+	const document = React.useMemo(() => frameDocument(office?.content, locale), [office?.revision, locale]);
+	return <iframe key={`${office?.revision ?? "default"}:${locale}`} ref={iframe} title="Agent Live" srcDoc={document} sandbox="allow-scripts" style={{ border: 0, display: "block", height: "100%", width: "100%" }} />;
 }
 
 /** Register one session-scoped DSH conversation view; DSH retains all controls. */

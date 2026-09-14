@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 
 const moduleId = "agent-live-dsh-adapter";
 const contentToken = "__AGENT_LIVE_CONTENT_URI__";
+const localeToken = "__AGENT_LIVE_LOCALE__";
 
 await mkdir(new URL("./lib", import.meta.url), { recursive: true });
 
@@ -32,15 +33,24 @@ if (process.env.AGENT_LIVE_DSH_FRAME_PREVIEW) {
   await writeFile(process.env.AGENT_LIVE_DSH_FRAME_PREVIEW, frameDocument);
 }
 
+/** The host-side frame factory, also emitted on request so tests exercise the real one. */
+const frameDocumentModule = `const document = ${JSON.stringify(frameDocument)};
+export default function frameDocument(content, locale) {
+  return document
+    .replace(${JSON.stringify(contentToken)}, encodeURIComponent(JSON.stringify(content ?? null)))
+    .replace(${JSON.stringify(localeToken)}, locale === "zh-CN" ? "zh-CN" : "en");
+}
+`;
+if (process.env.AGENT_LIVE_DSH_FRAME_MODULE) {
+  await writeFile(process.env.AGENT_LIVE_DSH_FRAME_MODULE, frameDocumentModule);
+}
+
 const embeddedAssets = {
   name: "agent-live-embedded-assets",
   setup(build) {
     build.onResolve({ filter: /^agent-live-frame-document$/ }, (args) => ({ path: args.path, namespace: "agent-live" }));
     build.onLoad({ filter: /.*/, namespace: "agent-live" }, (args) => ({
-      contents: `const document = ${JSON.stringify(frameDocument)};
-export default function frameDocument(content) {
-  return document.replace(${JSON.stringify(contentToken)}, encodeURIComponent(JSON.stringify(content ?? null)));
-}`,
+      contents: frameDocumentModule,
       loader: "js",
     }));
   },

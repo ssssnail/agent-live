@@ -40,7 +40,8 @@ if (contentProblems.length) {
 
   const bundles = { en: english, "zh-CN": chinese } as const;
   type Locale = keyof typeof bundles;
-  let activeLocale: Locale = "en";
+  const initialLocale: Locale = window.AgentLiveInitialLocale === "zh-CN" ? "zh-CN" : "en";
+  let activeLocale: Locale = initialLocale;
   let locale = bundles[activeLocale];
   const i18n = {
     locale: activeLocale,
@@ -73,14 +74,20 @@ if (contentProblems.length) {
       language.textContent = next === "en" ? "中文" : "EN";
       language.setAttribute("aria-label", i18n.t("nav.language"));
     }
+    // Controls that own their label from state (the sound toggle) re-render here
+    // instead of carrying a static translation that can contradict the state.
+    window.dispatchEvent(new CustomEvent("agent-live:locale", { detail: { locale: next } }));
   };
   document.getElementById("language")?.addEventListener("click", () => {
-    applyLocale(activeLocale === "en" ? "zh-CN" : "en");
-    // Re-project the current host snapshot so dynamic cards, task text and the
-    // activity feed switch language together with the static frame labels.
-    if (latest) for (const listener of listeners) listener(latest);
+    const next: Locale = activeLocale === "en" ? "zh-CN" : "en";
+    applyLocale(next);
+    // Static labels switch in place, but text the host already projected was
+    // localized on arrival. Re-projecting that stale snapshot into this frame
+    // would replay settled events, so the host re-creates the frame in the chosen
+    // locale and re-sends its current journal instead.
+    parent.postMessage({ source: "agent-live-dsh-frame", type: "locale", locale: next }, "*");
   });
-  applyLocale("en");
+  applyLocale(initialLocale);
   window.AgentLiveClientKind = "dsh";
   window.OfficeContent = content;
   window.SceneLimits = { ...SCENE_LIMITS };
@@ -152,5 +159,6 @@ declare global {
     AgentLiveSubscribe: (listener: (event: any) => void) => () => void;
     AgentLiveGetSnapshot: () => Promise<any>;
 	AgentLiveInitialContent?: typeof fallbackContent;
+	AgentLiveInitialLocale?: string;
   }
 }

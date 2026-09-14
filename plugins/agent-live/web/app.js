@@ -1268,10 +1268,21 @@
 
 	document.getElementById("demo").addEventListener("click", () => void runDemo());
 	replayButton?.addEventListener("click", () => void runHistoryReplay());
-	document.getElementById("mute").addEventListener("click", (e) => {
+	// The sound toggle owns its label from state. A static translation would go
+	// stale as soon as the frame switches language, or lie about a live setting.
+	const muteButton = document.getElementById("mute");
+	const renderSoundLabel = () => {
+		if (!muteButton) return;
+		muteButton.textContent = window.AgentLiveI18n
+			? t(sound ? "nav.soundOn" : "nav.soundOff")
+			: sound ? "音效: 开" : "音效: 关";
+	};
+	muteButton?.addEventListener("click", () => {
 		sound = !sound;
-		e.target.textContent = t(sound ? "nav.soundOn" : "nav.soundOff");
+		renderSoundLabel();
 	});
+	window.addEventListener("agent-live:locale", renderSoundLabel);
+	renderSoundLabel();
 
 	resize();
 	renderBar();

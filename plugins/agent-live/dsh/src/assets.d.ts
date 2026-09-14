@@ -1,5 +1,5 @@
 declare module "agent-live-frame-document" {
-  const source: (content?: unknown) => string;
+  const source: (content?: unknown, locale?: string) => string;
   export default source;
 }
 

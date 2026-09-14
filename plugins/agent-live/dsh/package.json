@@ -40,7 +40,7 @@
   "scripts": {
 		"build": "node clean.mjs && tsc --emitDeclarationOnly && node build.mjs",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run build && npm pack --dry-run --ignore-scripts"
+    "check": "npm run typecheck && npm run build && node scripts/validate-frame.mjs && npm pack --dry-run --ignore-scripts"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
