@@ -118,14 +118,20 @@ const removedWater = compileOfficePatch(base, {
 	placements: { remove: ["water-main"] },
 }, library);
 assert.equal(removedWater.draft, undefined, "a removed fixture must not satisfy an active routine");
-// A prop may be replaced in place, but moving it away from its authored stand
-// target would leave the routine performing at the old position.
+// A prop may be replaced in place, but not relocated: the routine performs where
+// the layout prepared that capability, so a moved prop would be ignored on screen.
+const relocated = compileOfficePatch(base, {
+	schemaVersion: 1, kind: "office-patch", base: base.id,
+	placements: { remove: ["water-main"], upsert: [{ id: "water-cooler-2", component: "builtin/water-cooler", slot: "extra-3" }] },
+}, library);
+assert.equal(relocated.draft, undefined, "a replacement must not move the capability to another slot");
+assert.ok(relocated.errors.some((issue) => issue.code === "capability-prop-slot"), "the refusal must name the prepared slot");
 const movedWater = compileOfficePatch(base, {
 	schemaVersion: 1, kind: "office-patch", base: base.id,
 	placements: { upsert: [{ id: "water-main", component: "builtin/water-cooler", slot: "extra-3" }] },
 }, library);
 assert.equal(movedWater.draft, undefined, "a prop an active routine depends on must not change slot");
-assert.ok(movedWater.errors.some((issue) => issue.code === "capability-prop-moved"), "the refusal must name the position problem");
+assert.ok(movedWater.errors.some((issue) => issue.code === "capability-prop-slot"), "the refusal must name the prepared slot");
 const movedPlant = compileOfficePatch(base, {
 	schemaVersion: 1, kind: "office-patch", base: base.id,
 	placements: { upsert: [{ id: "plant-1", component: "builtin/plant", slot: "extra-1" }] },

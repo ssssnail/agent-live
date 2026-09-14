@@ -462,6 +462,12 @@ function validateOfficeSpec(spec, library) {
     const prop = library.props.get(`builtin/${type}`) ?? library.props.get(`local/${type}`) ?? library.props.get(type);
     return prop?.capabilities ?? [];
   };
+  const preparedSlots = /* @__PURE__ */ new Map();
+  for (const slot of layout.placementSlots ?? []) {
+    const builtin = (layout.propInstances ?? []).find((instance) => instance.id === slot.occupiedBy);
+    if (!builtin) continue;
+    for (const capability of capabilitiesOf(builtin.type)) if (!preparedSlots.has(capability)) preparedSlots.set(capability, slot.id);
+  }
   const npcRoles = new Set(value.npcs.map((npc) => library.npcTemplates.get(npc.template ?? "")?.role).filter(Boolean));
   for (let index = 0; index < value.activities.length; index += 1) {
     const activityId = value.activities[index];
@@ -475,6 +481,17 @@ function validateOfficeSpec(spec, library) {
       const implementation = library.activityImplementations.get(`${value.layout}|${activityId}`);
       const resolved = resolveActivityRequirements(implementation?.definition?.requires, propInstances, capabilitiesOf, activityId);
       for (const issue2 of resolved.issues) add(issues, issue2.code, path5, issue2.message);
+      if (!resolved.issues.length) {
+        (implementation?.definition?.requires ?? []).forEach((requirement, requirementIndex) => {
+          const capability = requirement && typeof requirement === "object" && typeof requirement.capability === "string" ? requirement.capability : void 0;
+          const bound = resolved.bindings[requirementIndex];
+          const placement = capability && bound ? value.placements.find((entry) => entry.id === bound) : void 0;
+          if (!placement) return;
+          const prepared = preparedSlots.get(capability);
+          if (prepared === placement.slot) return;
+          add(issues, "capability-prop-slot", path5, `${placement.id} provides ${capability} from ${placement.slot}, but ${activityId} performs where this layout prepared ${capability}${prepared ? ` (${prepared})` : ""}; keep the prop where it is instead of relocating it`);
+        });
+      }
       if (!resolved.issues.length && recipe.participantKinds?.includes("npc") && recipe.participantKinds.length === 1 && recipe.participantRoles?.length && !recipe.participantRoles.some((role) => npcRoles.has(role))) {
         add(issues, "missing-activity-participant", path5, `${activityId} has no compatible NPC in this office`);
       }
@@ -619,30 +636,6 @@ function compileOfficePatch(base, patchInput, library) {
     if (!activities.delete(id)) adjustments.push({ code: "disable-missing", path: "$.activities.disable", message: `${id} was not enabled and was ignored` });
   }
   for (const id of patch.activities?.enable ?? []) activities.add(id);
-  const requiredCapabilities = /* @__PURE__ */ new Set();
-  for (const id of activities) {
-    for (const requirement of library.activityImplementations.get(`${layoutId}|${id}`)?.definition?.requires ?? []) {
-      if (requirement && typeof requirement === "object" && typeof requirement.capability === "string") requiredCapabilities.add(requirement.capability);
-    }
-  }
-  if (requiredCapabilities.size) {
-    const slotsBefore = new Map(base.placements.map((placement) => [placement.id, placement.slot]));
-    for (const placement of placements) {
-      const previousSlot = slotsBefore.get(placement.id);
-      if (previousSlot === void 0 || previousSlot === placement.slot) continue;
-      const provides = (library.props.get(placement.component)?.capabilities ?? []).filter((capability) => requiredCapabilities.has(capability));
-      if (provides.length) {
-        return {
-          errors: [{
-            code: "capability-prop-moved",
-            path: "$.placements.upsert",
-            message: `${placement.id} provides ${provides.join(", ")}, which an active routine needs; it may be replaced in place but not moved to another slot`
-          }],
-          adjustments
-        };
-      }
-    }
-  }
   const draft = {
     schemaVersion: OFFICE_SPEC_SCHEMA_VERSION,
     kind: "office-spec",

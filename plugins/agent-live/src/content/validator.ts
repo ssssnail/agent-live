@@ -143,6 +143,15 @@ export function validateOfficeSpec(spec: unknown, library: ComponentLibraryView)
 		const prop = library.props.get(`builtin/${type}`) ?? library.props.get(`local/${type}`) ?? library.props.get(type);
 		return prop?.capabilities ?? [];
 	};
+	// A routine performs at the position its target names, so a prop that satisfies
+	// a capability has to sit where the layout prepared that capability: the slot
+	// occupied by the layout's own prop of that capability.
+	const preparedSlots = new Map<string, string>();
+	for (const slot of layout.placementSlots ?? []) {
+		const builtin = (layout.propInstances ?? []).find((instance: any) => instance.id === slot.occupiedBy);
+		if (!builtin) continue;
+		for (const capability of capabilitiesOf(builtin.type)) if (!preparedSlots.has(capability)) preparedSlots.set(capability, slot.id);
+	}
 	const npcRoles = new Set(value.npcs.map((npc) => library.npcTemplates.get(npc.template ?? "")?.role).filter(Boolean));
 	for (let index = 0; index < value.activities.length; index += 1) {
 		const activityId = value.activities[index];
@@ -156,6 +165,19 @@ export function validateOfficeSpec(spec: unknown, library: ComponentLibraryView)
 			const implementation = library.activityImplementations.get(`${value.layout}|${activityId}`);
 			const resolved = resolveActivityRequirements(implementation?.definition?.requires, propInstances, capabilitiesOf, activityId);
 			for (const issue of resolved.issues) add(issues, issue.code, path, issue.message);
+			if (!resolved.issues.length) {
+				// The requirement may be satisfied in place, never by relocating the prop:
+				// the routine would keep performing where that prop used to be.
+				(implementation?.definition?.requires ?? []).forEach((requirement: any, requirementIndex: number) => {
+					const capability = requirement && typeof requirement === "object" && typeof requirement.capability === "string" ? requirement.capability : undefined;
+					const bound = resolved.bindings[requirementIndex];
+					const placement = capability && bound ? value.placements.find((entry) => entry.id === bound) : undefined;
+					if (!placement) return;
+					const prepared = preparedSlots.get(capability);
+					if (prepared === placement.slot) return;
+					add(issues, "capability-prop-slot", path, `${placement.id} provides ${capability} from ${placement.slot}, but ${activityId} performs where this layout prepared ${capability}${prepared ? ` (${prepared})` : ""}; keep the prop where it is instead of relocating it`);
+				});
+			}
 			if (!resolved.issues.length && recipe.participantKinds?.includes("npc") && recipe.participantKinds.length === 1 && recipe.participantRoles?.length && !recipe.participantRoles.some((role: string) => npcRoles.has(role))) {
 				add(issues, "missing-activity-participant", path, `${activityId} has no compatible NPC in this office`);
 			}
