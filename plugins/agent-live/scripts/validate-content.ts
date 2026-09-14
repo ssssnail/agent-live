@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { SCENE_LIMITS } from "../src/core/limits.ts";
+import { DYNAMIC_ACTIVITY_TARGETS } from "../src/content/graph-validator.ts";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const contentRoot = path.join(projectRoot, "web", "v2", "content");
@@ -22,6 +23,7 @@ function validClock(value: unknown): value is string {
 
 function validateShift(shift: any, label: string) {
 	ok(shift && validClock(shift.start) && validClock(shift.end), `${label}: shift must use valid HH:MM start/end values`);
+	ok(shift.endLatest === undefined || validClock(shift.endLatest), `${label}: endLatest must be a valid HH:MM value`);
 }
 
 const expectedKinds: Record<string, string> = {
@@ -98,7 +100,7 @@ function validatePreset(filename: string) {
 	for (const activity of lifeActivities.entries) {
 		ok(activity.id && activity.participant, `${filename}/life: incomplete activity`);
 		ok(!activityIds.has(activity.id), `${filename}/life: duplicate activity ${activity.id}`);
-		ok(["agent", "npc"].includes(activity.participant.kind), `${filename}/life: invalid participant kind`);
+		ok(["agent", "npc", "person"].includes(activity.participant.kind), `${filename}/life: invalid participant kind`);
 		if (activity.participant.minAgents != null) {
 			ok(Number.isInteger(activity.participant.minAgents) && activity.participant.minAgents >= 2, `${filename}/life: invalid minAgents`);
 		}
@@ -107,7 +109,7 @@ function validatePreset(filename: string) {
 			ok(instanceIds.has(required), `${filename}/life: activity ${activity.id} requires missing prop ${required}`);
 		}
 		for (const step of activity.steps) {
-			ok(layout.targets[step.target], `${filename}/life: activity ${activity.id} targets missing ${step.target}`);
+			ok(layout.targets[step.target] || DYNAMIC_ACTIVITY_TARGETS.has(step.target), `${filename}/life: activity ${activity.id} targets missing ${step.target}`);
 			for (const target of step.targets ?? []) {
 				ok(layout.targets[target], `${filename}/life: activity ${activity.id} group target missing ${target}`);
 			}

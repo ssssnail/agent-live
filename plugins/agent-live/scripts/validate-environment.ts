@@ -12,11 +12,19 @@ function validateLocalClock() {
 	if (!environment.isNpcOnDuty("cleaner")) throw new Error("NPC should still be on duty at 17:59");
 	if (environment.snapshot().weather !== "rain") throw new Error("Weather override was not applied");
 
-	environment.update({ time: "18:00" });
-	if (environment.isNpcOnDuty("cleaner")) throw new Error("NPC should leave at 18:00");
+	environment.update({ time: "18:29" });
+	if (!environment.isNpcOnDuty("cleaner", undefined, "lin")) throw new Error("NPC should stay through the earliest departure time");
+
+	environment.update({ time: "21:31" });
+	if (environment.isNpcOnDuty("cleaner", undefined, "lin")) throw new Error("NPC should leave after the latest departure time");
+
+	environment.update({ time: "20:00" });
+	const first = environment.isNpcOnDuty("colleague", undefined, "colleague-a");
+	const repeated = environment.isNpcOnDuty("colleague", undefined, "colleague-a");
+	if (first !== repeated) throw new Error("NPC daily departure must remain stable for the same identity");
 
 	if (!environment.isNpcOnDuty("security", { start: "18:00", end: "06:00" })) {
-		throw new Error("Overnight shift should be active at 18:00");
+		throw new Error("Overnight shift should be active at 20:00");
 	}
 
 	let rejected = false;
@@ -48,4 +56,4 @@ function validateFixedClock() {
 validateLocalClock();
 validateFixedClock();
 
-console.log("Environment validation passed: local clock, fixed clock, weather, day shift, overnight shift");
+console.log("Environment validation passed: local clock, fixed clock, weather, staggered departure, day shift and overnight shift");

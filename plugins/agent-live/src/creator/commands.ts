@@ -1,4 +1,5 @@
 import { CreatorService } from "./service.ts";
+import { COMPONENT_CATEGORIES, type ComponentCategory } from "./service.ts";
 
 type CommandResult = { ok: true; data: unknown; adjustments?: unknown[] } | { ok: false; error: string; issues?: unknown[]; adjustments?: unknown[] };
 
@@ -26,8 +27,9 @@ export class CreatorCommandRouter {
 					exact(value, []);
 					return { ok: true, data: await this.#creator.listOffices() };
 				case "list_components":
-					exact(value, []);
-					return { ok: true, data: await this.#creator.listComponents() };
+					exact(value, ["category"]);
+					if (value.category !== undefined && !COMPONENT_CATEGORIES.includes(value.category as ComponentCategory)) throw new Error(`unknown component category ${String(value.category)}`);
+					return { ok: true, data: await this.#creator.listComponents(value.category as ComponentCategory | undefined) };
 				case "customize": {
 					exact(value, ["base", "patch"]);
 					if (value.base !== undefined && (typeof value.base !== "string" || !value.base)) throw new Error("base must be a non-empty string");

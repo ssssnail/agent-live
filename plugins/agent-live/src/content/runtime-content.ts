@@ -40,7 +40,14 @@ export async function resolveRuntimeContent(spec: OfficeSpec, contentRoot: strin
 	};
 	const capabilitiesOf = (type: string): readonly string[] => propTypes[type]?.capabilities ?? [];
 	const activityInstances = (layout.propInstances ?? []).map((entry: any): [string, string] => [entry.id, entry.type]);
-	const entries = spec.activities.map((id) => {
+	const activityIds = new Set(spec.activities);
+	for (const npc of spec.npcs) {
+		const template = library.npcTemplates.get(npc.template ?? library.defaultNpcTemplate);
+		for (const id of template?.defaultActivities ?? []) {
+			if (library.activityImplementations.has(`${spec.layout}|${id}`)) activityIds.add(id);
+		}
+	}
+	const entries = [...activityIds].map((id) => {
 		const implementation = library.activityImplementations.get(`${spec.layout}|${id}`);
 		if (!implementation) throw new Error(`activity ${id} has no implementation compatible with ${spec.layout}`);
 		const definition = structuredClone(implementation.definition);

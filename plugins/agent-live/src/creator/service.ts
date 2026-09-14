@@ -3,6 +3,9 @@ import type { OfficePatch, OfficeSpec } from "../content/schema.ts";
 import type { ComponentLibraryView } from "../content/validator.ts";
 import { OfficeRegistry } from "../content/registry.ts";
 
+export const COMPONENT_CATEGORIES = ["summary", "room", "npcs", "props", "activities", "appearance", "environment", "all"] as const;
+export type ComponentCategory = typeof COMPONENT_CATEGORIES[number];
+
 /**
  * What the selected Office's room offers: the zones a request can name, the
  * slots that exist and what they accept, who currently occupies them, and where
@@ -49,9 +52,9 @@ export class CreatorService {
 	 * when the model can see what this Office actually offers. Rooms are never
 	 * presented as a choice.
 	 */
-	async listComponents() {
+	async listComponents(category: ComponentCategory = "summary") {
 		const office = await this.#registry.selected();
-		return {
+		const full = {
 			room: roomView(this.#library, office),
 			styles: structuredClone(this.#library.descriptors.styles),
 			agentSkins: structuredClone(this.#library.descriptors.agentSkins),
@@ -61,6 +64,26 @@ export class CreatorService {
 			activities: [...this.#library.activityRecipes.values()].map((entry) => ({ ...structuredClone(entry), rooms: [...this.#library.activityImplementations.values()].filter((implementation) => implementation.recipe === entry.id).map((implementation) => implementation.layout) })),
 			atmospheres: structuredClone(this.#library.descriptors.atmospheres),
 			environments: structuredClone(this.#library.descriptors.environments),
+		};
+		if (category === "all") return full;
+		if (category === "room") return { room: full.room };
+		if (category === "npcs") return { npcTemplates: full.npcTemplates };
+		if (category === "props") return { room: full.room, props: full.props };
+		if (category === "activities") return { activities: full.activities };
+		if (category === "appearance") return { styles: full.styles, agentSkins: full.agentSkins, agentProfileTemplates: full.agentProfileTemplates };
+		if (category === "environment") return { atmospheres: full.atmospheres, environments: full.environments };
+		return {
+			office: { id: office.id, name: office.name },
+			counts: {
+				styles: full.styles.length,
+				agentSkins: full.agentSkins.length,
+				props: full.props.length,
+				npcTemplates: full.npcTemplates.length,
+				activities: full.activities.length,
+				atmospheres: full.atmospheres.length,
+				environments: full.environments.length,
+			},
+			categories: COMPONENT_CATEGORIES.filter((entry) => entry !== "summary"),
 		};
 	}
 

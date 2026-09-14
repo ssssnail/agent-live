@@ -2,45 +2,6 @@
 import { defineTool } from "@deepseek-ai/dsh-tools";
 import { z } from "zod";
 
-// ../src/creator/commands.ts
-function object(value) {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-function exact(input, fields) {
-  const allowed = /* @__PURE__ */ new Set(["command", ...fields]);
-  const unknown = Object.keys(input).filter((key) => !allowed.has(key));
-  if (unknown.length) throw new Error(`unknown command field(s): ${unknown.join(", ")}`);
-}
-var CreatorCommandRouter = class {
-  #creator;
-  constructor(creator) {
-    this.#creator = creator;
-  }
-  async execute(value) {
-    try {
-      if (!object(value) || typeof value.command !== "string") throw new Error("command is required");
-      switch (value.command) {
-        case "list_offices":
-          exact(value, []);
-          return { ok: true, data: await this.#creator.listOffices() };
-        case "list_components":
-          exact(value, []);
-          return { ok: true, data: await this.#creator.listComponents() };
-        case "customize": {
-          exact(value, ["base", "patch"]);
-          if (value.base !== void 0 && (typeof value.base !== "string" || !value.base)) throw new Error("base must be a non-empty string");
-          const result = await this.#creator.customize(value.patch, value.base);
-          return result.saved ? { ok: true, data: result, adjustments: result.adjustments } : { ok: false, error: "Office customization was rejected; the current office was not changed", issues: result.errors, adjustments: result.adjustments };
-        }
-        default:
-          throw new Error(`unknown Creator command ${value.command}`);
-      }
-    } catch (error) {
-      return { ok: false, error: error.message };
-    }
-  }
-};
-
 // ../src/core/limits.ts
 var SCENE_LIMITS = Object.freeze({
   agents: 16,
@@ -77,7 +38,7 @@ var PLACEMENT_KEYS = /* @__PURE__ */ new Set(["id", "component", "slot", "orient
 var NPC_KEYS = /* @__PURE__ */ new Set(["id", "template", "profile", "name", "title", "gender", "appearance", "spawn", "shift", "pose"]);
 var APPEARANCE_KEYS = /* @__PURE__ */ new Set(["skin", "hair", "shirt", "trim", "badge"]);
 var AGENT_PROFILE_KEYS = /* @__PURE__ */ new Set(["template", "name", "title", "appearance"]);
-var SHIFT_KEYS = /* @__PURE__ */ new Set(["start", "end"]);
+var SHIFT_KEYS = /* @__PURE__ */ new Set(["start", "end", "endLatest"]);
 var ENVIRONMENT_KEYS = /* @__PURE__ */ new Set(["clock", "weather", "lighting", "npcSchedule"]);
 var CLOCK_KEYS = /* @__PURE__ */ new Set(["mode", "fixedTime"]);
 var WEATHER_KEYS = /* @__PURE__ */ new Set(["fallback"]);
@@ -85,7 +46,7 @@ var LIGHTING_KEYS = /* @__PURE__ */ new Set(["auto"]);
 var NPC_SCHEDULE_KEYS = /* @__PURE__ */ new Set(["defaultShift", "roleOverrides"]);
 var COLLECTION_PATCH_KEYS = /* @__PURE__ */ new Set(["upsert", "remove"]);
 var ACTIVITY_PATCH_KEYS = /* @__PURE__ */ new Set(["enable", "disable"]);
-function object2(value) {
+function object(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function issue(issues, path5, message) {
@@ -109,18 +70,19 @@ function enumValue(value, allowed, path5, issues, optional = false) {
   if (typeof value !== "string" || !allowed.includes(value)) issue(issues, path5, `must be one of: ${allowed.join(", ")}`);
 }
 function validateShift(value, path5, issues) {
-  if (!object2(value)) return issue(issues, path5, "must be an object");
+  if (!object(value)) return issue(issues, path5, "must be an object");
   exactKeys(value, SHIFT_KEYS, path5, issues);
   requiredString(value.start, `${path5}.start`, issues);
   requiredString(value.end, `${path5}.end`, issues);
+  optionalString(value.endLatest, `${path5}.endLatest`, issues);
 }
 function validateAppearance(value, path5, issues) {
-  if (!object2(value)) return issue(issues, path5, "must be an object");
+  if (!object(value)) return issue(issues, path5, "must be an object");
   exactKeys(value, APPEARANCE_KEYS, path5, issues);
   for (const [key, color] of Object.entries(value)) optionalString(color, `${path5}.${key}`, issues);
 }
 function validatePlacement(value, path5, issues) {
-  if (!object2(value)) return issue(issues, path5, "must be an object");
+  if (!object(value)) return issue(issues, path5, "must be an object");
   exactKeys(value, PLACEMENT_KEYS, path5, issues);
   requiredString(value.id, `${path5}.id`, issues);
   requiredString(value.component, `${path5}.component`, issues);
@@ -128,7 +90,7 @@ function validatePlacement(value, path5, issues) {
   enumValue(value.orientation, ORIENTATION_VALUES, `${path5}.orientation`, issues, true);
 }
 function validateNpc(value, path5, issues) {
-  if (!object2(value)) return issue(issues, path5, "must be an object");
+  if (!object(value)) return issue(issues, path5, "must be an object");
   exactKeys(value, NPC_KEYS, path5, issues);
   requiredString(value.id, `${path5}.id`, issues);
   for (const key of ["template", "profile", "name", "title", "spawn"]) optionalString(value[key], `${path5}.${key}`, issues);
@@ -138,7 +100,7 @@ function validateNpc(value, path5, issues) {
   if (value.shift !== void 0) validateShift(value.shift, `${path5}.shift`, issues);
 }
 function validateAgentProfile(value, path5, issues) {
-  if (!object2(value)) return issue(issues, path5, "must be an object");
+  if (!object(value)) return issue(issues, path5, "must be an object");
   exactKeys(value, AGENT_PROFILE_KEYS, path5, issues);
   requiredString(value.template, `${path5}.template`, issues);
   optionalString(value.name, `${path5}.name`, issues);
@@ -146,10 +108,10 @@ function validateAgentProfile(value, path5, issues) {
   if (value.appearance !== void 0) validateAppearance(value.appearance, `${path5}.appearance`, issues);
 }
 function validateEnvironment(value, path5, issues) {
-  if (!object2(value)) return issue(issues, path5, "must be an object");
+  if (!object(value)) return issue(issues, path5, "must be an object");
   exactKeys(value, ENVIRONMENT_KEYS, path5, issues);
   if (value.clock !== void 0) {
-    if (!object2(value.clock)) issue(issues, `${path5}.clock`, "must be an object");
+    if (!object(value.clock)) issue(issues, `${path5}.clock`, "must be an object");
     else {
       exactKeys(value.clock, CLOCK_KEYS, `${path5}.clock`, issues);
       enumValue(value.clock.mode, ["local", "fixed"], `${path5}.clock.mode`, issues);
@@ -157,33 +119,33 @@ function validateEnvironment(value, path5, issues) {
     }
   }
   if (value.weather !== void 0) {
-    if (!object2(value.weather)) issue(issues, `${path5}.weather`, "must be an object");
+    if (!object(value.weather)) issue(issues, `${path5}.weather`, "must be an object");
     else {
       exactKeys(value.weather, WEATHER_KEYS, `${path5}.weather`, issues);
       enumValue(value.weather.fallback, WEATHER_VALUES, `${path5}.weather.fallback`, issues);
     }
   }
   if (value.lighting !== void 0) {
-    if (!object2(value.lighting)) issue(issues, `${path5}.lighting`, "must be an object");
+    if (!object(value.lighting)) issue(issues, `${path5}.lighting`, "must be an object");
     else {
       exactKeys(value.lighting, LIGHTING_KEYS, `${path5}.lighting`, issues);
       if (typeof value.lighting.auto !== "boolean") issue(issues, `${path5}.lighting.auto`, "must be a boolean");
     }
   }
   if (value.npcSchedule !== void 0) {
-    if (!object2(value.npcSchedule)) issue(issues, `${path5}.npcSchedule`, "must be an object");
+    if (!object(value.npcSchedule)) issue(issues, `${path5}.npcSchedule`, "must be an object");
     else {
       exactKeys(value.npcSchedule, NPC_SCHEDULE_KEYS, `${path5}.npcSchedule`, issues);
       if (value.npcSchedule.defaultShift !== void 0) validateShift(value.npcSchedule.defaultShift, `${path5}.npcSchedule.defaultShift`, issues);
       if (value.npcSchedule.roleOverrides !== void 0) {
-        if (!object2(value.npcSchedule.roleOverrides)) issue(issues, `${path5}.npcSchedule.roleOverrides`, "must be an object");
+        if (!object(value.npcSchedule.roleOverrides)) issue(issues, `${path5}.npcSchedule.roleOverrides`, "must be an object");
         else for (const [role, shift] of Object.entries(value.npcSchedule.roleOverrides)) validateShift(shift, `${path5}.npcSchedule.roleOverrides.${role}`, issues);
       }
     }
   }
 }
 function validateTexts(value, issues) {
-  if (!object2(value)) return issue(issues, "$.texts", "must be an object");
+  if (!object(value)) return issue(issues, "$.texts", "must be an object");
   if (Object.keys(value).length > 8) issue(issues, "$.texts", "maximum 8 text areas");
   for (const [key, text] of Object.entries(value)) {
     if (!/^[a-z][a-z0-9-]*$/.test(key)) issue(issues, `$.texts.${key}`, "invalid text area id");
@@ -192,7 +154,7 @@ function validateTexts(value, issues) {
 }
 function validateOfficeSpecShape(input) {
   const issues = [];
-  if (!object2(input)) return [{ path: "$", message: "must be an object" }];
+  if (!object(input)) return [{ path: "$", message: "must be an object" }];
   exactKeys(input, SPEC_KEYS, "$", issues);
   if (input.schemaVersion !== OFFICE_SPEC_SCHEMA_VERSION) issue(issues, "$.schemaVersion", `must equal ${OFFICE_SPEC_SCHEMA_VERSION}`);
   if (input.kind !== "office-spec") issue(issues, "$.kind", "must equal office-spec");
@@ -210,7 +172,7 @@ function validateOfficeSpecShape(input) {
   return issues;
 }
 function validateCollectionPatch(value, path5, issues, itemValidator) {
-  if (!object2(value)) return issue(issues, path5, "must be an object");
+  if (!object(value)) return issue(issues, path5, "must be an object");
   exactKeys(value, COLLECTION_PATCH_KEYS, path5, issues);
   if (value.upsert !== void 0) {
     if (!Array.isArray(value.upsert)) issue(issues, `${path5}.upsert`, "must be an array");
@@ -220,7 +182,7 @@ function validateCollectionPatch(value, path5, issues, itemValidator) {
 }
 function validateOfficePatchShape(input) {
   const issues = [];
-  if (!object2(input)) return [{ path: "$", message: "must be an object" }];
+  if (!object(input)) return [{ path: "$", message: "must be an object" }];
   exactKeys(input, PATCH_KEYS, "$", issues);
   if (input.schemaVersion !== OFFICE_SPEC_SCHEMA_VERSION) issue(issues, "$.schemaVersion", `must equal ${OFFICE_SPEC_SCHEMA_VERSION}`);
   if (input.kind !== "office-patch") issue(issues, "$.kind", "must equal office-patch");
@@ -228,7 +190,7 @@ function validateOfficePatchShape(input) {
   optionalString(input.id, "$.id", issues);
   optionalString(input.name, "$.name", issues);
   if (input.components !== void 0) {
-    if (!object2(input.components)) issue(issues, "$.components", "must be an object");
+    if (!object(input.components)) issue(issues, "$.components", "must be an object");
     else {
       exactKeys(input.components, COMPONENT_KEYS, "$.components", issues);
       if (input.components.layout !== void 0) {
@@ -240,7 +202,7 @@ function validateOfficePatchShape(input) {
   if (input.placements !== void 0) validateCollectionPatch(input.placements, "$.placements", issues, validatePlacement);
   if (input.npcs !== void 0) validateCollectionPatch(input.npcs, "$.npcs", issues, validateNpc);
   if (input.activities !== void 0) {
-    if (!object2(input.activities)) issue(issues, "$.activities", "must be an object");
+    if (!object(input.activities)) issue(issues, "$.activities", "must be an object");
     else {
       exactKeys(input.activities, ACTIVITY_PATCH_KEYS, "$.activities", issues);
       if (input.activities.enable !== void 0) stringArray(input.activities.enable, "$.activities.enable", issues);
@@ -255,6 +217,7 @@ function validateOfficePatchShape(input) {
 
 // ../src/content/graph-validator.ts
 var WORK_CAPABILITIES = ["research", "create", "compute", "plan", "communicate", "collaborate"];
+var DYNAMIC_ACTIVITY_TARGETS = /* @__PURE__ */ new Set(["near-colleague"]);
 function namedInstance(requirement) {
   if (typeof requirement === "string") return requirement;
   if (requirement && typeof requirement.prop === "string") return requirement.prop;
@@ -302,6 +265,7 @@ function validClock(value) {
 }
 function shiftIssue(value, code, path5, label) {
   if (!value || !validClock(value.start) || !validClock(value.end)) return { code, path: path5, message: `${label} \u5FC5\u987B\u63D0\u4F9B\u6709\u6548\u7684 HH:MM \u8D77\u6B62\u65F6\u95F4` };
+  if (value.endLatest !== void 0 && !validClock(value.endLatest)) return { code, path: `${path5}.endLatest`, message: `${label} \u7684\u6700\u665A\u4E0B\u73ED\u65F6\u95F4\u5FC5\u987B\u662F\u6709\u6548\u7684 HH:MM` };
   return null;
 }
 function layoutIssues(layout, propTypeNames) {
@@ -359,7 +323,7 @@ function graphIssues(content) {
   ;
   (content?.lifeActivities?.entries ?? []).forEach((activity, index) => {
     const path5 = `$.lifeActivities.entries[${index}]`;
-    if (!activity?.id || !["agent", "npc"].includes(activity.participant?.kind) || !activity.steps?.length) {
+    if (!activity?.id || !["agent", "npc", "person"].includes(activity.participant?.kind) || !activity.steps?.length) {
       issues.push({ code: "invalid-activity", path: path5, message: `\u65E0\u6548\u7684 Life Activity\uFF1A${activity?.id ?? "\u2014"}` });
       return;
     }
@@ -369,7 +333,7 @@ function graphIssues(content) {
     const resolved = resolveActivityRequirements(activity.requires, instances, capabilitiesOf, activity.id);
     issues.push(...resolved.issues.map((issue2) => ({ ...issue2, path: path5 })));
     for (const step of activity.steps ?? []) {
-      if (!layout?.targets?.[step?.target]) issues.push({ code: "missing-activity-target", path: path5, message: `${activity.id} \u7F3A\u5C11 Target\uFF1A${step?.target}` });
+      if (!layout?.targets?.[step?.target] && !DYNAMIC_ACTIVITY_TARGETS.has(step?.target)) issues.push({ code: "missing-activity-target", path: path5, message: `${activity.id} \u7F3A\u5C11 Target\uFF1A${step?.target}` });
       for (const target of step?.targets ?? []) {
         if (!layout?.targets?.[target]) issues.push({ code: "missing-activity-target", path: path5, message: `${activity.id} \u7F3A\u5C11 Group Target\uFF1A${target}` });
       }
@@ -417,6 +381,7 @@ function validClock2(value) {
 }
 function validateShift2(value, path5, issues) {
   if (!validClock2(value?.start) || !validClock2(value?.end)) add(issues, "invalid-shift", path5, "shift must contain valid HH:MM start and end values");
+  if (value?.endLatest !== void 0 && !validClock2(value.endLatest)) add(issues, "invalid-shift", `${path5}.endLatest`, "endLatest must be a valid HH:MM value");
 }
 function validateLayoutContract(layout, library, issues) {
   const propTypeNames = [...library.props.keys()].map((id) => id.replace(/^(builtin|local)\//, ""));
@@ -561,6 +526,17 @@ function resolveNpc(npc, library, layout) {
   if (!template) return { ...npc, template: templateId };
   const profiles = template.defaultProfiles ?? [];
   const selected = npc.profile ? profiles.find((profile) => profile.id === npc.profile) : profiles.length ? profiles[hash(npc.id) % profiles.length] : void 0;
+  const role = template.role;
+  const spawnCandidates = (layout.npcSpawns ?? []).filter((spawn) => {
+    if (role === "boss") return /boss|director|manager/.test(spawn);
+    if (role === "cleaner") return /clean|service|staff|entry/.test(spawn) && !/boss/.test(spawn);
+    if (role === "receptionist") return /reception|staff|entry/.test(spawn) && !/boss/.test(spawn);
+    if (role === "secretary" || role === "attendant") return /secretary|service|staff|entry/.test(spawn) && !/boss/.test(spawn);
+    return /staff|entry/.test(spawn) && !/boss|clean|service|reception|secretary/.test(spawn);
+  });
+  const requestedSpawn = npc.spawn;
+  const requestedIsRoleSafe = requestedSpawn && (spawnCandidates.includes(requestedSpawn) || role !== "colleague");
+  const fallbackSpawn = spawnCandidates[hash(`${npc.id}:spawn`) % Math.max(1, spawnCandidates.length)] ?? layout.npcSpawns?.[hash(`${npc.id}:spawn`) % Math.max(1, layout.npcSpawns?.length ?? 0)];
   return {
     id: npc.id,
     template: templateId,
@@ -569,7 +545,7 @@ function resolveNpc(npc, library, layout) {
     title: npc.title ?? template.defaultTitle,
     gender: npc.gender ?? selected?.gender ?? template.defaultGender,
     appearance: { ...template.defaultAppearance, ...selected?.appearance ?? {}, ...npc.appearance ?? {} },
-    spawn: npc.spawn ?? layout.npcSpawns?.[hash(`${npc.id}:spawn`) % Math.max(1, layout.npcSpawns?.length ?? 0)],
+    spawn: requestedIsRoleSafe ? requestedSpawn : fallbackSpawn,
     ...npc.shift ? { shift: structuredClone(npc.shift) } : {},
     pose: npc.pose ?? template.defaultPose
   };
@@ -658,6 +634,7 @@ function compileOfficePatch(base, patchInput, library) {
 }
 
 // ../src/creator/service.ts
+var COMPONENT_CATEGORIES = ["summary", "room", "npcs", "props", "activities", "appearance", "environment", "all"];
 function roomView(library, office) {
   const layout = library.layouts.get(office.layout);
   if (!layout) return null;
@@ -696,9 +673,9 @@ var CreatorService = class {
    * when the model can see what this Office actually offers. Rooms are never
    * presented as a choice.
    */
-  async listComponents() {
+  async listComponents(category = "summary") {
     const office = await this.#registry.selected();
-    return {
+    const full = {
       room: roomView(this.#library, office),
       styles: structuredClone(this.#library.descriptors.styles),
       agentSkins: structuredClone(this.#library.descriptors.agentSkins),
@@ -708,6 +685,26 @@ var CreatorService = class {
       activities: [...this.#library.activityRecipes.values()].map((entry) => ({ ...structuredClone(entry), rooms: [...this.#library.activityImplementations.values()].filter((implementation) => implementation.recipe === entry.id).map((implementation) => implementation.layout) })),
       atmospheres: structuredClone(this.#library.descriptors.atmospheres),
       environments: structuredClone(this.#library.descriptors.environments)
+    };
+    if (category === "all") return full;
+    if (category === "room") return { room: full.room };
+    if (category === "npcs") return { npcTemplates: full.npcTemplates };
+    if (category === "props") return { room: full.room, props: full.props };
+    if (category === "activities") return { activities: full.activities };
+    if (category === "appearance") return { styles: full.styles, agentSkins: full.agentSkins, agentProfileTemplates: full.agentProfileTemplates };
+    if (category === "environment") return { atmospheres: full.atmospheres, environments: full.environments };
+    return {
+      office: { id: office.id, name: office.name },
+      counts: {
+        styles: full.styles.length,
+        agentSkins: full.agentSkins.length,
+        props: full.props.length,
+        npcTemplates: full.npcTemplates.length,
+        activities: full.activities.length,
+        atmospheres: full.atmospheres.length,
+        environments: full.environments.length
+      },
+      categories: COMPONENT_CATEGORIES.filter((entry) => entry !== "summary")
     };
   }
   /** Validate, persist and select one customization without exposing draft state. */
@@ -729,6 +726,46 @@ var CreatorService = class {
     if (!saved.saved) return { saved: false, errors: saved.issues, adjustments: compiled.adjustments };
     await this.#registry.select(compiled.draft.id);
     return { saved: true, office: structuredClone(compiled.draft), errors: [], adjustments: compiled.adjustments };
+  }
+};
+
+// ../src/creator/commands.ts
+function object2(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+function exact(input, fields) {
+  const allowed = /* @__PURE__ */ new Set(["command", ...fields]);
+  const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+  if (unknown.length) throw new Error(`unknown command field(s): ${unknown.join(", ")}`);
+}
+var CreatorCommandRouter = class {
+  #creator;
+  constructor(creator) {
+    this.#creator = creator;
+  }
+  async execute(value) {
+    try {
+      if (!object2(value) || typeof value.command !== "string") throw new Error("command is required");
+      switch (value.command) {
+        case "list_offices":
+          exact(value, []);
+          return { ok: true, data: await this.#creator.listOffices() };
+        case "list_components":
+          exact(value, ["category"]);
+          if (value.category !== void 0 && !COMPONENT_CATEGORIES.includes(value.category)) throw new Error(`unknown component category ${String(value.category)}`);
+          return { ok: true, data: await this.#creator.listComponents(value.category) };
+        case "customize": {
+          exact(value, ["base", "patch"]);
+          if (value.base !== void 0 && (typeof value.base !== "string" || !value.base)) throw new Error("base must be a non-empty string");
+          const result = await this.#creator.customize(value.patch, value.base);
+          return result.saved ? { ok: true, data: result, adjustments: result.adjustments } : { ok: false, error: "Office customization was rejected; the current office was not changed", issues: result.errors, adjustments: result.adjustments };
+        }
+        default:
+          throw new Error(`unknown Creator command ${value.command}`);
+      }
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
   }
 };
 
@@ -969,7 +1006,14 @@ async function resolveRuntimeContent(spec, contentRoot, library) {
   };
   const capabilitiesOf = (type) => propTypes[type]?.capabilities ?? [];
   const activityInstances = (layout.propInstances ?? []).map((entry) => [entry.id, entry.type]);
-  const entries = spec.activities.map((id) => {
+  const activityIds = new Set(spec.activities);
+  for (const npc of spec.npcs) {
+    const template = library.npcTemplates.get(npc.template ?? library.defaultNpcTemplate);
+    for (const id of template?.defaultActivities ?? []) {
+      if (library.activityImplementations.has(`${spec.layout}|${id}`)) activityIds.add(id);
+    }
+  }
+  const entries = [...activityIds].map((id) => {
     const implementation = library.activityImplementations.get(`${spec.layout}|${id}`);
     if (!implementation) throw new Error(`activity ${id} has no implementation compatible with ${spec.layout}`);
     const definition = structuredClone(implementation.definition);
@@ -1080,7 +1124,7 @@ var SKILL = `# Agent Live Creator
 
 Use the agent_live_creator tool when Agent Live Creator Mode is active. The user enters with /agent-live custom and exits with /agent-live exit. There is no draft, preview, confirmation, save, undo, or discard step; every valid customization applies atomically.
 
-Inspect list_offices and list_components when the available choices are not already known, then call customize once. Omit base to modify the currently selected Office, or provide an Office id to start from that Office. Customize validates, saves, selects, and immediately displays the result.
+For common changes, call customize directly. Inspect list_offices or the narrowest list_components category only when a choice is unknown; list_components defaults to a compact summary, and all is reserved for an explicit complete-catalog request. Omit base to modify the currently selected Office, or provide an Office id to start from that Office. Customize validates, saves, selects, and immediately displays the result.
 
 Never expose internal component ids, schemas, or patches unless the user explicitly asks for implementation details. Map unsupported input to the closest supported capability without interrupting generation, then summarize defaults, substitutions, ignored requests, and source-code-only requests after applying the change.
 
@@ -1091,7 +1135,7 @@ function commandPayload(operation, args) {
   switch (operation) {
     case "list_offices":
     case "list_components":
-      return { command: operation };
+      return { command: operation, ...args.category ? { category: args.category } : {} };
     case "customize":
       return { command: operation, ...args.base ? { base: args.base } : {}, patch: args.patch };
   }
@@ -1190,6 +1234,7 @@ async function registerCreator(ctx) {
     description: "Inspect capabilities or directly validate, save, select, and display an Agent Live office customization.",
     parameters: {
       operation: { type: "string", required: true, enum: ["list_offices", "list_components", "customize"] },
+      category: { type: "string", enum: ["summary", "room", "npcs", "props", "activities", "appearance", "environment", "all"], description: "Narrow component query; defaults to a compact summary." },
       base: { type: "string", description: "Optional Office id to use as the base; defaults to the selected Office." },
       patch: { type: "json", description: "Requested changes expressed with the bounded Office Patch fields; metadata is filled internally." }
     },

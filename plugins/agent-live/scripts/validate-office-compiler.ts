@@ -101,6 +101,7 @@ ok(first.draft.style === "builtin/warm-studio", "component override was not appl
 ok(first.draft.placements.some((entry) => entry.id === "local-plant") && !first.draft.placements.some((entry) => entry.id === "plant-1"), "placement operations were not applied");
 const colleague = first.draft.npcs.find((entry) => entry.id === "background-colleague");
 ok(colleague?.template === "builtin/colleague" && colleague.profile && colleague.name && colleague.gender && colleague.appearance && colleague.spawn && colleague.pose, "default NPC was not fully resolved");
+ok(colleague.spawn !== "boss-seat", "background colleague was assigned to the executive seat");
 const cleaner = first.draft.npcs.find((entry) => entry.id === "cleaner");
 ok(cleaner?.appearance?.shirt === "#112233" && cleaner.appearance.skin, "partial NPC appearance update lost inherited fields");
 ok(first.draft.activities.includes("builtin/phone-break") && !first.draft.activities.includes("builtin/restroom-break"), "activity operations were not applied");

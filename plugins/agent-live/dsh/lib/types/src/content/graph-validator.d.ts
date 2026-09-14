@@ -12,6 +12,8 @@
  */
 /** Capabilities every layout must expose as a walkable work station. */
 export declare const WORK_CAPABILITIES: readonly ["research", "create", "compute", "plan", "communicate", "collaborate"];
+/** Renderer-resolved destinations that deliberately do not belong to a layout. */
+export declare const DYNAMIC_ACTIVITY_TARGETS: Set<string>;
 export interface ContentIssue {
     code: string;
     path: string;

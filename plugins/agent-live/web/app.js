@@ -28,7 +28,7 @@
 		return tx(view.name);
 	}
 	const canvas = document.getElementById("stage");
-	const ctx = canvas.getContext("2d", { alpha: false });
+	const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
 
 	const SPEED = 44; // logical px per second
 	const REPLAY_RATE = 3;
@@ -39,6 +39,9 @@
 	let offX = 0;
 	let offY = 0;
 	let resizeFrame = 0;
+	let lastFrameAt = performance.now();
+	let contextLost = false;
+	let lastFrameError = null;
 
 	function resize() {
 		const rect = canvas.parentElement.getBoundingClientRect();
@@ -48,8 +51,11 @@
 		dpr = Math.min(window.devicePixelRatio || 1, 2);
 		const dw = Math.max(1, Math.floor(rect.width * dpr));
 		const dh = Math.max(1, Math.floor(rect.height * dpr));
-		canvas.width = dw;
-		canvas.height = dh;
+		// Assigning either dimension clears the backing store. ResizeObserver and
+		// host tab transitions may report the same size repeatedly, so only reset
+		// the canvas when its physical dimensions actually changed.
+		if (canvas.width !== dw) canvas.width = dw;
+		if (canvas.height !== dh) canvas.height = dh;
 		scale = Math.max(1, Math.floor(Math.min(dw / Office.W, dh / Office.H)));
 		offX = Math.floor((dw - Office.W * scale) / 2);
 		offY = Math.floor((dh - Office.H * scale) / 2);
@@ -63,12 +69,26 @@
 	}
 	window.addEventListener("resize", scheduleResize);
 	document.addEventListener("visibilitychange", () => {
-		if (!document.hidden) scheduleResize();
+		if (!document.hidden) {
+			lastFrameAt = performance.now();
+			scheduleResize();
+		}
 	});
-	window.addEventListener("pageshow", scheduleResize);
+	window.addEventListener("pageshow", () => {
+		lastFrameAt = performance.now();
+		scheduleResize();
+	});
 	const sizeObserver = typeof ResizeObserver === "function" ? new ResizeObserver(scheduleResize) : null;
 	sizeObserver?.observe(canvas.parentElement);
-	canvas.addEventListener("contextrestored", scheduleResize);
+	canvas.addEventListener("contextlost", (event) => {
+		event.preventDefault();
+		contextLost = true;
+	});
+	canvas.addEventListener("contextrestored", () => {
+		contextLost = false;
+		lastFrameAt = performance.now();
+		scheduleResize();
+	});
 
 	const toScreen = (wx, wy) => ({ x: offX + wx * scale, y: offY + wy * scale });
 
@@ -205,8 +225,13 @@
 	}
 
 	function matchesParticipant(actor, participant) {
-		if ((participant.kind === "npc") !== actor.isNpc) return false;
-		if (participant.roles?.length && !participant.roles.includes(actor.role)) return false;
+		// `person` is the shared social participant: either a real host Agent or
+		// a background colleague may take part. Work/tool activities remain
+		// explicitly `agent`, while role-specific routines remain `npc`.
+		if (participant.kind !== "person" && (participant.kind === "npc") !== actor.isNpc) return false;
+		// Role filters describe NPC identities. Real Agents may still join a
+		// mixed `person` activity regardless of their host/model role label.
+		if (actor.isNpc && participant.roles?.length && !participant.roles.includes(actor.role)) return false;
 		if (participant.states?.length && !participant.states.includes(actor.state)) return false;
 		return true;
 	}
@@ -218,9 +243,15 @@
 			if (activity.onlyWhenSessionIdle && session.busy) return false;
 			if (Number(participant.minAgents ?? 1) > 1) {
 				const available = [...actors.values()].filter((candidate) =>
-					!candidate.isNpc && !candidate.leaving && matchesParticipant(candidate, participant),
+					!candidate.leaving && matchesParticipant(candidate, participant),
 				);
 				if (available.length < Number(participant.minAgents)) return false;
+			}
+			if (activity.steps?.some((step) => step.target === "near-colleague")) {
+				const hasAvailableColleague = [...actors.values()].some((candidate) =>
+					candidate.id !== actor.id && candidate.isNpc && candidate.role === "colleague" && !candidate.leaving,
+				);
+				if (!hasAvailableColleague) return false;
 			}
 			return true;
 		});
@@ -251,7 +282,7 @@
 		if (!configuredStep) {
 			actor.life = null;
 			scheduleLife(actor, activity, now);
-			if (!actor.isNpc) retarget(actor);
+			retarget(actor);
 			return;
 		}
 		const targetName = configuredStep.targets?.[slot % configuredStep.targets.length] ?? configuredStep.target;
@@ -260,7 +291,23 @@
 			target: targetName,
 			bubble: configuredStep.bubbles?.[slot % configuredStep.bubbles.length] ?? configuredStep.bubble,
 		};
-		const target = Office.TARGETS[step.target];
+		let target = Office.TARGETS[step.target];
+		if (step.target === "near-colleague") {
+			const colleagues = [...actors.values()].filter((candidate) =>
+				candidate.id !== actor.id && candidate.isNpc && candidate.role === "colleague" && !candidate.leaving && !candidate.life && !candidate.path.length,
+			);
+			const colleague = colleagues[Number(step.personIndex ?? index) % Math.max(1, colleagues.length)];
+			if (colleague) {
+				const side = colleague.x > Office.W / 2 ? -1 : 1;
+				target = {
+					x: Math.max(8, Math.min(Office.W - 8, colleague.x + side * 16)),
+					y: colleague.y,
+					dir: side > 0 ? "left" : "right",
+					lane: colleague.lane,
+					zone: colleague.zone,
+				};
+			}
+		}
 		actor._lifeAcc = 0;
 		actor.life = { activity, index, step, slot, phase: "walk", until: 0 };
 		goTo(actor, target);
@@ -276,7 +323,6 @@
 		}
 		const partners = [...actors.values()].filter((candidate) =>
 			candidate.id !== actor.id &&
-			!candidate.isNpc &&
 			!candidate.life &&
 			!candidate.path.length &&
 			!candidate.action &&
@@ -332,7 +378,19 @@
 	}
 
 	function makeNpc(entry, fromEntry = false) {
-		const workPoint = Office.TARGETS[entry.spawn] ?? Office.TARGETS.entry;
+		const colleagueEntries = npcEntries.filter((candidate) => candidate.role === "colleague");
+		const colleagueIndex = colleagueEntries.findIndex((candidate) => candidate.id === entry.id);
+		const seatCount = Array.isArray(Office.SEATS) ? Office.SEATS.length : 0;
+		// Seat 0 belongs to the real Agent. Background colleagues use the
+		// remaining desks instead of sharing a role-specific NPC target such as
+		// the executive chair. This is presentation placement only; they do not
+		// become coding Agents or consume host events.
+		const colleagueSeat = entry.role === "colleague" && seatCount > 1
+			? 1 + Math.max(0, colleagueIndex) % (seatCount - 1)
+			: -1;
+		const workPoint = colleagueSeat >= 0
+			? Office.seatAnchor(colleagueSeat)
+			: Office.TARGETS[entry.spawn] ?? Office.TARGETS.entry;
 		const spawnPoint = fromEntry ? Office.TARGETS.entry : workPoint;
 		return {
 			id: `npc:${entry.id}`,
@@ -341,7 +399,7 @@
 			title: tx(entry.title ?? entry.role),
 			isLead: false,
 			isNpc: true,
-			seat: -1,
+			seat: colleagueSeat,
 			palette: { ...Sprites.paletteFor(entry.id, entry.role, false), ...(entry.appearance ?? {}) },
 			seed: (Sprites.hash(entry.id) % 100) / 10,
 			x: spawnPoint.x,
@@ -385,7 +443,7 @@
 	}
 
 	function isNpcOnDuty(entry) {
-		return Office.isNpcOnDuty?.(entry.role, entry.shift) ?? true;
+		return Office.isNpcOnDuty?.(entry.role, entry.shift, entry.id) ?? true;
 	}
 
 	function sendNpcHome(actor) {
@@ -1208,13 +1266,25 @@
 
 	resize();
 	renderBar();
-	let last = performance.now();
 	function frame(now) {
-		const dt = Math.min(0.05, (now - last) / 1000);
-		last = now;
-		update(dt, now);
-		render(now);
+		// Schedule first: one malformed transient state must never permanently
+		// kill the shared renderer. A dead RAF looks frozen until the host repaints
+		// its tab, at which point the discarded canvas appears as a black screen.
 		requestAnimationFrame(frame);
+		const dt = Math.min(0.05, Math.max(0, (now - lastFrameAt) / 1000));
+		lastFrameAt = now;
+		if (contextLost || document.hidden) return;
+		try {
+			update(dt, now);
+			render(now);
+			lastFrameError = null;
+		} catch (error) {
+			const signature = String(error?.stack ?? error);
+			if (signature !== lastFrameError) {
+				lastFrameError = signature;
+				console.error("Agent Live frame failed; the renderer will recover on the next frame.", error);
+			}
+		}
 	}
 	requestAnimationFrame(frame);
 

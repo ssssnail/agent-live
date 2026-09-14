@@ -24,6 +24,8 @@ export type Weather = (typeof WEATHER_VALUES)[number];
 export interface Shift {
 	start: string;
 	end: string;
+	/** Optional latest departure; each NPC gets a stable daily time in the range. */
+	endLatest?: string;
 }
 
 export interface Appearance {
@@ -136,7 +138,7 @@ const PLACEMENT_KEYS = new Set(["id", "component", "slot", "orientation"]);
 const NPC_KEYS = new Set(["id", "template", "profile", "name", "title", "gender", "appearance", "spawn", "shift", "pose"]);
 const APPEARANCE_KEYS = new Set(["skin", "hair", "shirt", "trim", "badge"]);
 const AGENT_PROFILE_KEYS = new Set(["template", "name", "title", "appearance"]);
-const SHIFT_KEYS = new Set(["start", "end"]);
+const SHIFT_KEYS = new Set(["start", "end", "endLatest"]);
 const ENVIRONMENT_KEYS = new Set(["clock", "weather", "lighting", "npcSchedule"]);
 const CLOCK_KEYS = new Set(["mode", "fixedTime"]);
 const WEATHER_KEYS = new Set(["fallback"]);
@@ -180,6 +182,7 @@ function validateShift(value: unknown, path: string, issues: SchemaIssue[]) {
 	exactKeys(value, SHIFT_KEYS, path, issues);
 	requiredString(value.start, `${path}.start`, issues);
 	requiredString(value.end, `${path}.end`, issues);
+	optionalString(value.endLatest, `${path}.endLatest`, issues);
 }
 
 function validateAppearance(value: unknown, path: string, issues: SchemaIssue[]) {

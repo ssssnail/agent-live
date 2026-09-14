@@ -129,7 +129,7 @@ export function createOfficeEngine(content, environment = null) {
 		currentEnvironment, anchorFor, seatAnchor, standingAnchor, path, stationKey,
 		startDayPreview: (durationMs = 24000) => environment?.startPreview?.(durationMs) ?? false,
 		getOfficeTime: currentEnvironment,
-		isNpcOnDuty: (role, shift) => environment?.isNpcOnDuty?.(role, shift) ?? true,
+		isNpcOnDuty: (role, shift, identity) => environment?.isNpcOnDuty?.(role, shift, identity) ?? true,
 		npcShiftLabel: (kind) => environment?.shiftLabel?.(kind) ?? (kind === "arrival" ? "上班啦" : "下班啦"),
 	});
 }

@@ -76,7 +76,10 @@
 		"cleaner-entry": { "x": 376, "y": 162, "dir": "left", "lane": 2 },
 		"clean-desks-north": { "x": 276, "y": 92, "dir": "left", "lane": 1 },
 		"clean-desks-south": { "x": 276, "y": 152, "dir": "left", "lane": 2 },
-		"clean-lounge": { "x": 238, "y": 208, "dir": "left", "lane": 2 }
+		"clean-lounge": { "x": 238, "y": 208, "dir": "left", "lane": 2 },
+		"plant-left": { "x": 28, "y": 202, "dir": "left", "lane": 2 },
+		"plant-middle": { "x": 90, "y": 202, "dir": "left", "lane": 2 },
+		"plant-right": { "x": 354, "y": 202, "dir": "right", "lane": 2 }
 	},
 	"stations": {
 		"research": { "kind": "target", "target": "archive" },

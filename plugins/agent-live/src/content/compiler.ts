@@ -89,6 +89,18 @@ function resolveNpc(npc: OfficeNpc, library: ComponentLibraryView, layout: any):
 	if (!template) return { ...npc, template: templateId };
 	const profiles = template.defaultProfiles ?? [];
 	const selected = npc.profile ? profiles.find((profile: any) => profile.id === npc.profile) : profiles.length ? profiles[hash(npc.id) % profiles.length] : undefined;
+	const role = template.role;
+	const spawnCandidates = (layout.npcSpawns ?? []).filter((spawn: string) => {
+		if (role === "boss") return /boss|director|manager/.test(spawn);
+		if (role === "cleaner") return /clean|service|staff|entry/.test(spawn) && !/boss/.test(spawn);
+		if (role === "receptionist") return /reception|staff|entry/.test(spawn) && !/boss/.test(spawn);
+		if (role === "secretary" || role === "attendant") return /secretary|service|staff|entry/.test(spawn) && !/boss/.test(spawn);
+		return /staff|entry/.test(spawn) && !/boss|clean|service|reception|secretary/.test(spawn);
+	});
+	const requestedSpawn = npc.spawn;
+	const requestedIsRoleSafe = requestedSpawn && (spawnCandidates.includes(requestedSpawn) || role !== "colleague");
+	const fallbackSpawn = spawnCandidates[hash(`${npc.id}:spawn`) % Math.max(1, spawnCandidates.length)]
+		?? layout.npcSpawns?.[hash(`${npc.id}:spawn`) % Math.max(1, layout.npcSpawns?.length ?? 0)];
 	return {
 		id: npc.id,
 		template: templateId,
@@ -97,7 +109,7 @@ function resolveNpc(npc: OfficeNpc, library: ComponentLibraryView, layout: any):
 		title: npc.title ?? template.defaultTitle,
 		gender: npc.gender ?? selected?.gender ?? template.defaultGender,
 		appearance: { ...template.defaultAppearance, ...(selected?.appearance ?? {}), ...(npc.appearance ?? {}) },
-		spawn: npc.spawn ?? layout.npcSpawns?.[hash(`${npc.id}:spawn`) % Math.max(1, layout.npcSpawns?.length ?? 0)],
+		spawn: requestedIsRoleSafe ? requestedSpawn : fallbackSpawn,
 		...(npc.shift ? { shift: structuredClone(npc.shift) } : {}),
 		pose: npc.pose ?? template.defaultPose,
 	};

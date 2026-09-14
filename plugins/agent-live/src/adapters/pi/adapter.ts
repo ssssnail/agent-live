@@ -27,6 +27,7 @@ const CREATOR_TOOL_PARAMETERS = {
 			enum: ["list_offices", "list_components", "customize"],
 		},
 		base: { type: "string" },
+		category: { type: "string", enum: ["summary", "room", "npcs", "props", "activities", "appearance", "environment", "all"] },
 		patch: { type: "object" },
 	},
 	required: ["command"],
@@ -34,7 +35,7 @@ const CREATOR_TOOL_PARAMETERS = {
 
 const CREATOR_TOOL_GUIDELINES = [
 	"Use agent_live_creator for office changes only while Agent Live Creator Mode is active. The user enters with /agent-live custom and exits with /agent-live exit.",
-	"Inspect offices and components when needed, then call customize once. It validates, saves and selects the new office atomically.",
+	"For common changes, call customize directly. Query list_components only when a choice is unknown; request the narrowest category and avoid all unless the user explicitly asks for the complete capability catalog.",
 	"Keep schemas, component IDs and patches internal. After applying, summarize defaults, substitutions, ignored requests and source-code-only boundaries.",
 ];
 
@@ -66,6 +67,8 @@ export default function (pi: ExtensionAPI) {
 	let totalCost = 0;
 	/** toolCallId -> child agent ids currently on loan from the delegation tool. */
 	const delegated = new Map<string, string[]>();
+	/** Tool calls can be interrupted before Pi emits their normal end event. */
+	const activeToolCalls = new Set<string>();
 	const creatorModes = new CreatorModeRegistry();
 
 	const mainName = (ctx: any): { name: string; role: string } => {
@@ -169,6 +172,7 @@ export default function (pi: ExtensionAPI) {
 		creatorService = null;
 		accessToken = "";
 		delegated.clear();
+		activeToolCalls.clear();
 		closePromise = (async () => {
 			agentsToDispose?.dispose();
 			await runtimeToClose?.close();
@@ -300,6 +304,7 @@ export default function (pi: ExtensionAPI) {
 		const toolCallId = String(event?.toolCallId ?? Math.random());
 		const args = (event?.args ?? {}) as Record<string, any>;
 
+		activeToolCalls.add(toolCallId);
 		state.startAction(MAIN, toolCallId, actionForTool(toolName), labelForTool(toolName, args));
 
 		if (!isDelegationTool(toolName)) return;
@@ -328,6 +333,7 @@ export default function (pi: ExtensionAPI) {
 		if (!state) return;
 		const toolCallId = String(event?.toolCallId ?? "");
 		const ok = !event?.isError;
+		activeToolCalls.delete(toolCallId);
 
 		const children = delegated.get(toolCallId);
 		if (children) {
@@ -352,6 +358,10 @@ export default function (pi: ExtensionAPI) {
 	pi.on("agent_settled", async () => {
 		if (!state) return;
 		state.flushThoughts();
+		for (const toolCallId of activeToolCalls) state.endAction(MAIN, toolCallId, false);
+		activeToolCalls.clear();
+		agents?.settleChildren(false);
+		delegated.clear();
 		state.updateSession({ busy: false });
 		state.setState(MAIN, "idle", "待命");
 	});

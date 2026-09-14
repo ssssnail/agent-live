@@ -26,6 +26,15 @@ function phaseAt(minutes, phases) {
 	return selected;
 }
 
+function stableHash(value) {
+	let hash = 2166136261;
+	for (let index = 0; index < value.length; index += 1) {
+		hash ^= value.charCodeAt(index);
+		hash = Math.imul(hash, 16777619);
+	}
+	return hash >>> 0;
+}
+
 /** Shared local clock, weather and NPC scheduling for every Office Preset. */
 export function createEnvironmentRuntime(config) {
 	const clock = config.clock ?? {};
@@ -101,7 +110,7 @@ export function createEnvironmentRuntime(config) {
 		return snapshot();
 	}
 
-	function isNpcOnDuty(role, entryShift) {
+	function isNpcOnDuty(role, entryShift, identity = role) {
 		if (npcSchedule.enabled === false) return true;
 		const shift = {
 			...(npcSchedule.defaultShift ?? { start: "06:00", end: "18:00" }),
@@ -110,8 +119,13 @@ export function createEnvironmentRuntime(config) {
 		};
 		if (shift.enabled === false) return true;
 		const start = parseClock(shift.start, 6 * 60);
-		const end = parseClock(shift.end, 18 * 60);
-		const current = snapshot().minutes;
+		const earliestEnd = parseClock(shift.end, 18 * 60);
+		const latestEnd = parseClock(shift.endLatest, earliestEnd);
+		const currentSnapshot = snapshot();
+		const dayKey = `${currentSnapshot.now.getFullYear()}-${currentSnapshot.now.getMonth() + 1}-${currentSnapshot.now.getDate()}`;
+		const spread = Math.max(0, latestEnd - earliestEnd);
+		const end = earliestEnd + (spread ? stableHash(`${dayKey}:${identity}`) % (spread + 1) : 0);
+		const current = currentSnapshot.minutes;
 		if (start === end) return true;
 		return start < end ? current >= start && current < end : current >= start || current < end;
 	}

@@ -12,6 +12,8 @@
  */
 /** Capabilities every layout must expose as a walkable work station. */
 export const WORK_CAPABILITIES = ["research", "create", "compute", "plan", "communicate", "collaborate"];
+/** Renderer-resolved destinations that deliberately do not belong to a layout. */
+export const DYNAMIC_ACTIVITY_TARGETS = new Set(["near-colleague"]);
 function namedInstance(requirement) {
     if (typeof requirement === "string")
         return requirement;
@@ -73,6 +75,8 @@ function validClock(value) {
 function shiftIssue(value, code, path, label) {
     if (!value || !validClock(value.start) || !validClock(value.end))
         return { code, path, message: `${label} 必须提供有效的 HH:MM 起止时间` };
+    if (value.endLatest !== undefined && !validClock(value.endLatest))
+        return { code, path: `${path}.endLatest`, message: `${label} 的最晚下班时间必须是有效的 HH:MM` };
     return null;
 }
 /**
@@ -158,7 +162,7 @@ export function graphIssues(content) {
     ;
     (content?.lifeActivities?.entries ?? []).forEach((activity, index) => {
         const path = `$.lifeActivities.entries[${index}]`;
-        if (!activity?.id || !["agent", "npc"].includes(activity.participant?.kind) || !activity.steps?.length) {
+        if (!activity?.id || !["agent", "npc", "person"].includes(activity.participant?.kind) || !activity.steps?.length) {
             issues.push({ code: "invalid-activity", path, message: `无效的 Life Activity：${activity?.id ?? "—"}` });
             return;
         }
@@ -168,7 +172,7 @@ export function graphIssues(content) {
         const resolved = resolveActivityRequirements(activity.requires, instances, capabilitiesOf, activity.id);
         issues.push(...resolved.issues.map((issue) => ({ ...issue, path })));
         for (const step of activity.steps ?? []) {
-            if (!layout?.targets?.[step?.target])
+            if (!layout?.targets?.[step?.target] && !DYNAMIC_ACTIVITY_TARGETS.has(step?.target))
                 issues.push({ code: "missing-activity-target", path, message: `${activity.id} 缺少 Target：${step?.target}` });
             for (const target of step?.targets ?? []) {
                 if (!layout?.targets?.[target])

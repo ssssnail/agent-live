@@ -57,7 +57,7 @@ const SKILL = `# Agent Live Creator
 
 Use the agent_live_creator tool when Agent Live Creator Mode is active. The user enters with /agent-live custom and exits with /agent-live exit. There is no draft, preview, confirmation, save, undo, or discard step; every valid customization applies atomically.
 
-Inspect list_offices and list_components when the available choices are not already known, then call customize once. Omit base to modify the currently selected Office, or provide an Office id to start from that Office. Customize validates, saves, selects, and immediately displays the result.
+For common changes, call customize directly. Inspect list_offices or the narrowest list_components category only when a choice is unknown; list_components defaults to a compact summary, and all is reserved for an explicit complete-catalog request. Omit base to modify the currently selected Office, or provide an Office id to start from that Office. Customize validates, saves, selects, and immediately displays the result.
 
 Never expose internal component ids, schemas, or patches unless the user explicitly asks for implementation details. Map unsupported input to the closest supported capability without interrupting generation, then summarize defaults, substitutions, ignored requests, and source-code-only requests after applying the change.
 
@@ -68,7 +68,7 @@ The public commands are exactly: /agent-live list presets, /agent-live preset <n
 function commandPayload(operation: CreatorOperation, args: Record<string, unknown>) {
   switch (operation) {
     case "list_offices":
-    case "list_components": return { command: operation };
+    case "list_components": return { command: operation, ...(args.category ? { category: args.category } : {}) };
     case "customize": return { command: operation, ...(args.base ? { base: args.base } : {}), patch: args.patch };
   }
 }
@@ -172,6 +172,7 @@ export async function registerCreator(ctx: Context): Promise<void> {
     description: "Inspect capabilities or directly validate, save, select, and display an Agent Live office customization.",
     parameters: {
       operation: { type: "string", required: true, enum: ["list_offices", "list_components", "customize"] },
+	  category: { type: "string", enum: ["summary", "room", "npcs", "props", "activities", "appearance", "environment", "all"], description: "Narrow component query; defaults to a compact summary." },
       base: { type: "string", description: "Optional Office id to use as the base; defaults to the selected Office." },
       patch: { type: "json", description: "Requested changes expressed with the bounded Office Patch fields; metadata is filled internally." },
     },

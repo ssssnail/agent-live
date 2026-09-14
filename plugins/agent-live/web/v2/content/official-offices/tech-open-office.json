@@ -19,7 +19,7 @@
 		{ "id": "boss", "template": "builtin/boss", "name": "老板", "title": "老板", "gender": "unspecified", "appearance": { "skin": "#d5a47c", "hair": "#31333a", "shirt": "#516687", "trim": "#34455f", "badge": "#ffcc4d" }, "spawn": "boss-seat", "pose": "sit" },
 		{ "id": "cleaner-lin", "template": "builtin/cleaner", "name": "林姨", "title": "保洁", "gender": "female", "appearance": { "skin": "#d69f70", "hair": "#3f424a", "shirt": "#4f9d88", "trim": "#347264", "badge": "#b7eadb" }, "spawn": "cleaner-entry", "pose": "stand" }
 	],
-	"activities": ["builtin/boss-plan-round", "builtin/boss-water-break", "builtin/colleague-chat", "builtin/outside-walk", "builtin/phone-break", "builtin/restroom-break", "builtin/cleaning-round"],
+	"activities": ["builtin/boss-plan-round", "builtin/boss-water-break", "builtin/boss-cheer-round", "builtin/colleague-chat", "builtin/outside-walk", "builtin/phone-break", "builtin/restroom-break", "builtin/cleaning-round", "builtin/plant-watering"],
 	"atmosphere": "builtin/default-atmosphere",
 	"environment": "builtin/local-office-environment"
 }

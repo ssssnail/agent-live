@@ -53,6 +53,7 @@ function validClock(value: unknown) {
 
 function validateShift(value: any, path: string, issues: ValidationIssue[]) {
 	if (!validClock(value?.start) || !validClock(value?.end)) add(issues, "invalid-shift", path, "shift must contain valid HH:MM start and end values");
+	if (value?.endLatest !== undefined && !validClock(value.endLatest)) add(issues, "invalid-shift", `${path}.endLatest`, "endLatest must be a valid HH:MM value");
 }
 
 /** Delegates to the shared rules so saving and rendering can never disagree. */

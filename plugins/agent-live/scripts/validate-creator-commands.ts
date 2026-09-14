@@ -15,7 +15,9 @@ try {
 	const registry = new OfficeRegistry({ root, library, officialOffices: await loadOfficialOffices(contentRoot) });
 	const router = new CreatorCommandRouter(new CreatorService(registry, library));
 	assert.equal((await router.execute({ command: "list_offices" })).ok, true);
-	const components: any = await router.execute({ command: "list_components" });
+	const summary: any = await router.execute({ command: "list_components" });
+	assert.equal(summary.ok && summary.data.counts.props > 0 && !summary.data.props, true, "default component query must stay compact");
+	const components: any = await router.execute({ command: "list_components", category: "all" });
 	assert.equal(components.ok && components.data.styles.length > 0 && components.data.props.length > 0, true);
 	assert.equal("layouts" in components.data, false, "rooms must not be exposed as a selectable component");
 	// The model still needs the selected Office's room affordances to place things.
@@ -36,5 +38,6 @@ try {
 	assert.deepEqual(await registry.selected(), before);
 	for (const command of ["preview", "undo", "confirm", "discard", "create_from_preset", "apply_patch"]) assert.equal((await router.execute({ command })).ok, false, `${command} remained public`);
 	assert.equal((await router.execute({ command: "list_offices", path: "/tmp" })).ok, false);
+	assert.equal((await router.execute({ command: "list_components", category: "unknown" })).ok, false);
 	console.log("creator commands: discovery, direct atomic customization, failure isolation and closed surface passed");
 } finally { await rm(root, { recursive: true, force: true }); }

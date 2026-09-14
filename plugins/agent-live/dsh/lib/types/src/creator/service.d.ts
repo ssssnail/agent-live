@@ -1,6 +1,8 @@
 import type { OfficeSpec } from "../content/schema.ts";
 import type { ComponentLibraryView } from "../content/validator.ts";
 import { OfficeRegistry } from "../content/registry.ts";
+export declare const COMPONENT_CATEGORIES: readonly ["summary", "room", "npcs", "props", "activities", "appearance", "environment", "all"];
+export type ComponentCategory = typeof COMPONENT_CATEGORIES[number];
 export declare class CreatorService {
     #private;
     constructor(registry: OfficeRegistry, library: ComponentLibraryView);
@@ -21,7 +23,7 @@ export declare class CreatorService {
      * when the model can see what this Office actually offers. Rooms are never
      * presented as a choice.
      */
-    listComponents(): Promise<{
+    listComponents(category?: ComponentCategory): Promise<{
         room: {
             name: any;
             zones: any;
@@ -43,6 +45,132 @@ export declare class CreatorService {
         activities: any[];
         atmospheres: any[];
         environments: any[];
+    } | {
+        room: {
+            name: any;
+            zones: any;
+            slots: any;
+            npcSpawns: any;
+            textSlots: any;
+            placements: {
+                orientation?: "horizontal" | "vertical" | undefined;
+                id: string;
+                component: string;
+                slot: string;
+            }[];
+        } | null;
+        npcTemplates?: undefined;
+        props?: undefined;
+        activities?: undefined;
+        styles?: undefined;
+        agentSkins?: undefined;
+        agentProfileTemplates?: undefined;
+        atmospheres?: undefined;
+        environments?: undefined;
+        office?: undefined;
+        counts?: undefined;
+        categories?: undefined;
+    } | {
+        npcTemplates: any[];
+        room?: undefined;
+        props?: undefined;
+        activities?: undefined;
+        styles?: undefined;
+        agentSkins?: undefined;
+        agentProfileTemplates?: undefined;
+        atmospheres?: undefined;
+        environments?: undefined;
+        office?: undefined;
+        counts?: undefined;
+        categories?: undefined;
+    } | {
+        room: {
+            name: any;
+            zones: any;
+            slots: any;
+            npcSpawns: any;
+            textSlots: any;
+            placements: {
+                orientation?: "horizontal" | "vertical" | undefined;
+                id: string;
+                component: string;
+                slot: string;
+            }[];
+        } | null;
+        props: any[];
+        npcTemplates?: undefined;
+        activities?: undefined;
+        styles?: undefined;
+        agentSkins?: undefined;
+        agentProfileTemplates?: undefined;
+        atmospheres?: undefined;
+        environments?: undefined;
+        office?: undefined;
+        counts?: undefined;
+        categories?: undefined;
+    } | {
+        activities: any[];
+        room?: undefined;
+        npcTemplates?: undefined;
+        props?: undefined;
+        styles?: undefined;
+        agentSkins?: undefined;
+        agentProfileTemplates?: undefined;
+        atmospheres?: undefined;
+        environments?: undefined;
+        office?: undefined;
+        counts?: undefined;
+        categories?: undefined;
+    } | {
+        styles: any[];
+        agentSkins: any[];
+        agentProfileTemplates: any[];
+        room?: undefined;
+        npcTemplates?: undefined;
+        props?: undefined;
+        activities?: undefined;
+        atmospheres?: undefined;
+        environments?: undefined;
+        office?: undefined;
+        counts?: undefined;
+        categories?: undefined;
+    } | {
+        atmospheres: any[];
+        environments: any[];
+        room?: undefined;
+        npcTemplates?: undefined;
+        props?: undefined;
+        activities?: undefined;
+        styles?: undefined;
+        agentSkins?: undefined;
+        agentProfileTemplates?: undefined;
+        office?: undefined;
+        counts?: undefined;
+        categories?: undefined;
+    } | {
+        office: {
+            id: string;
+            name: string;
+        };
+        counts: {
+            styles: number;
+            agentSkins: number;
+            props: number;
+            npcTemplates: number;
+            activities: number;
+            atmospheres: number;
+            environments: number;
+        };
+        categories: ("npcs" | "props" | "activities" | "environment" | "appearance" | "room" | "all")[];
+        room?: undefined;
+        npcTemplates?: undefined;
+        props?: undefined;
+        activities?: undefined;
+        styles?: undefined;
+        agentSkins?: undefined;
+        agentProfileTemplates?: undefined;
+        atmospheres?: undefined;
+        environments?: undefined;
     }>;
     /** Validate, persist and select one customization without exposing draft state. */
     customize(patchInput: unknown, baseOffice?: string): Promise<{

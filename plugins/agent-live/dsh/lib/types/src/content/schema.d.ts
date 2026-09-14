@@ -22,6 +22,8 @@ export type Weather = (typeof WEATHER_VALUES)[number];
 export interface Shift {
     start: string;
     end: string;
+    /** Optional latest departure; each NPC gets a stable daily time in the range. */
+    endLatest?: string;
 }
 export interface Appearance {
     skin?: string;

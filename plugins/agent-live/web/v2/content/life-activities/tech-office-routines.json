@@ -34,9 +34,23 @@
 			]
 		},
 		{
+			"id": "boss-cheer-round",
+			"name": "老板给员工打气",
+			"participant": { "kind": "npc", "roles": ["boss"] },
+			"requires": [],
+			"interruptible": false,
+			"initialDelayMs": [9000, 14000],
+			"cooldownMs": [36000, 56000],
+			"steps": [
+				{ "target": "near-colleague", "personIndex": 0, "durationMs": 3000, "pose": "talk", "bubble": "兄弟们加油努力干！", "particle": "bang" },
+				{ "target": "near-colleague", "personIndex": 1, "durationMs": 2600, "pose": "talk", "bubble": "大家加油，冲一冲！", "particle": "bang" },
+				{ "target": "boss-seat", "durationMs": 1600, "pose": "sit" }
+			]
+		},
+		{
 			"id": "colleague-chat",
 			"name": "和同事聊聊天",
-			"participant": { "kind": "agent", "states": ["idle", "waiting", "done"], "minAgents": 2 },
+			"participant": { "kind": "person", "states": ["idle", "waiting", "done"], "minAgents": 2 },
 			"requires": ["meeting-main"],
 			"onlyWhenSessionIdle": true,
 			"interruptible": true,
@@ -56,7 +70,7 @@
 		{
 			"id": "outside-walk",
 			"name": "和同事出去溜达",
-			"participant": { "kind": "agent", "states": ["idle", "waiting", "done"], "minAgents": 2 },
+			"participant": { "kind": "person", "roles": ["colleague"], "states": ["idle", "waiting", "done"], "minAgents": 2 },
 			"requires": ["entry-door"],
 			"onlyWhenSessionIdle": true,
 			"interruptible": true,
@@ -76,7 +90,7 @@
 		{
 			"id": "phone-break",
 			"name": "摸鱼玩手机",
-			"participant": { "kind": "agent", "states": ["idle", "waiting", "done"] },
+			"participant": { "kind": "person", "roles": ["colleague"], "states": ["idle", "waiting", "done"] },
 			"requires": [],
 			"onlyWhenSessionIdle": true,
 			"interruptible": true,
@@ -90,7 +104,7 @@
 		{
 			"id": "restroom-break",
 			"name": "去洗手间",
-			"participant": { "kind": "agent", "states": ["idle", "waiting", "done"] },
+			"participant": { "kind": "person", "roles": ["colleague"], "states": ["idle", "waiting", "done"] },
 			"requires": ["restroom-door"],
 			"onlyWhenSessionIdle": true,
 			"interruptible": true,
@@ -113,6 +127,21 @@
 				{ "target": "clean-desks-north", "durationMs": 2200, "pose": "reach", "bubble": "整理一下桌面", "particle": "spark" },
 				{ "target": "clean-desks-south", "durationMs": 2300, "pose": "reach", "bubble": "这边也收拾好", "particle": "spark" },
 				{ "target": "clean-lounge", "durationMs": 2400, "pose": "reach", "bubble": "休息区整理好了", "particle": "spark" }
+			]
+		},
+		{
+			"id": "plant-watering",
+			"name": "林姨浇花",
+			"participant": { "kind": "npc", "roles": ["cleaner"] },
+			"requires": [],
+			"interruptible": false,
+			"initialDelayMs": [5000, 9000],
+			"cooldownMs": [30000, 48000],
+			"steps": [
+				{ "target": "plant-left", "durationMs": 2200, "pose": "reach", "bubble": "给花浇点水", "particle": "water" },
+				{ "target": "plant-middle", "durationMs": 2100, "pose": "reach", "bubble": "喝饱水，长得精神点", "particle": "water" },
+				{ "target": "plant-right", "durationMs": 2200, "pose": "reach", "bubble": "这盆也不能落下", "particle": "water" },
+				{ "target": "cleaner-entry", "durationMs": 1500, "pose": "stand" }
 			]
 		}
 	]

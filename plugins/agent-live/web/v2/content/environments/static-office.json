@@ -20,7 +20,7 @@
 	"lighting": { "enabled": false, "activePhases": [] },
 	"npcSchedule": {
 		"enabled": true,
-		"defaultShift": { "start": "06:00", "end": "18:00" },
+		"defaultShift": { "start": "06:00", "end": "18:30", "endLatest": "21:30" },
 		"roleOverrides": {},
 		"labels": { "arrival": "上班啦", "departure": "下班啦" }
 	}

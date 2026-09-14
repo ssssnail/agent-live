@@ -15,6 +15,10 @@ for (const office of offices) {
 	assert.doesNotThrow(() => validateRegistry(content), `${office.id} must pass the browser content validator`);
 	assert.equal(content.layout.id, office.layout);
 	assert.equal(content.npcs.entries.length, office.npcs.length);
+	if (office.npcs.some((npc: any) => npc.template === "builtin/colleague")) {
+		assert.equal(content.lifeActivities.entries.some((activity: any) => activity.id === "colleague-chat"), true, "background colleagues must receive their default social activity");
+		assert.equal(content.lifeActivities.entries.some((activity: any) => activity.id === "restroom-break"), true, "background colleagues must receive their default break activity");
+	}
 	assert.deepEqual(content.lifeActivities.entries.map((entry: any) => `builtin/${entry.id}`), office.activities);
 }
 for (const layout of library.layouts.keys()) {
@@ -40,6 +44,10 @@ assert.doesNotThrow(() => validateRegistry(content), "custom office must pass th
 assert.equal(content.layout.propInstances.some((entry: any) => entry.id === "plant-1"), false);
 assert.equal(content.layout.propInstances.some((entry: any) => entry.id === "replacement-plant" && entry.x === 16 && entry.y === 200), true);
 assert.equal(content.npcs.entries.find((entry: any) => entry.id === "new-colleague")?.role, "colleague");
+assert.equal(content.lifeActivities.entries.some((activity: any) => activity.id === "colleague-chat" && activity.participant.kind === "person"), true);
+assert.equal(content.lifeActivities.entries.some((activity: any) => activity.id === "outside-walk" && activity.participant.kind === "person"), true);
+assert.equal(content.lifeActivities.entries.some((activity: any) => activity.id === "phone-break" && activity.participant.kind === "person"), true);
+assert.equal(content.lifeActivities.entries.some((activity: any) => activity.id === "restroom-break" && activity.participant.kind === "person"), true);
 assert.equal(content.environment.clock.fixedTime, "21:30");
 assert.equal(content.environment.weather.fallback, "rain");
 assert.equal(content.agentProfile.name, "Ada");
