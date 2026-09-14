@@ -38,6 +38,12 @@ export class CodexOfficeSession {
 	private threadId = "";
 	private turnId = "";
 	private readonly activeTurns = new Map<string, string>();
+	/**
+	 * Turns that already reported completion. A short turn can finish before its
+	 * `turn/start` response is read, so registration has to ignore it instead of
+	 * resurrecting a settled turn and leaving the session busy forever.
+	 */
+	private readonly finishedTurns = new Set<string>();
 	private startingTurn = false;
 	private turns = 0;
 	private readonly activeActions = new Map<string, ActiveAction>();
@@ -70,6 +76,7 @@ export class CodexOfficeSession {
 			this.connectionError = error.message;
 			this.turnId = "";
 			this.activeTurns.clear();
+			this.finishedTurns.clear();
 			this.startingTurn = false;
 			this.interrupting = false;
 			this.stopRequested = false;
@@ -147,6 +154,7 @@ export class CodexOfficeSession {
 			const result = await this.client.request("turn/start", params);
 			const turnId = (result as { turn?: { id?: string } }).turn?.id;
 			if (!turnId) throw new Error("Codex did not return a turn id");
+			if (this.finishedTurns.has(turnId)) return { turnId };
 			this.turnId = turnId;
 			this.activeTurns.set(this.threadId, turnId);
 			this.syncBusyState();
@@ -317,7 +325,9 @@ export class CodexOfficeSession {
 			}
 			case "turn/completed": {
 				const eventThreadId = this.messageThreadId(params);
+				const eventTurnId = String((params.turn as JsonObject | undefined)?.id ?? "");
 				if (eventThreadId) this.activeTurns.delete(eventThreadId);
+				this.rememberFinishedTurn(eventTurnId);
 				this.syncBusyState();
 				if (!agentId) break;
 				if (agentId !== MAIN) {
@@ -429,6 +439,13 @@ export class CodexOfficeSession {
 
 	private syncBusyState(): void {
 		this.state.updateSession({ busy: this.startingTurn || this.activeTurns.size > 0 });
+	}
+
+	/** Remember a settled turn id for the short window of an in-flight `turn/start`. */
+	private rememberFinishedTurn(turnId: string): void {
+		if (!turnId) return;
+		if (this.finishedTurns.size >= 64) this.finishedTurns.clear();
+		this.finishedTurns.add(turnId);
 	}
 
 	private acceptAgentEvent(agentId: string): boolean {

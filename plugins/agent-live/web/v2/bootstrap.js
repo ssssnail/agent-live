@@ -2,7 +2,8 @@ import { createOfficeRenderer } from "./office-renderer.js";
 import { createSpriteRenderer } from "./sprite-renderer.js";
 import { createEnvironmentRuntime } from "./environment-runtime.js";
 import { loadI18n } from "./i18n.js";
-import { assertManifest, validateRegistry } from "./graph-validator.js";
+import { loadPresetContent } from "./static-content.js";
+import { validateRegistry } from "./graph-validator.js";
 
 /**
  * Config-driven boot path for the preserved Demo.
@@ -60,20 +61,7 @@ async function readJson(relativePath) {
 }
 
 async function loadPreset(presetId, limits) {
-	const preset = await readJson(`presets/${presetId}.json`);
-	assertManifest(preset, "preset");
-	const refs = preset.content ?? {};
-	const [style, layout, agentSkin, props, npcs, lifeActivities, atmosphere, environment] = await Promise.all([
-		readJson(`styles/${refs.style}.json`),
-		readJson(`layouts/${refs.layout}.json`),
-		readJson(`agent-skins/${refs.agentSkin}.json`),
-		readJson(`props/${refs.props}.json`),
-		readJson(`npcs/${refs.npcs}.json`),
-		readJson(`life-activities/${refs.lifeActivities}.json`),
-		readJson(`atmospheres/${refs.atmosphere}.json`),
-		readJson(`environments/${refs.environment}.json`),
-	]);
-	const registry = { preset, style, layout, agentSkin, props, npcs, lifeActivities, atmosphere, environment };
+	const registry = await loadPresetContent(presetId, readJson);
 	applySceneLimits(registry, limits);
 	validateRegistry(registry);
 	return Object.freeze(registry);

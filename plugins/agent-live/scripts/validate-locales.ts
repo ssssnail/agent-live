@@ -29,7 +29,7 @@ for (const relative of fs.readdirSync(contentRoot, { recursive: true })) {
 	if (!String(relative).endsWith(".json")) continue;
 	collectStrings(JSON.parse(fs.readFileSync(path.join(contentRoot.pathname, String(relative)), "utf8")));
 }
-const patterns = (english.patterns ?? []).map(({ source }: { source: string }) => new RegExp(source));
+const patterns: RegExp[] = (english.patterns ?? []).map(({ source }: { source: string }) => new RegExp(source));
 const untranslated = [...chineseLeaves].filter(value => !(value in (english.text ?? {})) && !patterns.some(pattern => pattern.test(value)));
 if (untranslated.length) throw new Error(`English locale is missing built-in content: ${untranslated.join(", ")}`);
 console.log(`Locale validation passed: ${enKeys.length} shared UI strings, ${englishContent.length} English content translations, ${chineseContent.length} Chinese content translations`);

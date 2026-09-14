@@ -40,6 +40,8 @@ try {
 	assert.equal(withText.saved, true);
 	assert.equal(withText.office?.texts?.company, "Snail Lab");
 	const summary = await creator.listComponents();
+	// The catalog shape depends on the requested category, so narrow before reading.
+	assert.ok("office" in summary && summary.office, "the default catalog view must carry the editable Office state");
 	assert.equal(summary.office.id, "local/boardroom-office");
 	assert.equal(summary.office.texts.company, "Snail Lab");
 	assert.equal(summary.office.npcs.some((npc: any) => npc.id === "boardroom-boss" && npc.template === "builtin/boss"), true);

@@ -33,8 +33,8 @@ export function createSpriteRenderer(content) {
 		const role = roleFor(name);
 		return {
 			skin: skin.palettes.skin[value % skin.palettes.skin.length],
-			hair: skin.palettes.hair[(value >> 3) % skin.palettes.hair.length],
-			shirt: role ? role.shirt : skin.palettes.fallbackShirts[(value >> 6) % skin.palettes.fallbackShirts.length],
+			hair: skin.palettes.hair[(value >>> 3) % skin.palettes.hair.length],
+			shirt: role ? role.shirt : skin.palettes.fallbackShirts[(value >>> 6) % skin.palettes.fallbackShirts.length],
 			trim: role ? role.trim : skin.palettes.defaultTrim,
 			badge: isLead ? skin.palettes.leadBadge : skin.palettes.agentBadge,
 		};

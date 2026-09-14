@@ -22,14 +22,20 @@ export class AgentLiveRuntime {
 	async start(options: Parameters<typeof startServer>[1]): Promise<OfficeServer> {
 		if (this.closed) throw new Error("Agent Live Runtime is closed");
 		if (this.server) return this.server;
+		let server: OfficeServer | null = null;
 		try {
 			const contentService = options.content ? undefined : await OfficeContentService.create({ dataRoot: this.dataRoot });
-			const server = await startServer(this.state, { ...options, content: options.content ?? contentService });
+			server = await startServer(this.state, { ...options, content: options.content ?? contentService });
+			// close() may have finished while the server was starting. Registering it
+			// now would be rejected by the guard and leak a listening socket, so the
+			// freshly started server is closed instead.
+			if (this.closed) throw new Error("Agent Live Runtime is closed");
 			this.server = server;
-			this.resources.track("office-server", () => server.close());
+			this.resources.track("office-server", () => server!.close());
 			return server;
 		} catch (error) {
 			this.closed = true;
+			await server?.close().catch(() => undefined);
 			await this.resources.close().catch(() => undefined);
 			throw error;
 		}

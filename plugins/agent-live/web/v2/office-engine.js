@@ -134,7 +134,7 @@ export function createOfficeEngine(content, environment = null) {
 
 	return Object.freeze({
 		W: layout.canvas.width, H: layout.canvas.height, WALL_H: layout.wallHeight,
-		LANES: lanes, SEATS: seats, TARGETS: targets,
+		LANES: lanes, SEATS: seats, TARGETS: targets, AMBIENT_EFFECTS: ambientEffects,
 		interactions: Object.freeze({ ...(layout.interactions ?? {}) }),
 		currentEnvironment, anchorFor, seatAnchor, standingAnchor, npcHomeTarget, path, stationKey,
 		startDayPreview: (durationMs = 24000) => environment?.startPreview?.(durationMs) ?? false,

@@ -52,8 +52,8 @@
 		const role = roleFor(name);
 		return {
 			skin: SKINS[h % SKINS.length],
-			hair: HAIRS[(h >> 3) % HAIRS.length],
-			shirt: role ? role.shirt : FALLBACK_SHIRTS[(h >> 6) % FALLBACK_SHIRTS.length],
+			hair: HAIRS[(h >>> 3) % HAIRS.length],
+			shirt: role ? role.shirt : FALLBACK_SHIRTS[(h >>> 6) % FALLBACK_SHIRTS.length],
 			trim: role ? role.trim : "#2b3242",
 			badge: isLead ? "#ffcc4d" : "#8fb8ff",
 		};

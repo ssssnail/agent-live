@@ -10,7 +10,7 @@ export function createOfficeRenderer(content, environment = null) {
 	const UI = content.style.tokens.css ?? {};
 	const renderMode = content.preset.render?.detail ?? content.style.tokens.render?.detail ?? "classic";
 	const rich = renderMode === "rich";
-	const { W, H, WALL_H, SEATS, TARGETS } = engine;
+	const { W, H, WALL_H, SEATS, TARGETS, AMBIENT_EFFECTS } = engine;
 	const AREAS = [...(layout.areas ?? [])];
 	// Fit immutable room signage once, then reuse on every animation frame.
 	let signs;
@@ -226,7 +226,7 @@ export function createOfficeRenderer(content, environment = null) {
 	}
 
 	function drawWindowWeather(c, window, t, officeTime) {
-		const condition = officeTime.dynamicWeather ? officeTime.weather : ambientEffects.has("rain-window") ? "rain" : "clear";
+		const condition = officeTime.dynamicWeather ? officeTime.weather : AMBIENT_EFFECTS.has("rain-window") ? "rain" : "clear";
 		if (condition === "cloudy") {
 			px(c, window.x + 5, window.y + 8, Math.max(8, window.w - 18), 3, C.cloud ?? C.paper);
 			px(c, window.x + 12, window.y + 5, Math.max(5, window.w - 25), 4, C.cloud ?? C.paper);
