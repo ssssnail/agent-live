@@ -201,10 +201,9 @@ export function compileOfficePatch(base: OfficeSpec, patchInput: unknown, librar
 	}
 	for (const id of patch.activities?.enable ?? []) activities.add(id);
 
-	// Interim: a routine still walks to the layout's fixed stand target, so a prop
-	// that satisfies an active routine may keep its slot but must not move to
-	// another one — the routine would keep standing where the prop used to be.
-	// Drop this once step targets resolve to the prop the requirement bound.
+	// Where a routine performs stays authored per layout (`steps[].target`), so the
+	// prop it uses may be swapped in place but not moved: the routine would keep
+	// performing where that prop used to be.
 	const requiredCapabilities = new Set<string>();
 	for (const id of activities) {
 		for (const requirement of library.activityImplementations.get(`${layoutId}|${id}`)?.definition?.requires ?? []) {
