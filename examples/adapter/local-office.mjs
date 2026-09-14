@@ -3,7 +3,7 @@ import { pathToFileURL } from "node:url";
 import {
   AgentLiveRuntime, OfficeContentService, CreatorService, CreatorCommandRouter,
   defineAdapter, connectAdapter, createOfficeEventPublisher,
-} from "agent-live";
+} from "@iniesta8888/agent-live";
 
 // Public exports only. Replace this host subscription with your host's
 // documented event-to-OfficeDelta mapping.

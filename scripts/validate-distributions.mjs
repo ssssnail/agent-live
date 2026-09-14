@@ -11,9 +11,9 @@ const pi = await json(path.join(root, "packages/pi/package.json"));
 const dsh = await json(path.join(root, "plugins/agent-live/dsh/package.json"));
 const marketplace = await json(path.join(root, ".agents/plugins/marketplace.json"));
 
-assert.equal(core.name, "agent-live");
-assert.equal(pi.name, "agent-live-pi-adapter");
-assert.equal(dsh.name, "agent-live-dsh-adapter");
+assert.equal(core.name, "@iniesta8888/agent-live");
+assert.equal(pi.name, "@iniesta8888/agent-live-pi-adapter");
+assert.equal(dsh.name, "@iniesta8888/agent-live-dsh-adapter");
 assert.equal(pi.version, core.version);
 assert.equal(dsh.version, core.version);
 assert.equal(core.pi, undefined, "core package must not register itself as a Pi extension");

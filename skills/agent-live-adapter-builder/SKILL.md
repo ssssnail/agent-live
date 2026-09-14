@@ -5,7 +5,7 @@ description: Investigate a coding agent's official extension APIs and build or r
 
 # Agent Live Adapter Builder
 
-Build adapters against the public `agent-live` package. Never import repository-internal files.
+Build adapters against the public `@iniesta8888/agent-live` package. Never import repository-internal files.
 
 ## Required gates
 

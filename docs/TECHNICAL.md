@@ -365,7 +365,7 @@ endMeeting()     清 inMeeting，各自 retarget()
 
 ## 15. 安装与部署
 
-Pi 用户安装独立的 `agent-live-pi-adapter` npm 包。其入口是
+Pi 用户安装独立的 `@iniesta8888/agent-live-pi-adapter` npm 包。其入口是
 `packages/pi/dist/adapter.js`，构建时只打包 Pi Adapter 与所需公共
 Runtime，并携带独立 Viewer；不会把 Codex 或 DSH 实现带给 Pi 用户。
 

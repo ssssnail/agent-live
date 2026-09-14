@@ -1,5 +1,5 @@
 {
-  "name": "agent-live-pi-adapter",
+  "name": "@iniesta8888/agent-live-pi-adapter",
   "version": "0.3.0",
   "type": "module",
   "description": "Pi adapter for the Agent Live pixel office",

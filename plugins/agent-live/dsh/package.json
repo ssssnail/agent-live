@@ -1,5 +1,5 @@
 {
-  "name": "agent-live-dsh-adapter",
+  "name": "@iniesta8888/agent-live-dsh-adapter",
   "version": "0.3.0",
   "description": "Agent Live native conversation view for DeepSeek Harness",
   "type": "module",

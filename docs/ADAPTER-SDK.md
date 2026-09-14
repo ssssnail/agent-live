@@ -1,11 +1,11 @@
 # Agent Live Adapter SDK
 
-This is the public development manual for connecting a coding-agent host to Agent Live. Use only exports from `agent-live` or `agent-live/adapter-sdk`; importing files under `plugins/agent-live/src` is unsupported.
+This is the public development manual for connecting a coding-agent host to Agent Live. Use only exports from `@iniesta8888/agent-live` or `@iniesta8888/agent-live/adapter-sdk`; importing files under `plugins/agent-live/src` is unsupported.
 
-Until an npm-registry release is available, install the SDK directly from GitHub:
+Install the published SDK from npm:
 
 ~~~bash
-npm install agent-live@github:ssssnail/agent-live#main
+npm install @iniesta8888/agent-live
 ~~~
 
 ## The minimum adapter
@@ -13,7 +13,7 @@ npm install agent-live@github:ssssnail/agent-live#main
 An adapter has one required job: subscribe to official host events and publish equivalent `OfficeDelta` events.
 
 ~~~ts
-import { defineAdapter, type OfficeDelta } from "agent-live";
+import { defineAdapter, type OfficeDelta } from "@iniesta8888/agent-live";
 
 interface Host {
   subscribe(listener: (event: unknown) => void): () => void;
@@ -45,7 +45,7 @@ After `npm ci` and `npm run build` in this repository:
 node examples/adapter/local-office.mjs
 ~~~
 
-Open the printed local URL; Ctrl+C closes the example. [The example](../examples/adapter/local-office.mjs) imports only public `agent-live` exports, connects a simulated host, starts an authenticated Viewer, and exposes selection and Creator operations. Copy it into your independent adapter package and replace the host subscription. It does not invoke a model or register a host plugin for you.
+Open the printed local URL; Ctrl+C closes the example. [The example](../examples/adapter/local-office.mjs) imports only public `@iniesta8888/agent-live` exports, connects a simulated host, starts an authenticated Viewer, and exposes selection and Creator operations. Copy it into your independent adapter package and replace the host subscription. It does not invoke a model or register a host plugin for you.
 
 `npm run validate:sdk-example` tests that consumer after a build, including selection, customization, reopening and cleanup in a temporary data directory. `check:ci` includes it.
 

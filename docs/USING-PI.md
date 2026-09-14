@@ -7,7 +7,7 @@
 发布到 npm 后，推荐一条命令安装：
 
 ```bash
-pi install npm:agent-live-pi-adapter
+pi install npm:@iniesta8888/agent-live-pi-adapter
 ```
 
 重启 Pi，然后输入：

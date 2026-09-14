@@ -173,7 +173,7 @@ agent-live-adapter-<host>/
 公共 SDK 示例：
 
 ```ts
-import { defineAdapter } from "agent-live";
+import { defineAdapter } from "@iniesta8888/agent-live";
 
 export default defineAdapter({
   id: "example",

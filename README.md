@@ -17,7 +17,7 @@ Official adapters currently cover Pi, Codex and DeepSeek Harness. The product sh
 ### Pi
 
 ```bash
-pi install npm:agent-live-pi-adapter
+pi install npm:@iniesta8888/agent-live-pi-adapter
 ```
 
 Restart Pi and run `/agent-live`. Use `/agent-live custom` to enter Creator Mode and `/agent-live exit` to return to normal work. See [Using Agent Live with Pi](docs/USING-PI.md).
@@ -34,7 +34,7 @@ Invoke the Agent Live Skill to open its local Codex client. Codex customization 
 ### DeepSeek Harness
 
 ```bash
-dsh plugin --profile web add agent-live-dsh-adapter
+dsh plugin --profile web add @iniesta8888/agent-live-dsh-adapter
 dsh plugin --profile web install
 dsh web
 ```
@@ -74,9 +74,9 @@ Start with [Architecture](docs/ARCHITECTURE.md), [Developer Guide](docs/DEVELOPE
 
 ## Packages
 
-- `agent-live` — host-neutral engine, viewer, Creator and Adapter SDK.
-- `agent-live-pi-adapter` — self-contained Pi extension.
-- `agent-live-dsh-adapter` — native DSH View plugin.
+- `@iniesta8888/agent-live` — host-neutral engine, viewer, Creator and Adapter SDK.
+- `@iniesta8888/agent-live-pi-adapter` — self-contained Pi extension.
+- `@iniesta8888/agent-live-dsh-adapter` — native DSH View plugin.
 - Codex installs from this repository's Marketplace and is not published to npm.
 
 ## Local data and safety

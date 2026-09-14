@@ -5,7 +5,7 @@
 ## 安装和启动
 
 ```bash
-dsh plugin --profile web add agent-live-dsh-adapter
+dsh plugin --profile web add @iniesta8888/agent-live-dsh-adapter
 dsh plugin --profile web install
 dsh web
 ```

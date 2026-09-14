@@ -14,7 +14,7 @@ const skill = await readFile(path.join(pluginRoot, "skills/agent-live/SKILL.md")
 const appServerClient = await readFile(path.join(pluginRoot, "src/adapters/codex/app-server-client.ts"), "utf8");
 const adapterScaffold = await readFile(path.join(root, "skills/agent-live-adapter-builder/scripts/create-adapter.mjs"), "utf8");
 
-assert.equal(pkg.name, "agent-live");
+assert.equal(pkg.name, "@iniesta8888/agent-live");
 assert.match(pkg.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
 assert.equal(manifest.name, "agent-live");
 assert.equal(manifest.version, pkg.version, "Codex manifest version differs from package version");
@@ -28,7 +28,7 @@ assert.equal(pkg.scripts.prepare, "npm run build", "Git dependencies must build 
 assert.equal(pkg.peerDependencies?.["@earendil-works/pi-coding-agent"], undefined, "Pi must not be required by host-neutral SDK users");
 assert.equal(pkg.devDependencies?.["@earendil-works/pi-coding-agent"], "0.85.1", "Pi adapter must typecheck against a pinned official API");
 assert.ok(pkg.files.includes("skills"), "adapter builder skill must be included in the package");
-assert.match(adapterScaffold, /github:ssssnail\/agent-live#main/, "adapter scaffold must use the available GitHub distribution");
+assert.match(adapterScaffold, /@iniesta8888\/agent-live/, "adapter scaffold must use the published SDK package");
 
 for (const relative of [
 	".codex-plugin/plugin.json",

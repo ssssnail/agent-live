@@ -1,5 +1,5 @@
 {
-	"name": "agent-live",
+	"name": "@iniesta8888/agent-live",
 	"version": "0.3.0",
 	"type": "module",
 	"description": "Give coding agents a live pixel office",
