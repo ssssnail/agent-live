@@ -7,6 +7,7 @@ export function createOfficeRenderer(content, environment = null) {
 	const layout = content.layout;
 	const propTypes = content.props.types;
 	const C = { ...content.style.tokens.canvas, ...(content.atmosphere.styleOverrides?.canvas ?? {}) };
+	const UI = content.style.tokens.css ?? {};
 	const renderMode = content.preset.render?.detail ?? content.style.tokens.render?.detail ?? "classic";
 	const rich = renderMode === "rich";
 	const { W, H, WALL_H, SEATS, TARGETS } = engine;
@@ -15,24 +16,35 @@ export function createOfficeRenderer(content, environment = null) {
 	let signs;
 	function drawSigns(c) {
 		c.save();
-		c.font = 'bold 7px ui-monospace, "PingFang SC", sans-serif';
 		c.textAlign = "center";
 		c.textBaseline = "middle";
 		signs ??= (layout.textSlots ?? []).map((slot) => {
+			const treatment = slot.id === "company"
+				? { font: 'bold 7px ui-monospace, "PingFang SC", monospace', ink: UI.accent ?? C.activeAccent, rule: UI.accent ?? C.activeAccent }
+				: slot.id === "slogan"
+					? { font: '600 6px ui-monospace, "PingFang SC", monospace', ink: UI.dim ?? C.boardTextDim, rule: UI.line ?? C.wallTrim }
+					: { font: '600 6px ui-monospace, "PingFang SC", monospace', ink: UI.ink ?? C.paper, rule: UI.think ?? C.activeThink };
 			let text = String(slot.text ?? slot.defaultText ?? "");
 			const original = text;
+			c.font = treatment.font;
 			while (text && c.measureText(text + (text !== original ? "…" : "")).width > slot.width - 8) text = [...text].slice(0, -1).join("");
-			return { ...slot, text: text + (text !== original && text ? "…" : "") };
+			return { ...slot, ...treatment, text: text + (text !== original && text ? "…" : "") };
 		});
 		for (const slot of signs) {
 			if (!slot.text) continue;
-			px(c, slot.x, slot.y, slot.width, slot.height, C.outline);
-			px(c, slot.x + 1, slot.y + 1, slot.width - 2, slot.height - 2, C.wallBase ?? C.woodDark);
+			// Treat room text as physical versions of the surrounding UI panels:
+			// square pixel shadow, line border, inset panel and one semantic rule.
+			px(c, slot.x + 2, slot.y + 2, slot.width, slot.height, C.objectShadow ?? "rgba(0,0,0,.3)");
+			px(c, slot.x, slot.y, slot.width, slot.height, UI.line ?? C.outline);
+			px(c, slot.x + 1, slot.y + 1, slot.width - 2, slot.height - 2, UI.panel ?? C.wallBase ?? C.woodDark);
+			px(c, slot.x + 2, slot.y + 2, slot.width - 4, 1, UI["panel-2"] ?? C.wallHighlight);
+			px(c, slot.x + 2, slot.y + slot.height - 2, slot.width - 4, 1, slot.rule);
 			c.save();
 			c.beginPath();
-			c.rect(slot.x + 2, slot.y + 1, slot.width - 4, slot.height - 2);
+			c.rect(slot.x + 4, slot.y + 2, slot.width - 8, slot.height - 4);
 			c.clip();
-			c.fillStyle = C.paper;
+			c.font = slot.font;
+			c.fillStyle = slot.ink;
 			c.fillText(slot.text, slot.x + slot.width / 2, slot.y + slot.height / 2);
 			c.restore();
 		}

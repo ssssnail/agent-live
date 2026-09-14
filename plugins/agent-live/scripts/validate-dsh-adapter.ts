@@ -14,6 +14,7 @@ const client = await readFile(path.join(pluginRoot, "src/client.tsx"), "utf8");
 const buildScript = await readFile(path.join(pluginRoot, "build.mjs"), "utf8");
 const creator = await readFile(path.join(pluginRoot, "src/creator.ts"), "utf8");
 const renderer = await readFile(path.join(pluginRoot, "../web/app.js"), "utf8");
+const officeRenderer = await readFile(path.join(pluginRoot, "../web/v2/office-renderer.js"), "utf8");
 
 assert.equal(pkg.dsh.client.platform, "web");
 assert.equal(pkg.dsh.bundle.patch, "./cordis.patch.yml");
@@ -31,6 +32,8 @@ assert.match(buildScript, /web\/style\.css/);
 assert.match(buildScript, /web\/v2\/style\.css/);
 assert.match(renderer, /new ResizeObserver\(scheduleResize\)/);
 assert.match(renderer, /visibilitychange/);
+assert.match(officeRenderer, /const UI = content\.style\.tokens\.css/, "room signs must use the shared shell palette");
+assert.match(officeRenderer, /slot\.id === "company"[\s\S]*UI\.accent[\s\S]*slot\.id === "slogan"[\s\S]*UI\.dim/, "room signs must preserve the shared UI hierarchy");
 assert.match(renderer, /displayAgentName\(view, isLead\)/, "renderer must resolve fallback teammate names after Agent Profile overrides");
 assert.match(client, /name: `Teammate \$\{index \+ 1\}`/, "DSH fallback child names must remain host-neutral");
 assert.match(renderer, /if \(actor\.action\) hot\.add[\s\S]*retarget\(actor\)/, "snapshot agents without an action must leave the entrance");
