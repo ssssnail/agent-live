@@ -9,6 +9,7 @@ const dist = path.join(root, "dist");
 async function bundle(entryPoint, outfile, options = {}) {
 	await mkdir(path.dirname(outfile), { recursive: true });
 	await build({
+		absWorkingDir: root,
 		entryPoints: [entryPoint],
 		outfile,
 		bundle: true,
