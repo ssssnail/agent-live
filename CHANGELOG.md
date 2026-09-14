@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1 — 2026-09-14
+
+- Added Pi package-catalog discovery metadata.
+- Added DSH Directory and npm discovery metadata plus the published install command.
+
 ## 0.3.0 — 2026-09-14
 
 - Split release artifacts into the host-neutral `@iniesta8888/agent-live` Core, the `@iniesta8888/agent-live-pi-adapter` npm package, the `@iniesta8888/agent-live-dsh-adapter` npm package, and a self-contained Codex Marketplace plugin.

@@ -1,7 +1,18 @@
 {
   "name": "@iniesta8888/agent-live-dsh-adapter",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Agent Live native conversation view for DeepSeek Harness",
+  "keywords": ["dsh-plugin", "deepseek-harness", "coding-agent", "agent-live", "pixel-office"],
+  "author": "ssssnail",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ssssnail/agent-live.git",
+    "directory": "plugins/agent-live/dsh"
+  },
+  "homepage": "https://github.com/ssssnail/agent-live#readme",
+  "bugs": {
+    "url": "https://github.com/ssssnail/agent-live/issues"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/dsh/src/index.d.ts",

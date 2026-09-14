@@ -12,6 +12,16 @@ DSH remains responsible for prompts, stop, model selection and approvals. The
 View observes the current Session only. Unmounting the View destroys its
 sandboxed render document, animation loop and in-memory event journal.
 
+## Install
+
+```bash
+dsh plugin --profile web add @iniesta8888/agent-live-dsh-adapter
+dsh plugin --profile web install
+dsh web
+```
+
+Open a session, then select the `Agent Live` conversation view.
+
 ## Development
 
 ```bash

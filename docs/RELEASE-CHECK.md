@@ -1,6 +1,6 @@
 # Release verification
 
-The current development target is 0.3.0, not a published release. Keep CHANGELOG marked Unreleased until the release is actually cut.
+The current release target is 0.3.1. Keep package versions, the Codex manifest, generated distributions, CHANGELOG and the Git tag aligned.
 
 Run npm run check:ci for deterministic contract, types, builds and package validation. Run npm run test:integration:codex separately on a machine with a configured Codex CLI; it creates an ephemeral test thread and the session test sends one small model request, so it is intentionally not a public-PR CI requirement. Failures must be recorded, not treated as an automatic pass.
 

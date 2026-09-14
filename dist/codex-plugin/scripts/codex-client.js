@@ -1763,7 +1763,7 @@ var CodexAppServerClient = class {
     this.lines = createInterface({ input: child.stdout });
     this.lines.on("line", (line) => this.handleLine(line));
     const result = await this.request("initialize", {
-      clientInfo: { name: "agent-live", title: "Agent Live", version: "0.3.0" },
+      clientInfo: { name: "agent-live", title: "Agent Live", version: "0.3.1" },
       capabilities: {
         experimentalApi: true,
         requestAttestation: false,

@@ -1,6 +1,6 @@
 # Agent Live 技术文档
 
-> 版本 0.3.0（开发中）· 最后校准 2026-09-13 · Node 22+
+> 版本 0.3.1 · 最后校准 2026-09-14 · Node 22+
 
 > 本文主要记录最初的 Pi / Local Runtime / Browser 实现细节。跨宿主职责与最新公共合同以 [ARCHITECTURE.md](ARCHITECTURE.md)、[ADAPTER-SDK.md](ADAPTER-SDK.md) 和各宿主 Adapter 设计为准。
 
