@@ -244,6 +244,11 @@ export class CodexOfficeSession {
 		const agentId = this.agentIdFor(params);
 		switch (message.method) {
 			case "turn/started":
+				// Only the session's own thread may control the main turn lifecycle.
+				// Subagent notifications can arrive before their collaboration item;
+				// treating an unknown thread as MAIN would overwrite the turn id and
+				// make a later turn/interrupt target the wrong turn.
+				if (!agentId) break;
 				if (agentId !== MAIN) {
 					this.state.setState(agentId, "thinking", "开始协作");
 					break;
@@ -281,6 +286,7 @@ export class CodexOfficeSession {
 				break;
 			}
 			case "turn/completed": {
+				if (!agentId) break;
 				if (agentId !== MAIN) {
 					const childStatus = String((params.turn as JsonObject | undefined)?.status ?? "completed");
 					this.finishChild(agentId, childStatus === "completed");
@@ -361,11 +367,12 @@ export class CodexOfficeSession {
 
 	private agentIdFor(params: JsonObject): string {
 		const threadId = String(params.threadId ?? params.thread_id ?? "");
-		return this.childAgents.get(threadId) ?? MAIN;
+		if (!threadId || threadId === this.threadId) return MAIN;
+		return this.childAgents.get(threadId) ?? "";
 	}
 
 	private acceptAgentEvent(agentId: string): boolean {
-		return agentId !== MAIN || this.state.sessionBusy();
+		return Boolean(agentId) && (agentId !== MAIN || this.state.sessionBusy());
 	}
 
 	private hasActiveAction(agentId: string): boolean {

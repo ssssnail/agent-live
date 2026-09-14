@@ -58,10 +58,15 @@ export function installCodexControls(token) {
 		stop.textContent = t("client.stopping");
 		try {
 			await post("interrupt");
-		} catch {
+		} catch (error) {
 			stopping = false;
 			stop.textContent = t("client.stop");
 			stop.disabled = !busy;
+			stop.title = error.message;
+			input.setCustomValidity(error.message);
+			input.reportValidity();
+			input.setCustomValidity("");
+			console.error("Agent Live could not stop the Codex turn.", error);
 		}
 	});
 	approval.addEventListener("click", (event) => {
@@ -98,6 +103,7 @@ export function installCodexControls(token) {
 				busy = Boolean(status.busy);
 				stopping = busy && Boolean(status.interrupting);
 				stop.textContent = t(stopping ? "client.stopping" : "client.stop");
+				if (!stopping) stop.title = "";
 				stop.disabled = !busy || stopping;
 				send.disabled = busy || disconnected;
 		} catch {

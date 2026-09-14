@@ -60,6 +60,32 @@ if (state.getAgent("main")?.state !== "waiting") throw new Error("Child activity
 await session.close();
 state.dispose();
 
+// A child turn may start before Codex reports its collaboration identity. It
+// must never replace the main turn id used by the Stop control.
+const interruptState = new OfficeState("/tmp/agent-live-interrupt-test");
+interruptState.join("main", { name: "Cody", role: "codex" });
+interruptState.updateSession({ busy: true });
+const interruptRequests: Array<{ method: string; params: unknown }> = [];
+const interruptClient = {
+	...client,
+	request: async (method: string, params: unknown) => {
+		interruptRequests.push({ method, params });
+		return {};
+	},
+};
+const interruptSession = new CodexOfficeSession(interruptState, interruptClient as never, { cwd: process.cwd() });
+(interruptSession as any).threadId = "main-thread";
+(interruptSession as any).turnId = "main-turn";
+(interruptSession as any).handleMessage({ method: "turn/started", params: { threadId: "unknown-child", turn: { id: "child-turn" } } });
+assert.equal((interruptSession as any).turnId, "main-turn", "unknown child turn replaced the main turn id");
+await interruptSession.interrupt();
+assert.deepEqual(interruptRequests.at(-1), {
+	method: "turn/interrupt",
+	params: { threadId: "main-thread", turnId: "main-turn" },
+});
+await interruptSession.close();
+interruptState.dispose();
+
 // Approval UI reads the actual queue, not a second last-seen copy.
 const approvalState = new OfficeState("/tmp/agent-live-approval-test");
 approvalState.join("main", { name: "Cody", role: "codex" });
