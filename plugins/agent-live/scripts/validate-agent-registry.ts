@@ -24,6 +24,10 @@ if (!withinSceneLimit("npcs", SCENE_LIMITS.npcs) || withinSceneLimit("npcs", SCE
 
 agents.settleChildren(true);
 if (agents.activeChildren() !== 0) throw new Error("All children should settle together");
+const settling = agents.spawn({ id: "child-1", name: "late-event", task: "must not revive" });
+if (settling?.name !== "worker-1" || !agents.isSettling("child-1")) {
+	throw new Error("A late host event revived a terminal child");
+}
 await new Promise((resolve) => setTimeout(resolve, 5));
 if (state.snapshot().agents.length !== 1) throw new Error("Settled children should leave the office");
 agents.dispose();

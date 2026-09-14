@@ -365,7 +365,10 @@ export class CodexOfficeSession {
 		if (item.type === "collabAgentToolCall") this.syncCollaboration(item);
 		if (item.type === "subAgentActivity" || item.type === "SubAgentActivity") this.syncSubAgentActivity(item);
 		const agentId = this.activeActions.get(item.id)?.agentId ?? fallbackAgentId;
-		if (!this.acceptAgentEvent(agentId)) return;
+		if (!this.acceptAgentEvent(agentId)) {
+			this.activeActions.delete(item.id);
+			return;
+		}
 		if (item.type === "agentMessage") {
 			this.state.flushThoughts();
 			if (item.text) this.state.say(agentId, item.text);
@@ -392,6 +395,7 @@ export class CodexOfficeSession {
 			this.finishChild(childId, kind === "completed");
 			return;
 		}
+		if (this.agents.isSettling(childId)) return;
 		const existing = this.state.getAgent(childId);
 		if (!existing) {
 			this.agents.spawn({ id: childId, name, role: roleForAgent(name), parent: MAIN, task: name });
@@ -416,7 +420,7 @@ export class CodexOfficeSession {
 	}
 
 	private acceptAgentEvent(agentId: string): boolean {
-		return Boolean(agentId) && (agentId !== MAIN || this.state.sessionBusy());
+		return Boolean(agentId) && !this.agents.isSettling(agentId) && (agentId !== MAIN || this.state.sessionBusy());
 	}
 
 	private hasActiveAction(agentId: string): boolean {
@@ -442,6 +446,7 @@ export class CodexOfficeSession {
 			const childId = `codex:${threadId}`;
 			const name = receiver.name;
 			this.childAgents.set(threadId, childId);
+			if (this.agents.isSettling(childId)) continue;
 			if (!this.state.getAgent(childId)) {
 				this.agents.spawn({ id: childId, name, role: roleForAgent(name), parent: MAIN, task: prompt });
 			}
@@ -454,7 +459,7 @@ export class CodexOfficeSession {
 			const state = typeof rawState === "string" ? rawState : Object.keys((rawState ?? {}) as JsonObject)[0] ?? "";
 			if (["completed", "failed", "errored", "cancelled", "shutdown"].includes(state)) {
 				this.finishChild(childId, state === "completed");
-			} else if (tool !== "spawn_agent") {
+			} else if (tool !== "spawn_agent" && !this.agents.isSettling(childId)) {
 				this.state.setState(childId, "working", "协作中");
 			}
 		}

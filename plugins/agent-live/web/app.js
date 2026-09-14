@@ -340,6 +340,9 @@
 	}
 
 	function updateActorLife(actor, now, dt) {
+		// Completed/cancelled real Agents are waiting only for their short exit
+		// animation. They must never enter the idle NPC activity scheduler.
+		if (!actor.isNpc && ["done", "error"].includes(actor.state)) return;
 		if (!actor.life) {
 			if (actor.path.length || actor.inMeeting || actor.leaving || actor.action) return;
 			const choices = activitiesFor(actor);
@@ -1032,7 +1035,7 @@
 
 	function isPriorityLiveEvent(event) {
 		if (event.type === "session") return Boolean(event.session?.busy);
-		return ["task", "thought", "say", "action", "delegate", "agent_join"].includes(event.type) ||
+		return ["task", "thought", "say", "action", "delegate", "agent_join", "agent_leave"].includes(event.type) ||
 			(event.type === "agent_state" && !["idle", "done"].includes(event.state));
 	}
 

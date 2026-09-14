@@ -95,6 +95,11 @@ assert.equal(interruptState.getAgent("codex:main-thread"), undefined, "root acti
 (interruptSession as any).handleMessage({ method: "turn/completed", params: { threadId: "unknown-child", turn: { status: "interrupted" } } });
 assert.equal(interruptState.getAgent("codex:unknown-child")?.state, "done", "an interrupted child was painted as an error");
 assert.equal(interruptState.getAgent("codex:unknown-child")?.detail, "已停止");
+(interruptSession as any).handleMessage({
+	method: "item/completed",
+	params: { threadId: "unknown-child", item: { type: "commandExecution", id: "late-action", status: "completed" } },
+});
+assert.equal(interruptState.getAgent("codex:unknown-child")?.state, "done", "a late child item revived a terminal agent");
 (interruptSession as any).handleMessage({ method: "turn/completed", params: { threadId: "main-thread", turn: { status: "interrupted" } } });
 assert.equal(interruptState.getAgent("main")?.state, "idle", "an interrupted main turn was painted as an error");
 assert.equal(interruptState.getAgent("main")?.detail, "已停止");

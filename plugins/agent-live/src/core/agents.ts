@@ -41,6 +41,9 @@ export class AgentRegistry {
 	spawn(input: { id: string; name: string; task: string; role?: string; parent?: string }): AgentView | undefined {
 		const parent = input.parent ?? this.mainId;
 		const existing = this.state.getAgent(input.id);
+		// Host transports may deliver late or duplicated events while a child is
+		// leaving. A terminal child must not be resurrected with the same id.
+		if (existing && this.isSettling(input.id)) return existing;
 		const agent = this.state.join(input.id, {
 			name: input.name,
 			role: input.role ?? roleForAgent(input.name),
@@ -136,6 +139,10 @@ export class AgentRegistry {
 		let count = 0;
 		for (const id of this.children) if (!this.completed.has(id)) count += 1;
 		return count;
+	}
+
+	isSettling(id: string): boolean {
+		return this.completed.has(id) || this.leaveTimers.has(id);
 	}
 
 	dispose(): void {
