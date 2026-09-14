@@ -138,11 +138,13 @@ export class CreatorService {
 				return refuse("reserved-office-id", `${compiled.draft.id} is the editable copy of ${reserved}`);
 			}
 		} else {
-			// The id this Office owns must not be held by an Office that descends from
-			// another Preset: overwriting it would replace a different room silently.
+			// The id this Office owns must not be held by an Office from another
+			// Preset, and an Office that declares no base Preset cannot prove it is
+			// this Preset's own copy, so it is never overwritten either.
 			const existing = await this.#registry.get(targetId);
-			if (existing?.basePreset && existing.basePreset !== owner) {
-				return refuse("id-conflict", `${targetId} already holds an Office based on ${existing.basePreset}`);
+			if (existing && existing.basePreset !== owner) {
+				const occupant = existing.basePreset ? `an Office based on ${existing.basePreset}` : "an Office without a base Preset";
+				return refuse("id-conflict", `${targetId} already holds ${occupant}; it will not be overwritten`);
 			}
 		}
 		const saved = await this.#registry.save(compiled.draft);

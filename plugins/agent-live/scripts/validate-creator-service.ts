@@ -96,5 +96,15 @@ try {
 	assert.equal(blocked.errors?.some((issue) => issue.path === "$.id" && issue.code === "id-conflict"), true, "the rejection must point at the id");
 	assert.equal((await registry.get("local/tech-open-office"))?.name, "Boardroom squatter", "the occupying Office must stay untouched");
 	assert.equal((await registry.get("local/tech-open-office"))?.basePreset, "builtin/boardroom-office", "the occupying Office must keep its own Preset");
+
+	// An occupant that declares no base Preset cannot prove it is this Preset's
+	// copy, so it must not be overwritten either. It stays editable as itself.
+	await writeFile(occupantPath, `${JSON.stringify({ ...stored, name: "Legacy squatter", basePreset: undefined }, null, "\t")}\n`);
+	const blockedLegacy = await creator.customize({ texts: { company: "taken" } }, "builtin/tech-open-office");
+	assert.equal(blockedLegacy.saved, false, "an Office without a base Preset must not be overwritten through this Preset's id");
+	assert.equal(blockedLegacy.errors?.some((issue) => issue.path === "$.id" && issue.code === "id-conflict"), true, "the rejection must point at the id");
+	assert.equal((await registry.get("local/tech-open-office"))?.name, "Legacy squatter", "the occupant without a base Preset must stay untouched");
+	const selfEdit = await creator.customize({ name: "Legacy renamed" }, "local/tech-open-office");
+	assert.equal(selfEdit.saved, true, "an Office without a base Preset must still be editable as itself");
 	console.log("creator service: direct save/select, full-content Office copies, defaults and failed-change isolation passed");
 } finally { await rm(root, { recursive: true, force: true }); }

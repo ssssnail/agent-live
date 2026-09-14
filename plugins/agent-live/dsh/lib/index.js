@@ -765,8 +765,9 @@ var CreatorService = class {
       }
     } else {
       const existing = await this.#registry.get(targetId);
-      if (existing?.basePreset && existing.basePreset !== owner) {
-        return refuse("id-conflict", `${targetId} already holds an Office based on ${existing.basePreset}`);
+      if (existing && existing.basePreset !== owner) {
+        const occupant = existing.basePreset ? `an Office based on ${existing.basePreset}` : "an Office without a base Preset";
+        return refuse("id-conflict", `${targetId} already holds ${occupant}; it will not be overwritten`);
       }
     }
     const saved = await this.#registry.save(compiled.draft);
