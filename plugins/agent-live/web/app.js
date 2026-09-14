@@ -72,11 +72,13 @@
 		if (!document.hidden) {
 			lastFrameAt = performance.now();
 			scheduleResize();
+			void reconcileAuthoritativeAgents();
 		}
 	});
 	window.addEventListener("pageshow", () => {
 		lastFrameAt = performance.now();
 		scheduleResize();
+		void reconcileAuthoritativeAgents();
 	});
 	const sizeObserver = typeof ResizeObserver === "function" ? new ResizeObserver(scheduleResize) : null;
 	sizeObserver?.observe(canvas.parentElement);
@@ -152,6 +154,7 @@
 			inMeeting: false,
 			leaving: false,
 			leaveBy: 0,
+			leaveTimer: null,
 			actions: new Map(),
 			life: null,
 			lifeCycle: 0,
@@ -498,6 +501,7 @@
 		switch (ev.type) {
 			case "snapshot": {
 				eventHistory = Array.isArray(ev.history) ? ev.history.slice(-MAX_EVENT_HISTORY) : eventHistory;
+				for (const actor of actors.values()) if (actor.leaveTimer) clearTimeout(actor.leaveTimer);
 				actors.clear();
 				particles.length = 0;
 				hot.clear();
@@ -520,12 +524,18 @@
 				renderCrew();
 				break;
 			}
-			case "session":
+			case "session": {
+				const wasBusy = Boolean(session.busy);
 				session = ev.session;
 				if (session.busy) {
 					for (const actor of actors.values()) if (!actor.isNpc) cancelLife(actor);
 				}
+				// SSE drives animation, but the snapshot is authoritative. Reconcile at
+				// the terminal boundary so a missed/out-of-order leave can never leave a
+				// ghost Agent in Canvas state.
+				if (wasBusy && !session.busy) void reconcileAuthoritativeAgents();
 				break;
+			}
 			case "agent_join": {
 				const existing = actors.get(ev.agent.id);
 				if (existing) {
@@ -560,6 +570,12 @@
 				// lifecycle. Browser background throttling must never keep a character
 				// after the authoritative state has removed it.
 				actor.leaveBy = performance.now() + 3200;
+				if (actor.leaveTimer) clearTimeout(actor.leaveTimer);
+				actor.leaveTimer = setTimeout(() => {
+					if (actors.get(actor.id) !== actor || !actor.leaving) return;
+					actors.delete(actor.id);
+					renderCrew();
+				}, 3300);
 				actor.inMeeting = false;
 				if (ev.ok !== undefined) spawn(ev.ok ? "check" : "cross", actor.x, actor.y - 26, { life: 1.1 });
 				goTo(actor, Office.TARGETS.entry);
@@ -1059,6 +1075,26 @@
 			if (response.ok) apply(await response.json());
 		} catch {
 			// The live SSE stream will deliver the next authoritative event.
+		}
+	}
+
+	async function getLiveSnapshot() {
+		if (typeof window.AgentLiveGetSnapshot === "function") return window.AgentLiveGetSnapshot();
+		try {
+			const response = await authenticatedFetch("/api/state");
+			return response.ok ? response.json() : null;
+		} catch {
+			return null;
+		}
+	}
+
+	async function reconcileAuthoritativeAgents() {
+		const latest = await getLiveSnapshot();
+		if (!latest) return;
+		const liveIds = new Set((latest.agents ?? []).map((agent) => agent.id));
+		for (const actor of [...actors.values()]) {
+			if (actor.isNpc || liveIds.has(actor.id) || actor.leaving) continue;
+			apply({ type: "agent_leave", id: actor.id });
 		}
 	}
 
