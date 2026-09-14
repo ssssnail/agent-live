@@ -151,6 +151,17 @@ export declare class CreatorService {
         office: {
             id: string;
             name: string;
+            origin: "official" | "custom";
+            agentProfile: import("../content/schema.ts").AgentProfile | null;
+            texts: Record<string, string>;
+            npcs: {
+                id: string;
+                template: string | undefined;
+                name: string | undefined;
+                title: string | undefined;
+                gender: "female" | "male" | "nonbinary" | "unspecified" | undefined;
+                spawn: string | undefined;
+            }[];
         };
         counts: {
             styles: number;

@@ -73,7 +73,24 @@ export class CreatorService {
 		if (category === "appearance") return { styles: full.styles, agentSkins: full.agentSkins, agentProfileTemplates: full.agentProfileTemplates };
 		if (category === "environment") return { atmospheres: full.atmospheres, environments: full.environments };
 		return {
-			office: { id: office.id, name: office.name },
+			// The compact view is also the model's edit baseline. Supplying the
+			// bounded, user-editable state here avoids filesystem inspection and
+			// repeated catalog calls just to discover an NPC id or text slot.
+			office: {
+				id: office.id,
+				name: office.name,
+				origin: office.origin,
+				agentProfile: structuredClone(office.agentProfile ?? null),
+				texts: structuredClone(office.texts ?? {}),
+				npcs: office.npcs.map((npc) => ({
+					id: npc.id,
+					template: npc.template,
+					name: npc.name,
+					title: npc.title,
+					gender: npc.gender,
+					spawn: npc.spawn,
+				})),
+			},
 			counts: {
 				styles: full.styles.length,
 				agentSkins: full.agentSkins.length,

@@ -39,6 +39,10 @@ try {
 	const withText = await creator.customize({ texts: { company: "Snail Lab", notice: "Build together" }, placements: { upsert: [{ id: "extra-plant", component: "builtin/plant", slot: "extra-1" }] } });
 	assert.equal(withText.saved, true);
 	assert.equal(withText.office?.texts?.company, "Snail Lab");
+	const summary = await creator.listComponents();
+	assert.equal(summary.office.id, "local/boardroom-office");
+	assert.equal(summary.office.texts.company, "Snail Lab");
+	assert.equal(summary.office.npcs.some((npc: any) => npc.id === "boardroom-boss" && npc.template === "builtin/boss"), true);
 	const room = (await creator.listComponents("room")).room!;
 	assert.equal(room.slots.find((slot: any) => slot.id === "extra-1")?.occupiedBy, "extra-plant");
 	assert.equal((await creator.customize({ texts: { missing: "Hello" } })).saved, false);

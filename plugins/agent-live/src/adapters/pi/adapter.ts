@@ -35,7 +35,9 @@ const CREATOR_TOOL_PARAMETERS = {
 
 const CREATOR_TOOL_GUIDELINES = [
 	"Use agent_live_creator for office changes only while Agent Live Creator Mode is active. The user enters with /agent-live custom and exits with /agent-live exit.",
-	"For common changes, call customize directly. Query list_components only when a choice is unknown; request the narrowest category and avoid all unless the user explicitly asks for the complete capability catalog.",
+	"The selected Office is authoritative. Never inspect files, search for another copy, invent an Office id, or pass base/id unless the user explicitly selected another listed Office.",
+	"For the first common edit, query the default compact list_components summary at most once for current Agent, text, and NPC ids, then customize immediately. Use a narrower component category only when a requested choice is unknown; avoid all unless the user explicitly asks for the complete catalog.",
+	"Common internal Patch shapes are agentProfile { template: 'builtin/host-agent', name?, title? }, texts { company?, notice?, slogan? }, and npcs { upsert: [{ id, template?, name?, title?, gender?, spawn?, pose? }], remove?: [id] }. Rename by the current summary id; add a colleague with a unique id and template 'builtin/colleague'.",
 	"Keep schemas, component IDs and patches internal. After applying, summarize defaults, substitutions, ignored requests and source-code-only boundaries.",
 ];
 

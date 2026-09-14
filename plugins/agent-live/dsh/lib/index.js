@@ -694,7 +694,24 @@ var CreatorService = class {
     if (category === "appearance") return { styles: full.styles, agentSkins: full.agentSkins, agentProfileTemplates: full.agentProfileTemplates };
     if (category === "environment") return { atmospheres: full.atmospheres, environments: full.environments };
     return {
-      office: { id: office.id, name: office.name },
+      // The compact view is also the model's edit baseline. Supplying the
+      // bounded, user-editable state here avoids filesystem inspection and
+      // repeated catalog calls just to discover an NPC id or text slot.
+      office: {
+        id: office.id,
+        name: office.name,
+        origin: office.origin,
+        agentProfile: structuredClone(office.agentProfile ?? null),
+        texts: structuredClone(office.texts ?? {}),
+        npcs: office.npcs.map((npc) => ({
+          id: npc.id,
+          template: npc.template,
+          name: npc.name,
+          title: npc.title,
+          gender: npc.gender,
+          spawn: npc.spawn
+        }))
+      },
       counts: {
         styles: full.styles.length,
         agentSkins: full.agentSkins.length,
@@ -772,6 +789,9 @@ var CreatorCommandRouter = class {
 // ../src/creator/mode.ts
 var CREATOR_MODE_CONTEXT = `Agent Live Creator Mode is active for this session.
 Treat office-related natural language as a request to modify the currently selected Custom Office and use the agent_live_creator tool.
+The currently selected Office is the only edit target. Do not inspect files, search for another copy, deliberate about replacement, invent a new Office id, or pass base/id unless the user explicitly selected another listed Office.
+On the first edit, call list_components with the default compact summary at most once to obtain the current Agent Profile, text areas, and NPC ids. Then call customize immediately. Do not call list_offices or broader component categories unless the request genuinely needs an unknown choice.
+For common edits, use these internal Patch shapes: agentProfile { template: "builtin/host-agent", name?, title? }; texts { company?, notice?, slogan? }; npcs { upsert: [{ id, template?, name?, title?, gender?, spawn?, pose? }], remove?: [id] }. Rename an existing NPC by its summary id. Add an ordinary colleague with a unique id and template "builtin/colleague"; omitted profile and appearance are resolved deterministically.
 Do not expose schemas, patches, or component ids unless explicitly asked for implementation details.
 If a request is unrelated to the office or ambiguous, do not perform it. Explain that Creator Mode is active and offer exactly these choices: continue editing, /agent-live list presets, /agent-live preset <number or name>, /agent-live custom, or /agent-live exit.
 Map a request like "make me a police station" onto the closest complete Preset Office, then change its name, people, identities, furniture, style and activities. If the request needs a brand-new room structure (walls, areas, lanes, seats or work stations), say that it requires adding a new Office Preset and therefore a source change; never offer to swap a room in place.
@@ -1125,6 +1145,10 @@ var SKILL = `# Agent Live Creator
 Use the agent_live_creator tool when Agent Live Creator Mode is active. The user enters with /agent-live custom and exits with /agent-live exit. There is no draft, preview, confirmation, save, undo, or discard step; every valid customization applies atomically.
 
 For common changes, call customize directly. Inspect list_offices or the narrowest list_components category only when a choice is unknown; list_components defaults to a compact summary, and all is reserved for an explicit complete-catalog request. Omit base to modify the currently selected Office, or provide an Office id to start from that Office. Customize validates, saves, selects, and immediately displays the result.
+
+The currently selected Office is authoritative. Never inspect files, search for a similarly based Custom Office, deliberate about replacement, invent a new Office id, or pass base/id unless the user explicitly selected another listed Office. On the first edit, call the default compact list_components summary at most once to obtain the current Agent Profile, text areas, and NPC ids, then call customize immediately. Do not call list_offices for an ordinary edit.
+
+For common edits, use these internal Patch shapes: agentProfile { template: "builtin/host-agent", name?, title? }; texts { company?, notice?, slogan? }; npcs { upsert: [{ id, template?, name?, title?, gender?, spawn?, pose? }], remove?: [id] }. Rename an existing NPC by its compact-summary id. Add an ordinary colleague with a unique id and template "builtin/colleague"; omitted profile and appearance are resolved deterministically.
 
 Never expose internal component ids, schemas, or patches unless the user explicitly asks for implementation details. Map unsupported input to the closest supported capability without interrupting generation, then summarize defaults, substitutions, ignored requests, and source-code-only requests after applying the change.
 

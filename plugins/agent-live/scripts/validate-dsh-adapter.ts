@@ -49,6 +49,8 @@ assert.match(creator, /session\/disposed/, "Creator Mode must be released with i
 assert.match(creator, /currentOfficeProjection = selectedOfficeProjection/, "all DSH scopes must share the latest selected Office");
 assert.match(creator, /Custom Offices:/, "preset discovery must distinguish custom Offices from preset Offices");
 assert.match(creator, /systemPrompt\.context/);
+assert.match(creator, /currently selected Office is authoritative/);
+assert.match(creator, /default compact list_components summary at most once/);
 
 const baseline: DshObservation = {
   sessionId: "session-a",

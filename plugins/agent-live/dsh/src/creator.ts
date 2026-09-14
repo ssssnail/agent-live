@@ -59,6 +59,10 @@ Use the agent_live_creator tool when Agent Live Creator Mode is active. The user
 
 For common changes, call customize directly. Inspect list_offices or the narrowest list_components category only when a choice is unknown; list_components defaults to a compact summary, and all is reserved for an explicit complete-catalog request. Omit base to modify the currently selected Office, or provide an Office id to start from that Office. Customize validates, saves, selects, and immediately displays the result.
 
+The currently selected Office is authoritative. Never inspect files, search for a similarly based Custom Office, deliberate about replacement, invent a new Office id, or pass base/id unless the user explicitly selected another listed Office. On the first edit, call the default compact list_components summary at most once to obtain the current Agent Profile, text areas, and NPC ids, then call customize immediately. Do not call list_offices for an ordinary edit.
+
+For common edits, use these internal Patch shapes: agentProfile { template: "builtin/host-agent", name?, title? }; texts { company?, notice?, slogan? }; npcs { upsert: [{ id, template?, name?, title?, gender?, spawn?, pose? }], remove?: [id] }. Rename an existing NPC by its compact-summary id. Add an ordinary colleague with a unique id and template "builtin/colleague"; omitted profile and appearance are resolved deterministically.
+
 Never expose internal component ids, schemas, or patches unless the user explicitly asks for implementation details. Map unsupported input to the closest supported capability without interrupting generation, then summarize defaults, substitutions, ignored requests, and source-code-only requests after applying the change.
 
 An Office keeps its room. Map a request like "make me a police station" onto the closest complete Preset Office, then change its name, people, identities, furniture, style and activities. A brand-new room structure needs a new Office Preset, which is a source change — say so instead of swapping a room in place.

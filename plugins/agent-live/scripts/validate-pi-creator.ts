@@ -27,6 +27,8 @@ try {
 	const tool = tools.get("agent_live_creator");
 	assert.ok(tool);
 	assert.deepEqual(tool.parameters.properties.command.enum, ["list_offices", "list_components", "customize"]);
+	assert.match(tool.promptGuidelines.join("\n"), /selected Office is authoritative/);
+	assert.match(tool.promptGuidelines.join("\n"), /compact list_components summary at most once/);
 	const changed = JSON.parse((await tool.execute("1", { command: "customize", patch: { id: "local/pi-test", name: "Pi Test" } }, undefined, undefined, ctx)).content[0].text);
 	assert.equal(changed.ok && changed.data.office.id === "local/pi-test", true);
 	assert.equal("previewUrl" in changed || "creatorMode" in changed, false);

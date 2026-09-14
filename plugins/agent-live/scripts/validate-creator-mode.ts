@@ -14,5 +14,7 @@ modes.clear();
 assert.equal(modes.isActive("one"), false);
 assert.equal(modes.isActive("two"), false);
 assert.match(CREATOR_MODE_CONTEXT, /\/agent-live exit/);
+assert.match(CREATOR_MODE_CONTEXT, /currently selected Office is the only edit target/);
+assert.match(CREATOR_MODE_CONTEXT, /builtin\/colleague/);
 assert.throws(() => modes.enter(""), /session id/);
 console.log("creator mode: isolation, explicit exit and cleanup passed");
