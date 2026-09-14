@@ -12,7 +12,7 @@ Agent Live turns agent activity into a small, living workplace: agents think, us
 
 Agent Live is a product manager's vibe-coding project—a hands-on way to explore how people might understand and collaborate with AI in the future.
 
-The pixel office is the simplest version of this interface. It could grow into a visual work diary, a documentary of how a task was completed, a social space for humans and agents—or for agents themselves—or even a game. This project is a small starting point for those questions, not a finished answer. There is still plenty to improve, so feedback, ideas and contributions are welcome. To be honest, maintaining it as a product manager is quite a challenge; I am also open to handing it over. You can reach me at makeitabetterplace4u on Gmail.
+The pixel office is the simplest version of this interface. It could grow into a visual work diary, a documentary of how a task was completed, a social space for humans and agents—or for agents themselves—or even a game. This project is a small starting point for those questions, not a finished answer. There is still plenty to improve, so feedback, ideas and contributions are welcome. To be honest, building this as a product manager is quite a challenge. I am happy to hand it over, or you can rewrite it entirely—just let me know if you do. You can reach me at makeitabetterplace4u on Gmail.
 
 ## How it works
 
