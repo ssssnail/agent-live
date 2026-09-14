@@ -37,6 +37,7 @@ export class CodexOfficeSession {
 	};
 	private threadId = "";
 	private turnId = "";
+	private readonly activeTurns = new Map<string, string>();
 	private startingTurn = false;
 	private turns = 0;
 	private readonly activeActions = new Map<string, ActiveAction>();
@@ -67,6 +68,7 @@ export class CodexOfficeSession {
 		this.unsubscribeDisconnect = this.client.onDisconnect((error) => {
 			this.connectionError = error.message;
 			this.turnId = "";
+			this.activeTurns.clear();
 			this.startingTurn = false;
 			this.interrupting = false;
 			this.clearApprovals(error.message, false);
@@ -108,7 +110,7 @@ export class CodexOfficeSession {
 			threadId: this.threadId,
 			model: this.model,
 			models: this.models,
-			busy: this.state.sessionBusy(),
+			busy: this.startingTurn || this.activeTurns.size > 0,
 			interrupting: this.interrupting,
 			error: this.connectionError,
 			approval: request ? this.approvalView(request) : null,
@@ -143,6 +145,8 @@ export class CodexOfficeSession {
 			const turnId = (result as { turn?: { id?: string } }).turn?.id;
 			if (!turnId) throw new Error("Codex did not return a turn id");
 			this.turnId = turnId;
+			this.activeTurns.set(this.threadId, turnId);
+			this.syncBusyState();
 			return { turnId };
 		} catch (error) {
 			this.state.updateSession({ busy: false });
@@ -154,11 +158,20 @@ export class CodexOfficeSession {
 	}
 
 	async interrupt(): Promise<void> {
-		if (!this.threadId || !this.turnId || this.interrupting) return;
+		if (this.interrupting) return;
+		const turns = [...this.activeTurns.entries()];
+		if (this.threadId && this.turnId && this.activeTurns.get(this.threadId) !== this.turnId) {
+			turns.unshift([this.threadId, this.turnId]);
+		}
+		if (!turns.length) return;
 		this.interrupting = true;
 		this.state.setState(MAIN, "waiting", "正在停止");
 		try {
-			await this.client.request("turn/interrupt", { threadId: this.threadId, turnId: this.turnId });
+			const results = await Promise.allSettled(turns.map(([threadId, turnId]) =>
+				this.client.request("turn/interrupt", { threadId, turnId }),
+			));
+			const failures = results.filter((result): result is PromiseRejectedResult => result.status === "rejected");
+			if (failures.length === results.length) throw failures[0].reason;
 		} catch (error) {
 			this.interrupting = false;
 			throw error;
@@ -243,7 +256,11 @@ export class CodexOfficeSession {
 		const params = message.params ?? {};
 		const agentId = this.agentIdFor(params);
 		switch (message.method) {
-			case "turn/started":
+			case "turn/started": {
+				const eventThreadId = this.messageThreadId(params);
+				const eventTurnId = String((params.turn as JsonObject | undefined)?.id ?? "");
+				if (eventThreadId && eventTurnId) this.activeTurns.set(eventThreadId, eventTurnId);
+				this.syncBusyState();
 				// Only the session's own thread may control the main turn lifecycle.
 				// Subagent notifications can arrive before their collaboration item;
 				// treating an unknown thread as MAIN would overwrite the turn id and
@@ -258,6 +275,7 @@ export class CodexOfficeSession {
 				this.state.updateSession({ busy: true });
 				this.state.setState(MAIN, "thinking", "构思中");
 				break;
+			}
 			case "item/started":
 				this.itemStarted(params.item as Item | undefined, agentId);
 				break;
@@ -286,23 +304,35 @@ export class CodexOfficeSession {
 				break;
 			}
 			case "turn/completed": {
+				const eventThreadId = this.messageThreadId(params);
+				if (eventThreadId) this.activeTurns.delete(eventThreadId);
+				this.syncBusyState();
 				if (!agentId) break;
 				if (agentId !== MAIN) {
 					const childStatus = String((params.turn as JsonObject | undefined)?.status ?? "completed");
 					this.finishChild(agentId, childStatus === "completed");
+					if (!this.activeTurns.size && !this.turnId) {
+						this.interrupting = false;
+						this.state.setState(MAIN, "idle", "待命");
+					}
 					break;
 				}
 				this.state.flushThoughts();
 				this.clearApprovals("Turn completed before approval was resolved");
-				for (const [id, action] of this.activeActions) this.state.endAction(action.agentId, id, false);
-				this.activeActions.clear();
+				for (const [id, action] of this.activeActions) {
+					if (action.agentId !== MAIN) continue;
+					this.state.endAction(action.agentId, id, false);
+					this.activeActions.delete(id);
+				}
 				const status = String((params.turn as JsonObject | undefined)?.status ?? "completed");
 				this.turnId = "";
-				this.interrupting = false;
+				if (!this.activeTurns.size) this.interrupting = false;
 				this.turns += 1;
-				this.state.updateSession({ busy: false, turns: this.turns });
-				this.state.setState(MAIN, status === "failed" ? "error" : "idle", status === "failed" ? "任务失败" : "待命");
-				this.settleChildren(status !== "failed");
+				this.state.updateSession({ busy: this.activeTurns.size > 0, turns: this.turns });
+				if (status === "failed") this.state.setState(MAIN, "error", "任务失败");
+				else if (this.activeTurns.size) this.state.setState(MAIN, "waiting", `等待 ${this.activeTurns.size} 位同事`);
+				else this.state.setState(MAIN, "idle", "待命");
+				if (!this.activeTurns.size) this.settleChildren(status !== "failed");
 				break;
 			}
 		}
@@ -350,6 +380,7 @@ export class CodexOfficeSession {
 		const childId = `codex:${threadId}`;
 		const kind = String(item.kind ?? item.status ?? "").toLowerCase();
 		const agentPath = String(item.agentPath ?? item.agent_path ?? "");
+		if (threadId === this.threadId || agentPath === "/root") return;
 		const name = agentPath.split("/").filter(Boolean).at(-1) || "Teammate";
 		this.childAgents.set(threadId, childId);
 		if (["completed", "failed", "errored", "cancelled", "shutdown"].includes(kind)) {
@@ -366,9 +397,17 @@ export class CodexOfficeSession {
 	}
 
 	private agentIdFor(params: JsonObject): string {
-		const threadId = String(params.threadId ?? params.thread_id ?? "");
+		const threadId = this.messageThreadId(params);
 		if (!threadId || threadId === this.threadId) return MAIN;
 		return this.childAgents.get(threadId) ?? "";
+	}
+
+	private messageThreadId(params: JsonObject): string {
+		return String(params.threadId ?? params.thread_id ?? "");
+	}
+
+	private syncBusyState(): void {
+		this.state.updateSession({ busy: this.startingTurn || this.activeTurns.size > 0 });
 	}
 
 	private acceptAgentEvent(agentId: string): boolean {

@@ -79,10 +79,15 @@ const interruptSession = new CodexOfficeSession(interruptState, interruptClient 
 (interruptSession as any).handleMessage({ method: "turn/started", params: { threadId: "unknown-child", turn: { id: "child-turn" } } });
 assert.equal((interruptSession as any).turnId, "main-turn", "unknown child turn replaced the main turn id");
 await interruptSession.interrupt();
-assert.deepEqual(interruptRequests.at(-1), {
-	method: "turn/interrupt",
-	params: { threadId: "main-thread", turnId: "main-turn" },
+assert.deepEqual(interruptRequests, [
+	{ method: "turn/interrupt", params: { threadId: "main-thread", turnId: "main-turn" } },
+	{ method: "turn/interrupt", params: { threadId: "unknown-child", turnId: "child-turn" } },
+]);
+(interruptSession as any).handleMessage({
+	method: "item/completed",
+	params: { threadId: "main-thread", item: { type: "subAgentActivity", id: "root-activity", kind: "started", agentThreadId: "main-thread", agentPath: "/root" } },
 });
+assert.equal(interruptState.getAgent("codex:main-thread"), undefined, "root activity was rendered as a child agent");
 await interruptSession.close();
 interruptState.dispose();
 
