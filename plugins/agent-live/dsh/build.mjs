@@ -1,7 +1,7 @@
 import { build } from "esbuild";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 
-const moduleId = "agent-live-dsh";
+const moduleId = "@iniesta8888/agent-live-dsh";
 const contentToken = "__AGENT_LIVE_CONTENT_URI__";
 const localeToken = "__AGENT_LIVE_LOCALE__";
 

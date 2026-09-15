@@ -1,6 +1,6 @@
 {
   "name": "@iniesta8888/agent-live-pi",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "type": "module",
   "description": "Pi adapter for the Agent Live pixel office",
   "keywords": ["pi-package", "pi-extension", "coding-agent", "agent-live", "pixel-office"],

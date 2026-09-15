@@ -34,7 +34,7 @@ pi install npm:@iniesta8888/agent-live-pi
 ### Codex
 
 ```bash
-codex plugin marketplace add ssssnail/agent-live --ref v0.3.2
+codex plugin marketplace add ssssnail/agent-live --ref v0.3.3
 codex plugin add agent-live@agent-live-marketplace
 ```
 

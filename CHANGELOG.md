@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.3 — 2026-09-15
+
+- Fixed the DSH bundle and browser module IDs to use the complete scoped npm package name.
+
 ## 0.3.2 — 2026-09-15
 
 - Added an explicit confirmed command to clear all local Agent Live data and restore the built-in office.

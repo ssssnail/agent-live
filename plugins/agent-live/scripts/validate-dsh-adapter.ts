@@ -21,7 +21,8 @@ const frameHtml = await readFile(path.join(pluginRoot, "src/frame.html"), "utf8"
 assert.equal(pkg.dsh.client.platform, "web");
 assert.equal(pkg.dsh.bundle.patch, "./cordis.patch.yml");
 assert.equal(pkg.exports["./client"].default, "./lib/client.js");
-assert.match(patch, /name: agent-live-dsh/);
+assert.match(patch, new RegExp(`name: ['"]${pkg.name.replaceAll("/", "\\/")}['"]`), "DSH loader entry must import the complete npm package name");
+assert.match(buildScript, new RegExp(`moduleId = ["']${pkg.name.replaceAll("/", "\\/")}["']`), "DSH browser module id must match the complete npm package name");
 assert.match(client, /slots\.inject\("conversation\.view"/);
 assert.match(client, /useSession\(\(snapshot[^)]*\) => snapshot\.running\)/);
 assert.match(client, /useConversation\(\(snapshot[^)]*\) => snapshot\.views\.get\("chat"\)\)/);
