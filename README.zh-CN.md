@@ -8,6 +8,14 @@
 
 Agent Live 将 Agent 的工作过程变成一个有生活感的小型办公空间：Agent 会实时思考、使用工具、协作、休息并完成工作。
 
+## 实际效果
+
+| Codex：多个 Agent 协作 | DeepSeek Harness：内嵌 Agent Live View |
+| --- | --- |
+| ![Codex 与两名子 Agent 在 Agent Live 中协作](docs/images/agent-live-codex.png) | ![DeepSeek Harness 中内嵌的 Agent Live View](docs/images/agent-live-dsh.png) |
+| Pi：科技办公室 | Pi：会议室与历史回放 |
+| ![Pi 在 Agent Live 科技办公室中工作](docs/images/agent-live-pi-tech.png) | ![Pi 的 Agent Live 会议室和历史回放](docs/images/agent-live-pi-meetingroom.png) |
+
 ## 为什么做这个项目
 
 Agent Live 是一个产品经理的 vibe coding 项目，也是一次亲手体验和思考未来人类如何理解 AI、与 AI 协作的尝试。

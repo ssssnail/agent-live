@@ -8,6 +8,14 @@
 
 Agent Live turns agent activity into a small, living workplace: agents think, use tools, collaborate, take breaks and finish their work in real time.
 
+## See it live
+
+| Codex — agents collaborating | DeepSeek Harness — embedded Agent Live view |
+| --- | --- |
+| ![Agent Live running with Codex and two teammates](docs/images/agent-live-codex.png) | ![Agent Live embedded in DeepSeek Harness](docs/images/agent-live-dsh.png) |
+| Pi — tech office | Pi — meeting room and replay |
+| ![Agent Live running with Pi in the tech office](docs/images/agent-live-pi-tech.png) | ![Agent Live meeting room and history replay in Pi](docs/images/agent-live-pi-meetingroom.png) |
+
 ## Why this project exists
 
 Agent Live is a product manager's vibe-coding project—a hands-on way to explore how people might understand and collaborate with AI in the future.
