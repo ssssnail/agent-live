@@ -1,0 +1,21 @@
+{
+	"schemaVersion": 1,
+	"kind": "preset",
+	"id": "builtin/tech-open-office",
+	"name": "tech",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"officeSpec": "official-offices/tech-open-office.json",
+	"render": { "detail": "rich" },
+	"content": {
+		"style": "pixel-classic",
+		"layout": "tech-open-office",
+		"agentSkin": "tiny-developers",
+		"props": "tech-office",
+		"npcs": "tech-office-staff",
+		"lifeActivities": "tech-office-routines",
+		"atmosphere": "default",
+		"environment": "local-office"
+	}
+}

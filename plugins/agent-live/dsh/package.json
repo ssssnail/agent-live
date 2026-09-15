@@ -1,6 +1,6 @@
 {
   "name": "@iniesta8888/agent-live-dsh",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Agent Live native conversation view for DeepSeek Harness",
   "keywords": ["dsh-plugin", "deepseek-harness", "coding-agent", "agent-live", "pixel-office"],
   "author": "ssssnail",
@@ -45,13 +45,14 @@
     "cordis.patch.yml",
     "lib/index.js",
     "lib/client.js",
+    "lib/content/**/*.json",
     "lib/types/**/*.d.ts",
     "README.md"
   ],
   "scripts": {
 		"build": "node clean.mjs && tsc --emitDeclarationOnly && node build.mjs",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run build && node scripts/validate-frame.mjs && npm pack --dry-run --ignore-scripts"
+    "check": "npm run typecheck && npm run build && node scripts/validate-frame.mjs && node scripts/validate-package-content.mjs && npm pack --dry-run --ignore-scripts"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",

@@ -1,0 +1,39 @@
+{
+	"schemaVersion": 1,
+	"kind": "npcs",
+	"id": "builtin/old-school-staff",
+	"name": "老派办公室职员",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"entries": [
+		{
+			"id": "receptionist-chen",
+			"name": "陈姐",
+			"role": "receptionist",
+			"title": "前台秘书",
+			"spawn": "reception",
+			"appearance": {
+				"skin": "#d69f70",
+				"hair": "#3d302a",
+				"shirt": "#718b78",
+				"trim": "#526a59",
+				"badge": "#d7ae5b"
+			}
+		},
+		{
+			"id": "custodian-zhou",
+			"name": "老周",
+			"role": "cleaner",
+			"title": "后勤",
+			"spawn": "cleaner-entry",
+			"appearance": {
+				"skin": "#b87a4f",
+				"hair": "#69635a",
+				"shirt": "#6d8171",
+				"trim": "#4a5e50",
+				"badge": "#b7d1bd"
+			}
+		}
+	]
+}

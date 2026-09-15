@@ -1148,6 +1148,7 @@ function pluginRoot() {
 function bundledContentRoot() {
   const directory = path4.dirname(fileURLToPath(import.meta.url));
   const candidates = [
+    path4.resolve(directory, "content"),
     path4.resolve(directory, "../../web/v2/content"),
     path4.resolve(directory, "../web/v2/content")
   ];

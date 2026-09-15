@@ -1,0 +1,10 @@
+{
+	"schemaVersion": 1,
+	"kind": "npcs",
+	"id": "builtin/no-npcs",
+	"name": "不启用 NPC",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"entries": []
+}

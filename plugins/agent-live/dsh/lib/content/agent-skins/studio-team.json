@@ -1,0 +1,33 @@
+{
+	"schemaVersion": 1,
+	"kind": "agent-skin",
+	"id": "builtin/studio-team",
+	"name": "暖调工作室团队",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "pixel-character-v1",
+	"animations": ["idle", "walk", "sit", "type", "reach", "talk"],
+	"palettes": {
+		"skin": ["#f3cfaa", "#e9b98e", "#d99d70", "#b97750"],
+		"hair": ["#38281d", "#273035", "#59392a", "#4a4342", "#6a421f"],
+		"fallbackShirts": ["#438b91", "#5d9a72", "#d58b4d", "#c56559", "#916aae", "#5ba9a0"],
+		"defaultTrim": "#354747",
+		"leadBadge": "#f2bd5b",
+		"agentBadge": "#91d4cf"
+	},
+	"roles": {
+		"scout": { "title": "侦察员", "shirt": "#5d9a72", "trim": "#3e7352" },
+		"planner": { "title": "规划师", "shirt": "#438b91", "trim": "#32686d" },
+		"reviewer": { "title": "评审员", "shirt": "#c56559", "trim": "#98483f" },
+		"worker": { "title": "工程师", "shirt": "#d58b4d", "trim": "#a56532" },
+		"tester": { "title": "测试员", "shirt": "#916aae", "trim": "#6d4d86" },
+		"writer": { "title": "文案", "shirt": "#cb718f", "trim": "#9f526f" },
+		"ceo": { "title": "CEO", "shirt": "#e1d5ba", "trim": "#aa9b7d" },
+		"cto": { "title": "CTO", "shirt": "#568491", "trim": "#3e626d" },
+		"cpo": { "title": "CPO", "shirt": "#aa78ad", "trim": "#805783" },
+		"programmer": { "title": "程序员", "shirt": "#d58b4d", "trim": "#a56532" },
+		"designer": { "title": "设计师", "shirt": "#5ba9a0", "trim": "#3f8179" },
+		"counselor": { "title": "顾问", "shirt": "#918a82", "trim": "#6c655e" },
+		"hr": { "title": "HR", "shirt": "#c49a52", "trim": "#94743b" }
+	}
+}

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.4 — 2026-09-15
+
+- Bundle the complete runtime Office content inside the DSH npm package so a clean profile can load Creator and renderable presets without reaching into the source repository.
+- Add a package-content regression check for the DSH distribution.
+
 ## 0.3.3 — 2026-09-15
 
 - Fixed the DSH bundle and browser module IDs to use the complete scoped npm package name.

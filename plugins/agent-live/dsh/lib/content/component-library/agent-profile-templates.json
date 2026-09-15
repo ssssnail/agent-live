@@ -1,0 +1,18 @@
+{
+	"schemaVersion": 1,
+	"kind": "agent-profile-template-library",
+	"id": "builtin/agent-profile-template-library",
+	"version": "1.0.0",
+	"contract": "single-office-v1",
+	"defaultTemplate": "builtin/host-agent",
+	"entries": [
+		{
+			"id": "builtin/host-agent",
+			"name": "Host agent",
+			"description": "Keeps the coding agent identity reported by Pi or Codex while allowing local display overrides.",
+			"tags": ["agent", "host", "identity"],
+			"defaultAppearance": {},
+			"allowedOverrides": ["name", "title", "appearance"]
+		}
+	]
+}

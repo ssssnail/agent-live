@@ -1410,6 +1410,7 @@ function pluginRoot() {
 function bundledContentRoot() {
   const directory = path5.dirname(fileURLToPath2(import.meta.url));
   const candidates = [
+    path5.resolve(directory, "content"),
     path5.resolve(directory, "../../web/v2/content"),
     path5.resolve(directory, "../web/v2/content")
   ];
@@ -1791,7 +1792,7 @@ var CodexAppServerClient = class {
     this.lines = createInterface({ input: child.stdout });
     this.lines.on("line", (line) => this.handleLine(line));
     const result = await this.request("initialize", {
-      clientInfo: { name: "agent-live", title: "Agent Live", version: "0.3.3" },
+      clientInfo: { name: "agent-live", title: "Agent Live", version: "0.3.4" },
       capabilities: {
         experimentalApi: true,
         requestAttestation: false,

@@ -23,6 +23,8 @@ assert.equal(pkg.dsh.bundle.patch, "./cordis.patch.yml");
 assert.equal(pkg.exports["./client"].default, "./lib/client.js");
 assert.match(patch, new RegExp(`name: ['"]${pkg.name.replaceAll("/", "\\/")}['"]`), "DSH loader entry must import the complete npm package name");
 assert.match(buildScript, new RegExp(`moduleId = ["']${pkg.name.replaceAll("/", "\\/")}["']`), "DSH browser module id must match the complete npm package name");
+assert.match(buildScript, /cp\(new URL\("\.\.\/web\/v2\/content"[\s\S]*new URL\("\.\/lib\/content"/, "DSH package must copy runtime Office content into its own lib directory");
+assert(pkg.files.includes("lib/content/**/*.json"), "DSH npm package must publish its bundled Office content");
 assert.match(client, /slots\.inject\("conversation\.view"/);
 assert.match(client, /useSession\(\(snapshot[^)]*\) => snapshot\.running\)/);
 assert.match(client, /useConversation\(\(snapshot[^)]*\) => snapshot\.views\.get\("chat"\)\)/);

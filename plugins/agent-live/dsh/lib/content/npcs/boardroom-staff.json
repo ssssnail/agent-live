@@ -1,0 +1,54 @@
+{
+	"schemaVersion": 1,
+	"kind": "npcs",
+	"id": "builtin/boardroom-staff",
+	"name": "会议室支持人员",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"entries": [
+		{
+			"id": "boardroom-boss",
+			"name": "老板",
+			"role": "boss",
+			"title": "会议主持",
+			"spawn": "boss-seat",
+			"pose": "sit",
+			"appearance": {
+				"skin": "#d5a47c",
+				"hair": "#2b3039",
+				"shirt": "#465d80",
+				"trim": "#2d405e",
+				"badge": "#ffcc4d"
+			}
+		},
+		{
+			"id": "executive-assistant",
+			"name": "秘书",
+			"role": "secretary",
+			"title": "行政秘书",
+			"spawn": "secretary-entry",
+			"appearance": {
+				"skin": "#e8b98f",
+				"hair": "#30333b",
+				"shirt": "#568c83",
+				"trim": "#37645e",
+				"badge": "#b9dfd5"
+			}
+		},
+		{
+			"id": "room-attendant",
+			"name": "会务",
+			"role": "attendant",
+			"title": "会议服务",
+			"spawn": "service-entry",
+			"appearance": {
+				"skin": "#d69f70",
+				"hair": "#4a4038",
+				"shirt": "#687779",
+				"trim": "#485658",
+				"badge": "#d7b261"
+			}
+		}
+	]
+}

@@ -1,11 +1,15 @@
 import { build } from "esbuild";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 
 const moduleId = "@iniesta8888/agent-live-dsh";
 const contentToken = "__AGENT_LIVE_CONTENT_URI__";
 const localeToken = "__AGENT_LIVE_LOCALE__";
 
 await mkdir(new URL("./lib", import.meta.url), { recursive: true });
+// The server-side Creator resolves Office content at runtime. Keep a private
+// copy inside this npm package so an installed adapter never reaches back into
+// the monorepo (and scoped node_modules paths cannot change the lookup).
+await cp(new URL("../web/v2/content", import.meta.url), new URL("./lib/content", import.meta.url), { recursive: true });
 
 const frame = await build({
   entryPoints: [new URL("./src/frame-runtime.ts", import.meta.url).pathname],

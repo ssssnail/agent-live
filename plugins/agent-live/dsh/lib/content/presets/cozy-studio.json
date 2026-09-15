@@ -1,0 +1,19 @@
+{
+	"schemaVersion": 1,
+	"kind": "preset",
+	"id": "builtin/cozy-studio",
+	"name": "暖调创意工作室",
+	"version": "1.0.0",
+	"engine": { "min": "0.2.0" },
+	"contract": "single-office-v1",
+	"content": {
+		"style": "warm-studio",
+		"layout": "lively-office",
+		"agentSkin": "studio-team",
+		"props": "default-office",
+		"npcs": "office-staff",
+		"lifeActivities": "office-basics",
+		"atmosphere": "default",
+		"environment": "static-office"
+	}
+}
