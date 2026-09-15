@@ -15,7 +15,7 @@ sandboxed render document, animation loop and in-memory event journal.
 ## Install
 
 ```bash
-dsh plugin --profile web add @iniesta8888/agent-live-dsh-adapter
+dsh plugin --profile web add @iniesta8888/agent-live-dsh
 dsh plugin --profile web install
 dsh web
 ```

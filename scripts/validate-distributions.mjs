@@ -13,7 +13,7 @@ const marketplace = await json(path.join(root, ".agents/plugins/marketplace.json
 
 assert.equal(core.name, "@iniesta8888/agent-live");
 assert.equal(pi.name, "@iniesta8888/agent-live-pi");
-assert.equal(dsh.name, "@iniesta8888/agent-live-dsh-adapter");
+assert.equal(dsh.name, "@iniesta8888/agent-live-dsh");
 assert.equal(pi.version, core.version);
 assert.equal(dsh.version, core.version);
 assert.ok(pi.keywords.includes("pi-package"), "Pi package must remain discoverable by the Pi catalog");

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.2 — 2026-09-15
+
+- Added an explicit confirmed command to clear all local Agent Live data and restore the built-in office.
+- Renamed the public Pi and DSH packages to `@iniesta8888/agent-live-pi` and `@iniesta8888/agent-live-dsh`.
+
 ## 0.3.1 — 2026-09-14
 
 - Added Pi package-catalog discovery metadata.
@@ -7,7 +12,7 @@
 
 ## 0.3.0 — 2026-09-14
 
-- Split release artifacts into the host-neutral `@iniesta8888/agent-live` Core, the `@iniesta8888/agent-live-pi` npm package, the `@iniesta8888/agent-live-dsh-adapter` npm package, and a self-contained Codex Marketplace plugin.
+- Split release artifacts into the host-neutral `@iniesta8888/agent-live` Core, the Pi npm package, the DSH npm package, and a self-contained Codex Marketplace plugin.
 - Added the shared Component Library, Office Spec, Compiler, Validator, and local Custom Office registry.
 - Added direct, atomic Creator changes: validation or save failure leaves the previous Office active, without preview, undo, confirmation, or draft state.
 - Added session-scoped `/agent-live custom` and `/agent-live exit` modes for Pi and DSH; Codex retains explicit single-turn Skill customization because its plugin surface cannot persistently inject later ordinary turns.

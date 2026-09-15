@@ -1,6 +1,6 @@
 {
 	"name": "@iniesta8888/agent-live",
-	"version": "0.3.1",
+	"version": "0.3.2",
 	"type": "module",
 	"description": "Give coding agents a live pixel office",
 	"keywords": ["coding-agent", "agent-adapter", "codex-plugin", "pi-extension", "agent-visualization", "pixel-office"],

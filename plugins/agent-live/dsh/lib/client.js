@@ -1,4 +1,4 @@
-window.__ModuleLoader__.load({ id: "agent-live-dsh-adapter", factory: (require) => { var module = { exports: {} }; var exports = module.exports;
+window.__ModuleLoader__.load({ id: "agent-live-dsh", factory: (require) => { var module = { exports: {} }; var exports = module.exports;
 "use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;

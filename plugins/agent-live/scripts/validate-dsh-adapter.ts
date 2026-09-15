@@ -21,7 +21,7 @@ const frameHtml = await readFile(path.join(pluginRoot, "src/frame.html"), "utf8"
 assert.equal(pkg.dsh.client.platform, "web");
 assert.equal(pkg.dsh.bundle.patch, "./cordis.patch.yml");
 assert.equal(pkg.exports["./client"].default, "./lib/client.js");
-assert.match(patch, /name: agent-live-dsh-adapter/);
+assert.match(patch, /name: agent-live-dsh/);
 assert.match(client, /slots\.inject\("conversation\.view"/);
 assert.match(client, /useSession\(\(snapshot[^)]*\) => snapshot\.running\)/);
 assert.match(client, /useConversation\(\(snapshot[^)]*\) => snapshot\.views\.get\("chat"\)\)/);

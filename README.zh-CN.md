@@ -34,7 +34,7 @@ pi install npm:@iniesta8888/agent-live-pi
 ### Codex
 
 ```bash
-codex plugin marketplace add ssssnail/agent-live --ref v0.3.1
+codex plugin marketplace add ssssnail/agent-live --ref v0.3.2
 codex plugin add agent-live@agent-live-marketplace
 ```
 
@@ -43,7 +43,7 @@ codex plugin add agent-live@agent-live-marketplace
 ### DeepSeek Harness
 
 ```bash
-dsh plugin --profile web add @iniesta8888/agent-live-dsh-adapter
+dsh plugin --profile web add @iniesta8888/agent-live-dsh
 dsh plugin --profile web install
 dsh web
 ```

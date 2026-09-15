@@ -1,6 +1,6 @@
 {
-  "name": "@iniesta8888/agent-live-dsh-adapter",
-  "version": "0.3.1",
+  "name": "@iniesta8888/agent-live-dsh",
+  "version": "0.3.2",
   "description": "Agent Live native conversation view for DeepSeek Harness",
   "keywords": ["dsh-plugin", "deepseek-harness", "coding-agent", "agent-live", "pixel-office"],
   "author": "ssssnail",
