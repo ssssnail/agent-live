@@ -1112,6 +1112,28 @@ var OfficeRegistry = class {
     this.#events.emit("change", id);
     return true;
   }
+  /** Remove every Agent Live-owned user file and restore the built-in fallback. */
+  async reset() {
+    const parent = path3.dirname(this.root);
+    const backup = path3.join(parent, `.${path3.basename(this.root)}.reset-${process.pid}-${Date.now()}`);
+    let moved = false;
+    try {
+      await rename(this.root, backup);
+      moved = true;
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+    try {
+      await this.initialize();
+      await this.select(this.#fallbackOffice);
+      if (moved) await rm(backup, { recursive: true, force: true });
+    } catch (error) {
+      await rm(this.root, { recursive: true, force: true });
+      if (moved) await rename(backup, this.root);
+      throw error;
+    }
+    return { reset: true, selectedOffice: this.#fallbackOffice };
+  }
   async select(id) {
     if (!await this.get(id)) throw new Error(`unknown or invalid office ${id}`);
     await this.initialize();
@@ -1557,6 +1579,9 @@ var CreatorService = class {
     await this.#registry.select(id);
     return { selected: true, office };
   }
+  async resetAllData() {
+    return this.#registry.reset();
+  }
   /**
    * Capabilities the model may map a request onto. `room` describes the room of
    * the currently selected Office only — zones, placement slots and NPC spawns —
@@ -1677,6 +1702,9 @@ var CreatorCommandRouter = class {
     try {
       if (!object2(value) || typeof value.command !== "string") throw new Error("command is required");
       switch (value.command) {
+        case "reset":
+          exact(value, []);
+          return { ok: true, data: await this.#creator.resetAllData() };
         case "list_offices":
           exact(value, []);
           return { ok: true, data: await this.#creator.listOffices() };

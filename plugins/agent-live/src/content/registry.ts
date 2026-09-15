@@ -111,6 +111,29 @@ export class OfficeRegistry {
 		return true;
 	}
 
+	/** Remove every Agent Live-owned user file and restore the built-in fallback. */
+	async reset() {
+		const parent = path.dirname(this.root);
+		const backup = path.join(parent, `.${path.basename(this.root)}.reset-${process.pid}-${Date.now()}`);
+		let moved = false;
+		try {
+			await rename(this.root, backup);
+			moved = true;
+		} catch (error: any) {
+			if (error?.code !== "ENOENT") throw error;
+		}
+		try {
+			await this.initialize();
+			await this.select(this.#fallbackOffice);
+			if (moved) await rm(backup, { recursive: true, force: true });
+		} catch (error) {
+			await rm(this.root, { recursive: true, force: true });
+			if (moved) await rename(backup, this.root);
+			throw error;
+		}
+		return { reset: true as const, selectedOffice: this.#fallbackOffice };
+	}
+
 	async select(id: string) {
 		if (!(await this.get(id))) throw new Error(`unknown or invalid office ${id}`);
 		await this.initialize();

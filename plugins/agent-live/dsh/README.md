@@ -22,6 +22,8 @@ dsh web
 
 Open a session, then select the `Agent Live` conversation view.
 
+Use `/agent-live reset` to review the local-data warning. Only `/agent-live reset confirm` removes all Custom Offices and restores the built-in `tech` office; the adapter remains installed.
+
 ## Development
 
 ```bash

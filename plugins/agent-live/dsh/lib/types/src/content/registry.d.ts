@@ -27,6 +27,11 @@ export declare class OfficeRegistry {
     get(id: string): Promise<OfficeSpec | undefined>;
     save(spec: OfficeSpec): Promise<SaveResult>;
     remove(id: string): Promise<boolean>;
+    /** Remove every Agent Live-owned user file and restore the built-in fallback. */
+    reset(): Promise<{
+        reset: true;
+        selectedOffice: string;
+    }>;
     select(id: string): Promise<void>;
     selectedId(): Promise<string>;
     selected(): Promise<OfficeSpec>;

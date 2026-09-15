@@ -416,7 +416,7 @@ export default function (pi: ExtensionAPI) {
 	}
 
 	pi.registerCommand("agent-live", {
-		description: "打开 Agent Live 可视化 (demo | status | close | list presets | preset <number or exact name> | custom | exit)",
+		description: "打开 Agent Live 可视化 (demo | status | close | list presets | preset <number or exact name> | custom | exit | reset)",
 		handler: async (args: string, ctx: any) => {
 			const raw = (args ?? "").trim().replace(/\s+/g, " ");
 			const sub = raw.toLowerCase();
@@ -429,6 +429,25 @@ export default function (pi: ExtensionAPI) {
 			if (command === "exit") {
 				const exited = creatorModes.exit(PI_CREATOR_SESSION);
 				ctx.ui.notify(exited ? "Creator Mode 已退出。" : "当前未处于 Creator Mode。", "info");
+				return;
+			}
+			if (command === "reset") {
+				if (value !== "confirm" || rest.length) {
+					ctx.ui.notify("这会清空全部 Agent Live 本地数据，包括所有 Custom Office 和当前选择。插件及内置 Preset 不会删除。确认执行请输入 /agent-live reset confirm", "warning");
+					return;
+				}
+				await boot(ctx);
+				if (!creator) {
+					ctx.ui.notify("Agent Live 服务未启动，未清空任何数据。", "error");
+					return;
+				}
+				const result = await creator.execute({ command: "reset" });
+				if (!result.ok) {
+					ctx.ui.notify(`Agent Live 重置失败：${result.error}`, "error");
+					return;
+				}
+				creatorModes.exit(PI_CREATOR_SESSION);
+				ctx.ui.notify("Agent Live 本地数据已清空，已恢复默认 tech Office。", "info");
 				return;
 			}
 			await boot(ctx);
@@ -486,7 +505,7 @@ export default function (pi: ExtensionAPI) {
 			return;
 		}
 		if (command && command !== "open") {
-			ctx.ui.notify("用法：/agent-live [demo | status | close | list presets | preset <number or exact name> | custom | exit]", "error");
+			ctx.ui.notify("用法：/agent-live [demo | status | close | list presets | preset <number or exact name> | custom | exit | reset]", "error");
 				return;
 			}
 			server.open(viewerTarget());

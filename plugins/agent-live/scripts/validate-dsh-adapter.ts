@@ -50,6 +50,10 @@ assert.match(renderer, /goTo\(actor, Office\.TARGETS\.entry\);[\s\S]*if \(!actor
 assert.match(creator, /CreatorModeRegistry/);
 assert.match(creator, /input === "custom"/);
 assert.match(creator, /input === "exit"/);
+assert.match(creator, /input === "reset"/);
+assert.match(creator, /input === "reset confirm"/);
+assert.match(creator, /router\.execute\(\{ command: "reset" \}\)/, "confirmed DSH reset must use the shared Creator command");
+assert.match(creator, /The plugin and built-in Presets remain installed/, "unconfirmed reset must explain what remains installed");
 assert.match(creator, /input === "list preset" \|\| input === "list presets"/, "preset discovery must accept singular and plural commands");
 assert.doesNotMatch(creator, /list layouts|startsWith\("layout "/, "an Office keeps its room: the layout surface must stay closed");
 assert.match(creator, /rawInput = invocation\.rawInput\.trim\(\)\.replace/, "creator commands must normalize whitespace without destroying selector names");

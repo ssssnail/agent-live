@@ -45,6 +45,10 @@ export class CreatorService {
 		return { selected: true as const, office };
 	}
 
+	async resetAllData() {
+		return this.#registry.reset();
+	}
+
 	/**
 	 * Capabilities the model may map a request onto. `room` describes the room of
 	 * the currently selected Office only — zones, placement slots and NPC spawns —

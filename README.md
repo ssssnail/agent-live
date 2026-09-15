@@ -29,7 +29,7 @@ Official built-in adapters are available for Pi, Codex and DeepSeek Harness. Thr
 ### Pi
 
 ```bash
-pi install npm:@iniesta8888/agent-live-pi-adapter
+pi install npm:@iniesta8888/agent-live-pi
 ```
 
 Restart Pi, then run `/agent-live`. [Pi guide](docs/USING-PI.md)
@@ -62,9 +62,14 @@ Pi and DeepSeek Harness support these commands:
 /agent-live preset tech
 /agent-live custom
 /agent-live exit
+/agent-live reset
 ```
 
 While in Creator Mode, describe the change naturally—for example: “Rename the office Pixel Studio and add two colleagues.” Codex supports the same kind of customization as an explicit Agent Live Skill request. Changes are validated, saved locally and applied immediately.
+
+If you have created a Custom Office, use `/agent-live reset` to clear Agent Live's local data.
+
+`/agent-live reset` only shows a warning. Run `/agent-live reset confirm` to erase all local Agent Live data and return to the built-in `tech` office; the plugin remains installed and usable.
 
 ## Build with Agent Live
 

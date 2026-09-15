@@ -22,7 +22,10 @@ export class CreatorCommandRouter {
 	async execute(value: unknown): Promise<CommandResult> {
 		try {
 			if (!object(value) || typeof value.command !== "string") throw new Error("command is required");
-			switch (value.command) {
+				switch (value.command) {
+				case "reset":
+					exact(value, []);
+					return { ok: true, data: await this.#creator.resetAllData() };
 				case "list_offices":
 					exact(value, []);
 					return { ok: true, data: await this.#creator.listOffices() };

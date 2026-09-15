@@ -29,6 +29,7 @@ try {
 	assert.deepEqual(tool.parameters.properties.command.enum, ["list_offices", "list_components", "customize"]);
 	assert.match(tool.promptGuidelines.join("\n"), /selected Office is authoritative/);
 	assert.match(tool.promptGuidelines.join("\n"), /compact list_components summary at most once/);
+	await commands.get("agent-live").handler("status", ctx);
 	const changed = JSON.parse((await tool.execute("1", { command: "customize", patch: { id: "local/pi-test", name: "Pi Test" } }, undefined, undefined, ctx)).content[0].text);
 	assert.equal(changed.ok && changed.data.office.id === "local/pi-test", true);
 	assert.equal("previewUrl" in changed || "creatorMode" in changed, false);
@@ -53,5 +54,13 @@ try {
 	await commands.get("agent-live").handler("preset Pi Test", ctx);
 	const restored = JSON.parse((await tool.execute("3", { command: "list_offices" }, undefined, undefined, ctx)).content[0].text);
 	assert.equal(restored.data.find((office: any) => office.selected).id, "local/pi-test");
+	await commands.get("agent-live").handler("reset", ctx);
+	assert.match(notices.at(-1)!, /reset confirm/);
+	assert.equal(JSON.parse((await tool.execute("4", { command: "list_offices" }, undefined, undefined, ctx)).content[0].text).data.some((office: any) => office.origin === "custom"), true, "unconfirmed reset changed data");
+	await commands.get("agent-live").handler("reset confirm", ctx);
+	assert.match(notices.at(-1)!, /已恢复默认 tech Office/);
+	const afterReset = JSON.parse((await tool.execute("5", { command: "list_offices" }, undefined, undefined, ctx)).content[0].text);
+	assert.equal(afterReset.data.find((office: any) => office.selected).id, "builtin/tech-open-office");
+	assert.equal(afterReset.data.some((office: any) => office.origin === "custom"), false);
 	console.log("pi creator: explicit mode, scoped prompt and direct atomic customization passed");
 } finally { await handlers.get("session_shutdown")?.({}, ctx); mock.restoreAll(); await rm(root, { recursive: true, force: true }); }

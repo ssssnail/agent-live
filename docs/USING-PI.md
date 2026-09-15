@@ -7,7 +7,7 @@
 发布到 npm 后，推荐一条命令安装：
 
 ```bash
-pi install npm:@iniesta8888/agent-live-pi-adapter
+pi install npm:@iniesta8888/agent-live-pi
 ```
 
 重启 Pi，然后输入：
@@ -48,3 +48,11 @@ pi install npm:@iniesta8888/agent-live-pi-adapter
 ```
 
 修改会保存为本机 Custom Office，不会改动官方 Preset。关闭本地服务可使用 `/agent-live close`。
+
+## 清空本地数据
+
+```text
+/agent-live reset
+```
+
+该命令只显示提示。确认删除全部 Custom Office、当前选择及其他 Agent Live 本地数据时，再执行 `/agent-live reset confirm`。插件和内置 Preset 不会删除，完成后自动恢复 `tech` Office，仍可继续使用。

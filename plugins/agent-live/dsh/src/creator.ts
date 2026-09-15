@@ -67,7 +67,7 @@ Never expose internal component ids, schemas, or patches unless the user explici
 
 An Office keeps its room. Map a request like "make me a police station" onto the closest complete Preset Office, then change its name, people, identities, furniture, style and activities. A brand-new room structure needs a new Office Preset, which is a source change — say so instead of swapping a room in place.
 
-The public commands are exactly: /agent-live list presets, /agent-live preset <number or exact name>, /agent-live custom, /agent-live exit.`;
+The public commands are exactly: /agent-live list presets, /agent-live preset <number or exact name>, /agent-live custom, /agent-live exit, /agent-live reset.`;
 
 function commandPayload(operation: CreatorOperation, args: Record<string, unknown>) {
   switch (operation) {
@@ -131,7 +131,7 @@ export async function registerCreator(ctx: Context): Promise<void> {
   ctx.commands.register({
     name: "agent-live",
     description: "Enter or exit Creator Mode, or inspect available Offices.",
-    input: { hint: "custom | exit | list presets | preset <number/name>" },
+    input: { hint: "custom | exit | list presets | preset <number/name> | reset" },
     async handler(invocation: CommandInvocation) {
       const rawInput = invocation.rawInput.trim().replace(/\s+/g, " ");
       const input = rawInput.toLowerCase();
@@ -142,6 +142,18 @@ export async function registerCreator(ctx: Context): Promise<void> {
       }
       if (input === "exit") {
         return { kind: "success", text: modes.exit(sessionId) ? "Creator Mode exited." : "Creator Mode was not active." };
+      }
+      if (input === "reset") {
+        return { kind: "success", text: "This clears all Agent Live local data, including every Custom Office and the current selection. The plugin and built-in Presets remain installed. To confirm, run /agent-live reset confirm." };
+      }
+      if (input === "reset confirm") {
+        const result = await router.execute({ command: "reset" });
+        if (!result.ok) return { kind: "error", text: result.error };
+        selectedOfficeProjection = { revision: Date.now(), content: sessionEventContent(await content.resolve()) };
+        currentOfficeProjection = selectedOfficeProjection;
+        commandOfficeProjections.set(String(invocation.commandId), selectedOfficeProjection);
+        modes.exit(sessionId);
+        return { kind: "success", text: "Agent Live local data was cleared. The default tech Office is active and ready to use." };
       }
       if (input === "list preset" || input === "list presets") {
         const offices = await service.listOffices();
@@ -166,7 +178,7 @@ export async function registerCreator(ctx: Context): Promise<void> {
         modes.exit(sessionId);
         return { kind: "success", text: `Selected ${office.name}. Agent Live has updated.` };
       }
-      if (input) return { kind: "error", text: "Use /agent-live custom, /agent-live exit, /agent-live list presets, or /agent-live preset <number or name>." };
+      if (input) return { kind: "error", text: "Use /agent-live custom, /agent-live exit, /agent-live list presets, /agent-live preset <number or name>, or /agent-live reset." };
       return { kind: "success", text: modes.isActive(sessionId) ? "Creator Mode is active. Use /agent-live exit to leave." : "Use /agent-live custom to start editing the office." };
     },
   });

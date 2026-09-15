@@ -12,7 +12,7 @@ const dsh = await json(path.join(root, "plugins/agent-live/dsh/package.json"));
 const marketplace = await json(path.join(root, ".agents/plugins/marketplace.json"));
 
 assert.equal(core.name, "@iniesta8888/agent-live");
-assert.equal(pi.name, "@iniesta8888/agent-live-pi-adapter");
+assert.equal(pi.name, "@iniesta8888/agent-live-pi");
 assert.equal(dsh.name, "@iniesta8888/agent-live-dsh-adapter");
 assert.equal(pi.version, core.version);
 assert.equal(dsh.version, core.version);

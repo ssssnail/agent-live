@@ -35,14 +35,17 @@
 
 Custom Office 由某个 Official Preset 派生：第一笔改动就会生成一个内容完整继承的副本（房间、摆放、NPC、活动、组件全都带过来），不覆盖安装目录中的官方文件。校验或保存失败时，当前有效版本保持不变。
 
-Creator 只从最接近的 Official Preset 修改，用户不需要先理解内部 Schema，也不需要手工选择每个组件。公开命令只有四条：
+Creator 只从最接近的 Official Preset 修改，用户不需要先理解内部 Schema，也不需要手工选择每个组件。公开命令只有五类：
 
 ```text
 /agent-live list presets
 /agent-live preset <number or name>
 /agent-live custom
 /agent-live exit
+/agent-live reset
 ```
+
+`reset` 是独立的数据管理操作，不属于 Creator 修改：第一次调用仅提示影响，只有精确执行 `/agent-live reset confirm` 才会清空 Agent Live 管理的全部本地数据并恢复默认 `tech` Office。它不卸载 Adapter 或内置 Preset。
 
 “给我做一个警察局”这类需求的处理方式：**先选中最接近的完整 Preset Office，再修改名称、人员与身份、家具、风格和活动**；“警察局”这个说法本身不产生新的房间结构。如果用户要求的是全新的房间结构（新的墙体、区域、通道、座位或工作落点），统一回答：**这需要新增一个 Office Preset，需要修改源码**，Creator 不做这件事。
 

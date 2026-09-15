@@ -27,7 +27,7 @@ Coding Agent → Adapter → OfficeEvent → Agent Live → 像素办公室
 
 ### Pi
 ```bash
-pi install npm:@iniesta8888/agent-live-pi-adapter
+pi install npm:@iniesta8888/agent-live-pi
 ```
 重启 Pi，然后运行 `/agent-live`。[Pi 使用说明](docs/USING-PI.md)
 
@@ -59,9 +59,14 @@ Pi 和 DeepSeek Harness 支持以下命令：
 /agent-live preset tech
 /agent-live custom
 /agent-live exit
+/agent-live reset
 ```
 
 进入 Creator Mode 后，直接用自然语言描述修改，例如：“把办公室改名为像素工作室，再增加两名同事。”Codex 也支持相同的自定义方式，但需要作为一次明确的 Agent Live Skill 请求执行。修改经过校验后会立即生效并保存在本机。
+
+如果已经创建了 Custom Office，可以使用 `/agent-live reset` 清理 Agent Live 本地数据。
+
+`/agent-live reset` 只显示风险提示；再次执行 `/agent-live reset confirm` 才会清空全部 Agent Live 本地数据并恢复内置 `tech` 办公室。插件不会被卸载，重置后仍可继续使用。
 
 ## 基于 Agent Live 开发
 

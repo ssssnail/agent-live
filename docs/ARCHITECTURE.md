@@ -140,7 +140,7 @@ content/compiler.ts     Preset / Seed + Patch → 校验后的候选 Office
 content/validator.ts    引用、容量、NPC、活动与环境校验
 content/registry.ts     Official / Custom Office 注册、保存与选择
 creator/service.ts      Patch 校验、原子保存与选择
-creator/commands.ts     list_offices / list_components / customize 三个受限内部操作
+creator/commands.ts     list_offices / list_components / customize / reset 四个受限内部操作
 creator/mode.ts         按宿主 Session 隔离的 active / inactive 编辑范围
 ```
 

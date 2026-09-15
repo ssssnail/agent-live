@@ -58,6 +58,8 @@ for (const relative of [
 ]) assert.equal(await exists(path.join(root, relative)), true, `missing public developer file ${relative}`);
 
 assert.match(skill, /^---\nname: agent-live\ndescription: .+\n---\n/);
+assert.match(skill, /\/agent-live reset confirm/);
+assert.match(skill, /\{ "command": "reset" \}/);
 const releaseTag = process.env.RELEASE_TAG;
 if (releaseTag) assert.equal(releaseTag, `v${pkg.version}`, `release tag must be v${pkg.version}`);
 

@@ -22,3 +22,7 @@ Codex 当前采用单轮显式自定义：调用 Skill 时把修改要求写在�
 修改成功后会立即保存并启用，不需要预览或确认。Custom Office 只保存在本机，不会改动官方 Preset。
 
 Codex 当前没有持续 Creator Mode；下一次修改时再次调用 Agent Live Skill 并描述要求即可。关闭办公室网页后，本次本地服务会自动退出。
+
+## 清空本地数据
+
+调用 Agent Live Skill 并输入 `/agent-live reset` 时只会收到风险提示。只有明确调用 `/agent-live reset confirm` 才会清空全部 Agent Live 本地数据并恢复内置 `tech` Office；Codex 插件不会被卸载。

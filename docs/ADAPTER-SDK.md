@@ -53,7 +53,7 @@ Open the printed local URL; Ctrl+C closes the example. [The example](../examples
 
 The public exports include `OfficeContentService`, `CreatorService`, `CreatorCommandRouter`, `CreatorModeRegistry`, `CREATOR_MODE_CONTEXT`, and the `OfficeSpec` / `OfficePatch` types.
 
-Create content with `OfficeContentService.create()`, construct `CreatorService(content.registry, content.library)`, then `CreatorCommandRouter(service)`. Register `commands.execute()` as a host tool. Use `service.listOffices()` / `selectOffice(id)` for discovery and selection. The router supports `list_offices`, `list_components` and `customize`; valid changes apply immediately. Do not recreate validation or edit files yourself.
+Create content with `OfficeContentService.create()`, construct `CreatorService(content.registry, content.library)`, then `CreatorCommandRouter(service)`. Register only the model-safe operations (`list_offices`, `list_components`, `customize`) as a host tool. Use `service.listOffices()` / `selectOffice(id)` for discovery and selection. The router also provides `reset` for an explicit user-facing reset flow; never expose it for autonomous model use, and execute it only after the user enters the adapter's exact confirmation command. Valid changes apply immediately. Do not recreate validation or edit files yourself.
 
 If the host supports scoped prompt hooks, register explicit `custom` / `exit` commands and use the mode registry/context during that host session. Otherwise use explicit single-invocation customization. Closing the integration must clear its Creator mode. Do not install hooks the host does not support.
 

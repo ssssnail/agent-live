@@ -16,6 +16,10 @@ export declare class CreatorService {
         office: OfficeSpec;
         error?: undefined;
     }>;
+    resetAllData(): Promise<{
+        reset: true;
+        selectedOffice: string;
+    }>;
     /**
      * Capabilities the model may map a request onto. `room` describes the room of
      * the currently selected Office only — zones, placement slots and NPC spawns —

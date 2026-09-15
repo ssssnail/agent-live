@@ -42,3 +42,7 @@ dsh web
 ```
 
 修改会立即保存到本机并启用，不需要预览或确认，也不会改动官方 Preset。
+
+## 清空本地数据
+
+执行 `/agent-live reset` 查看风险提示，再执行 `/agent-live reset confirm` 确认。它会清空全部 Agent Live 本地数据并恢复内置 `tech` Office，不会卸载 DSH Adapter。

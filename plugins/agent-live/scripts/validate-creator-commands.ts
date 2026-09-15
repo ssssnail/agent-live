@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { access, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,6 +38,13 @@ try {
 	assert.deepEqual(await registry.selected(), before);
 	for (const command of ["preview", "undo", "confirm", "discard", "create_from_preset", "apply_patch"]) assert.equal((await router.execute({ command })).ok, false, `${command} remained public`);
 	assert.equal((await router.execute({ command: "list_offices", path: "/tmp" })).ok, false);
+	await mkdir(path.join(root, "future-data"), { recursive: true });
+	await writeFile(path.join(root, "future-data", "journal.json"), "temporary");
+	const reset = await router.execute({ command: "reset" });
+	assert.equal(reset.ok, true);
+	assert.equal((await registry.selected()).id, "builtin/tech-open-office");
+	await assert.rejects(access(path.join(root, "future-data", "journal.json")));
+	assert.equal((await registry.list()).some((entry) => entry.origin === "custom"), false);
 	assert.equal((await router.execute({ command: "list_components", category: "unknown" })).ok, false);
 	console.log("creator commands: discovery, direct atomic customization, failure isolation and closed surface passed");
 } finally { await rm(root, { recursive: true, force: true }); }

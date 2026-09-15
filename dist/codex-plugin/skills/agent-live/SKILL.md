@@ -35,6 +35,12 @@ Do not expose internal command names, component IDs, JSON schemas, or patches. M
 
 Agent identity is part of the Office template: use Agent Profile for the real Agent's display name, title, and supported appearance. Leave omitted identity fields to the host. Do not rewrite host-reported subagent identities.
 
+## Reset local data
+
+- When the user invokes `/agent-live reset` without `confirm`, do not delete anything. Explain that it removes every Custom Office, the selected Office, and all other Agent Live local data while keeping the plugin and built-in Presets installed. Ask them to invoke `/agent-live reset confirm` to continue.
+- Only for an explicit `/agent-live reset confirm`, start the lightweight client, then run `creator-command.ts` with `{ "command": "reset" }`.
+- Report that the default `tech` Office is active and Agent Live remains usable. Never infer confirmation from ordinary language or perform reset as part of another request.
+
 ## Rules
 
 - Start a fresh local session for each invocation; do not scan for or attach to another App Server.
