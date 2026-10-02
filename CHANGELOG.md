@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.5 — 2026-10-02
+
+- Update the Pi compatibility baseline to 1.0.0 and preserve working state while nested tools remain active.
+- Support Codex 0.160.0 permission requests, user questions and basic MCP elicitation forms; defer early Stop until the turn actually starts.
+- Update the native DSH adapter to 0.2.0-rc.2 session status and tool preparation APIs.
+- Add startup-stop ordering, interactive controls and DSH observation regression tests.
+- Allow the DSH npm package to be versioned independently of Core.
+
 ## 0.3.4 — 2026-09-15
 
 - Bundle the complete runtime Office content inside the DSH npm package so a clean profile can load Creator and renderable presets without reaching into the source repository.

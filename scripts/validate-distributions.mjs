@@ -15,7 +15,11 @@ assert.equal(core.name, "@iniesta8888/agent-live");
 assert.equal(pi.name, "@iniesta8888/agent-live-pi");
 assert.equal(dsh.name, "@iniesta8888/agent-live-dsh");
 assert.equal(pi.version, core.version);
-assert.equal(dsh.version, core.version);
+// DSH ships independently; its release must match its own lockfile, not core.
+const dshLock = await json(path.join(root, "plugins/agent-live/dsh/package-lock.json"));
+assert.match(dsh.version, /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/);
+assert.equal(dsh.version, dshLock.version);
+assert.equal(dsh.version, dshLock.packages[""].version);
 assert.ok(pi.keywords.includes("pi-package"), "Pi package must remain discoverable by the Pi catalog");
 assert.ok(dsh.keywords.includes("dsh-plugin"), "DSH package must carry directory discovery metadata");
 assert.equal(dsh.repository?.directory, "plugins/agent-live/dsh");

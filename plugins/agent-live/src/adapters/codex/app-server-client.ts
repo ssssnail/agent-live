@@ -104,7 +104,7 @@ export class CodexAppServerClient {
 		this.lines.on("line", (line) => this.handleLine(line));
 
 		const result = await this.request("initialize", {
-			clientInfo: { name: "agent-live", title: "Agent Live", version: "0.3.4" },
+			clientInfo: { name: "agent-live", title: "Agent Live", version: "0.3.5" },
 			capabilities: {
 				experimentalApi: true,
 				requestAttestation: false,
