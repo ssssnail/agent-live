@@ -99,8 +99,8 @@ export async function launchCodexAdapter(options: CodexAdapterLaunchOptions): Pr
 				selectModel(model) { session.selectModel(model); return { ok: true, model }; },
 				prompt: (text, model) => session.prompt(text, model),
 				interrupt: () => session.interrupt(),
-				resolveApproval(id, allow, forSession) {
-					session.resolveApproval(id, allow, forSession);
+				resolveApproval(id, allow, forSession, input) {
+					session.resolveApproval(id, allow, forSession, input);
 					return { ok: true };
 				},
 			},

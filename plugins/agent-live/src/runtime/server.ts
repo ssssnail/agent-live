@@ -43,7 +43,7 @@ export interface OfficeControls {
 	selectModel(model: string): Promise<unknown> | unknown;
 	prompt(text: string, model?: string): Promise<unknown>;
 	interrupt(): Promise<unknown>;
-	resolveApproval(id: number | string, allow: boolean, forSession: boolean): Promise<unknown> | unknown;
+	resolveApproval(id: number | string, allow: boolean, forSession: boolean, input?: unknown): Promise<unknown> | unknown;
 }
 
 export interface OfficeContentControls {
@@ -178,6 +178,7 @@ export async function startServer(
 						body.id as number | string,
 						Boolean(body.allow),
 						Boolean(body.forSession),
+						body.input,
 					);
 				}
 				throw new Error("unknown client endpoint");

@@ -1,6 +1,11 @@
 {
 	"locale": "zh-CN",
 	"strings": {
+		"client.invalidForm": "请为表单输入有效的 JSON 对象。",
+		"client.formJson": "表单回复（JSON）",
+		"client.questions": "Codex 需要你的回答",
+		"client.permissions": "允许申请的权限吗？",
+		"client.submitAnswers": "提交",
 		"connection.connecting": "连接中…",
 		"connection.connected": "已连接",
 		"connection.reconnecting": "重连中…",

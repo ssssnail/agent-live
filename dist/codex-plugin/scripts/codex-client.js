@@ -334,7 +334,8 @@ async function startServer(state, options) {
           return controls.resolveApproval(
             body.id,
             Boolean(body.allow),
-            Boolean(body.forSession)
+            Boolean(body.forSession),
+            body.input
           );
         }
         throw new Error("unknown client endpoint");
@@ -2109,6 +2110,66 @@ var AgentRegistry = class {
   }
 };
 
+// plugins/agent-live/src/adapters/codex/requests.ts
+var interactiveMethods = /* @__PURE__ */ new Set([
+  "item/commandExecution/requestApproval",
+  "item/fileChange/requestApproval",
+  "item/permissions/requestApproval",
+  "item/tool/requestUserInput",
+  "mcpServer/elicitation/request"
+]);
+function record(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function validateForm(schema, content) {
+  if (!record(schema) || schema.type !== "object" || !record(schema.properties) || !record(content)) throw new Error("Expected a JSON object matching the requested form");
+  for (const key of Object.keys(schema)) if (!["type", "properties", "required", "$schema", "title", "description", "additionalProperties"].includes(key)) throw new Error(`Unsupported form constraint: ${key}`);
+  for (const key of Array.isArray(schema.required) ? schema.required : []) if (!Object.hasOwn(content, String(key))) throw new Error(`Missing field: ${key}`);
+  for (const [key, value] of Object.entries(content)) {
+    const rule = schema.properties[key];
+    if (!record(rule)) throw new Error(`Unknown field: ${key}`);
+    for (const constraint of Object.keys(rule)) if (!["type", "title", "description", "default", "enum", "enumNames", "minLength", "maxLength", "minimum", "maximum"].includes(constraint)) throw new Error(`Unsupported form constraint: ${key}.${constraint}`);
+    const valid = rule.type === "string" ? typeof value === "string" : rule.type === "boolean" ? typeof value === "boolean" : rule.type === "number" ? typeof value === "number" && Number.isFinite(value) : rule.type === "integer" ? Number.isInteger(value) : false;
+    if (!valid) throw new Error(`Invalid field type: ${key}`);
+    if (Array.isArray(rule.enum) && !rule.enum.includes(value)) throw new Error(`Invalid choice: ${key}`);
+    if (typeof value === "string" && (value.length < Number(rule.minLength ?? 0) || value.length > Number(rule.maxLength ?? Infinity))) throw new Error(`Invalid field length: ${key}`);
+    if (typeof value === "number" && (value < Number(rule.minimum ?? -Infinity) || value > Number(rule.maximum ?? Infinity))) throw new Error(`Invalid field value: ${key}`);
+  }
+}
+function requestAnswer(request, allow, forSession = false, input) {
+  const params = request.params ?? {};
+  switch (request.method) {
+    case "item/commandExecution/requestApproval":
+    case "item/fileChange/requestApproval":
+      return { decision: allow ? forSession ? "acceptForSession" : "accept" : "decline" };
+    case "item/permissions/requestApproval": {
+      const requested = record(params.permissions) ? params.permissions : {};
+      return { permissions: allow ? {
+        ...requested.network ? { network: requested.network } : {},
+        ...requested.fileSystem ? { fileSystem: requested.fileSystem } : {}
+      } : {}, scope: forSession ? "session" : "turn" };
+    }
+    case "item/tool/requestUserInput": {
+      if (!allow) return { answers: {} };
+      if (!record(input)) throw new Error("Please answer the questions first");
+      const answers = /* @__PURE__ */ Object.create(null);
+      for (const question of params.questions) {
+        const answer = input[question.id];
+        if (typeof answer !== "string" || !answer.trim()) throw new Error(`Missing answer: ${question.question}`);
+        answers[question.id] = { answers: [answer] };
+      }
+      return { answers };
+    }
+    case "mcpServer/elicitation/request":
+      if (!allow) return { action: "decline", content: null, _meta: null };
+      if (params.mode === "url") return { action: "accept", content: null, _meta: null };
+      validateForm(params.requestedSchema, input);
+      return { action: "accept", content: input, _meta: null };
+    default:
+      throw new Error("Unsupported client request");
+  }
+}
+
 // plugins/agent-live/src/adapters/codex/adapter.ts
 var MAIN = "main";
 var APPROVAL_TIMEOUT_MS = 12e4;
@@ -2120,6 +2181,8 @@ var CodexOfficeSession = class {
   threadId = "";
   turnId = "";
   activeTurns = /* @__PURE__ */ new Map();
+  /** A turn/start response is acceptance, not proof the turn can be interrupted. */
+  startedTurns = /* @__PURE__ */ new Set();
   /**
    * Turns that already reported completion. A short turn can finish before its
    * `turn/start` response is read, so registration has to ignore it instead of
@@ -2153,6 +2216,7 @@ var CodexOfficeSession = class {
       this.connectionError = error.message;
       this.turnId = "";
       this.activeTurns.clear();
+      this.startedTurns.clear();
       this.finishedTurns.clear();
       this.startingTurn = false;
       this.interrupting = false;
@@ -2234,6 +2298,8 @@ var CodexOfficeSession = class {
       this.syncBusyState();
       return { turnId };
     } catch (error) {
+      this.interrupting = false;
+      this.stopRequested = false;
       this.state.updateSession({ busy: false });
       this.state.setState(MAIN, "error", "\u4EFB\u52A1\u542F\u52A8\u5931\u8D25");
       throw error;
@@ -2243,14 +2309,12 @@ var CodexOfficeSession = class {
   }
   async interrupt() {
     if (this.interrupting) return;
-    const turns = [...this.activeTurns.entries()];
-    if (this.threadId && this.turnId && this.activeTurns.get(this.threadId) !== this.turnId) {
-      turns.unshift([this.threadId, this.turnId]);
-    }
-    if (!turns.length) return;
+    if (!this.startingTurn && !this.activeTurns.size && !this.turnId) return;
+    const turns = [...this.activeTurns.entries()].filter(([, id]) => this.startedTurns.has(id));
     this.interrupting = true;
     this.stopRequested = true;
     this.state.setState(MAIN, "waiting", "\u6B63\u5728\u505C\u6B62");
+    if (!turns.length) return;
     try {
       const results = await Promise.allSettled(turns.map(
         ([threadId, turnId]) => this.client.request("turn/interrupt", { threadId, turnId })
@@ -2262,20 +2326,15 @@ var CodexOfficeSession = class {
       throw error;
     }
   }
-  resolveApproval(id, allow, forSession = false) {
+  resolveApproval(id, allow, forSession = false, input) {
     const request = this.approvals.get(id);
     if (!request) throw new Error("Approval request is no longer pending");
+    const answer = requestAnswer(request, allow, forSession, input);
     this.approvals.delete(id);
     const timer = this.approvalTimers.get(id);
     if (timer) clearTimeout(timer);
     this.approvalTimers.delete(id);
-    if (request.method === "item/commandExecution/requestApproval") {
-      this.client.respond(id, { decision: allow ? forSession ? "acceptForSession" : "accept" : "decline" });
-    } else if (request.method === "item/fileChange/requestApproval") {
-      this.client.respond(id, { decision: allow ? forSession ? "acceptForSession" : "accept" : "decline" });
-    } else {
-      this.client.respondError(id, -32601, "This approval type is not supported by Agent Live yet");
-    }
+    this.client.respond(id, answer);
     this.state.setState(MAIN, this.approvals.size ? "waiting" : "thinking", this.approvals.size ? "\u7B49\u5F85\u4F60\u7684\u786E\u8BA4" : allow ? "\u7EE7\u7EED\u63A8\u8FDB" : "\u8C03\u6574\u65B9\u6848");
   }
   async close() {
@@ -2336,13 +2395,27 @@ var CodexOfficeSession = class {
     const params = message.params ?? {};
     const agentId = this.agentIdFor(params);
     switch (message.method) {
+      case "serverRequest/resolved": {
+        const id = params.requestId;
+        const wasPending = this.approvals.delete(id);
+        clearTimeout(this.approvalTimers.get(id));
+        this.approvalTimers.delete(id);
+        if (wasPending && !this.approvals.size && this.state.getAgent(MAIN)?.state === "waiting") {
+          this.state.setState(MAIN, this.state.sessionBusy() ? "thinking" : "idle", "\u5F85\u547D");
+        }
+        break;
+      }
       case "turn/started": {
         const eventThreadId = this.messageThreadId(params);
         const eventTurnId = String(params.turn?.id ?? "");
-        if (eventThreadId && eventTurnId) this.activeTurns.set(eventThreadId, eventTurnId);
+        if (eventThreadId && eventTurnId) {
+          this.activeTurns.set(eventThreadId, eventTurnId);
+          this.startedTurns.add(eventTurnId);
+        }
         this.syncBusyState();
         if (this.stopRequested && eventThreadId && eventTurnId) {
           void this.client.request("turn/interrupt", { threadId: eventThreadId, turnId: eventTurnId }).catch((error) => {
+            this.interrupting = false;
             this.state.addLog(MAIN, "system", `Unable to stop late Codex turn: ${error instanceof Error ? error.message : String(error)}`);
           });
           break;
@@ -2387,6 +2460,7 @@ var CodexOfficeSession = class {
       case "turn/completed": {
         const eventThreadId = this.messageThreadId(params);
         const eventTurnId = String(params.turn?.id ?? "");
+        this.startedTurns.delete(eventTurnId || this.activeTurns.get(eventThreadId) || "");
         if (eventThreadId) this.activeTurns.delete(eventThreadId);
         this.rememberFinishedTurn(eventTurnId);
         this.syncBusyState();
@@ -2558,7 +2632,7 @@ var CodexOfficeSession = class {
   handleServerRequest(message) {
     if (message.id === void 0 || !message.method) return;
     if (this.approvals.has(message.id)) return;
-    if (!["item/commandExecution/requestApproval", "item/fileChange/requestApproval"].includes(message.method)) {
+    if (!interactiveMethods.has(message.method)) {
       this.client.respondError(message.id, -32601, "Unsupported Agent Live client request");
       return;
     }
@@ -2566,15 +2640,25 @@ var CodexOfficeSession = class {
     const timer = setTimeout(() => {
       if (!this.approvals.delete(message.id)) return;
       this.approvalTimers.delete(message.id);
-      this.client.respond(message.id, { decision: "decline" });
+      this.client.respond(message.id, requestAnswer(message, false));
       if (!this.approvals.size) this.state.setState(MAIN, this.state.sessionBusy() ? "thinking" : "idle", "Approval expired");
     }, APPROVAL_TIMEOUT_MS);
     timer.unref?.();
     this.approvalTimers.set(message.id, timer);
-    this.state.setState(MAIN, "waiting", "\u7B49\u5F85\u4F60\u7684\u786E\u8BA4");
+    if (message.params?.isBlocking !== false) this.state.setState(MAIN, "waiting", "\u7B49\u5F85\u4F60\u7684\u786E\u8BA4");
   }
   approvalView(message) {
     const params = message.params ?? {};
+    const base = { id: message.id, method: message.method };
+    if (message.method === "item/tool/requestUserInput") return { ...base, title: "Questions from Codex", detail: "", questions: params.questions };
+    if (message.method === "item/permissions/requestApproval") return { ...base, title: "Allow requested permissions?", detail: `${params.reason ?? ""}
+${JSON.stringify(params.permissions, null, 2)}` };
+    if (message.method === "mcpServer/elicitation/request") return {
+      ...base,
+      title: String(params.serverName ?? "MCP"),
+      detail: String(params.message ?? ""),
+      ...params.mode === "url" ? { url: String(params.url) } : { schema: params.requestedSchema }
+    };
     const isCommand = message.method.includes("commandExecution");
     const detail = String(isCommand ? params.command ?? params.reason ?? "\u6267\u884C\u547D\u4EE4" : params.reason ?? "\u4FEE\u6539\u6587\u4EF6");
     return {
@@ -2691,8 +2775,8 @@ async function launchCodexAdapter(options) {
         },
         prompt: (text, model) => session.prompt(text, model),
         interrupt: () => session.interrupt(),
-        resolveApproval(id, allow, forSession) {
-          session.resolveApproval(id, allow, forSession);
+        resolveApproval(id, allow, forSession, input) {
+          session.resolveApproval(id, allow, forSession, input);
           return { ok: true };
         }
       }

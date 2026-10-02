@@ -3,6 +3,7 @@ import type { OfficeAction } from "../../core/protocol.ts";
 import type { OfficeState } from "../../core/state.ts";
 import { CodexAppServerClient, type AppServerMessage, type JsonObject } from "./app-server-client.ts";
 import { AgentRegistry, roleForAgent } from "../../core/agents.ts";
+import { interactiveMethods, requestAnswer, type InputQuestion } from "./requests.ts";
 
 const MAIN = "main";
 const APPROVAL_TIMEOUT_MS = 120_000;
@@ -12,6 +13,9 @@ export interface PendingApproval {
 	method: string;
 	title: string;
 	detail: string;
+	questions?: InputQuestion[];
+	schema?: unknown;
+	url?: string;
 }
 
 export interface CodexModelOption {
@@ -38,6 +42,8 @@ export class CodexOfficeSession {
 	private threadId = "";
 	private turnId = "";
 	private readonly activeTurns = new Map<string, string>();
+	/** A turn/start response is acceptance, not proof the turn can be interrupted. */
+	private readonly startedTurns = new Set<string>();
 	/**
 	 * Turns that already reported completion. A short turn can finish before its
 	 * `turn/start` response is read, so registration has to ignore it instead of
@@ -76,6 +82,7 @@ export class CodexOfficeSession {
 			this.connectionError = error.message;
 			this.turnId = "";
 			this.activeTurns.clear();
+			this.startedTurns.clear();
 			this.finishedTurns.clear();
 			this.startingTurn = false;
 			this.interrupting = false;
@@ -160,6 +167,8 @@ export class CodexOfficeSession {
 			this.syncBusyState();
 			return { turnId };
 		} catch (error) {
+			this.interrupting = false;
+			this.stopRequested = false;
 			this.state.updateSession({ busy: false });
 			this.state.setState(MAIN, "error", "任务启动失败");
 			throw error;
@@ -170,14 +179,14 @@ export class CodexOfficeSession {
 
 	async interrupt(): Promise<void> {
 		if (this.interrupting) return;
-		const turns = [...this.activeTurns.entries()];
-		if (this.threadId && this.turnId && this.activeTurns.get(this.threadId) !== this.turnId) {
-			turns.unshift([this.threadId, this.turnId]);
-		}
-		if (!turns.length) return;
+		if (!this.startingTurn && !this.activeTurns.size && !this.turnId) return;
+		const turns = [...this.activeTurns.entries()].filter(([, id]) => this.startedTurns.has(id));
 		this.interrupting = true;
 		this.stopRequested = true;
 		this.state.setState(MAIN, "waiting", "正在停止");
+		// Keep the stop intent while acceptance/start is in flight. turn/started
+		// below dispatches it once Codex actually has an interruptible turn.
+		if (!turns.length) return;
 		try {
 			const results = await Promise.allSettled(turns.map(([threadId, turnId]) =>
 				this.client.request("turn/interrupt", { threadId, turnId }),
@@ -190,20 +199,15 @@ export class CodexOfficeSession {
 		}
 	}
 
-	resolveApproval(id: number | string, allow: boolean, forSession = false): void {
+	resolveApproval(id: number | string, allow: boolean, forSession = false, input?: unknown): void {
 		const request = this.approvals.get(id);
 		if (!request) throw new Error("Approval request is no longer pending");
+		const answer = requestAnswer(request, allow, forSession, input);
 		this.approvals.delete(id);
 		const timer = this.approvalTimers.get(id);
 		if (timer) clearTimeout(timer);
 		this.approvalTimers.delete(id);
-		if (request.method === "item/commandExecution/requestApproval") {
-			this.client.respond(id, { decision: allow ? (forSession ? "acceptForSession" : "accept") : "decline" });
-		} else if (request.method === "item/fileChange/requestApproval") {
-			this.client.respond(id, { decision: allow ? (forSession ? "acceptForSession" : "accept") : "decline" });
-		} else {
-			this.client.respondError(id, -32601, "This approval type is not supported by Agent Live yet");
-		}
+		this.client.respond(id, answer);
 		this.state.setState(MAIN, this.approvals.size ? "waiting" : "thinking", this.approvals.size ? "等待你的确认" : allow ? "继续推进" : "调整方案");
 	}
 
@@ -268,16 +272,30 @@ export class CodexOfficeSession {
 		const params = message.params ?? {};
 		const agentId = this.agentIdFor(params);
 		switch (message.method) {
+			case "serverRequest/resolved": {
+				const id = params.requestId as number | string;
+				const wasPending = this.approvals.delete(id);
+				clearTimeout(this.approvalTimers.get(id));
+				this.approvalTimers.delete(id);
+				if (wasPending && !this.approvals.size && this.state.getAgent(MAIN)?.state === "waiting") {
+					this.state.setState(MAIN, this.state.sessionBusy() ? "thinking" : "idle", "待命");
+				}
+				break;
+			}
 			case "turn/started": {
 				const eventThreadId = this.messageThreadId(params);
 				const eventTurnId = String((params.turn as JsonObject | undefined)?.id ?? "");
-				if (eventThreadId && eventTurnId) this.activeTurns.set(eventThreadId, eventTurnId);
+				if (eventThreadId && eventTurnId) {
+					this.activeTurns.set(eventThreadId, eventTurnId);
+					this.startedTurns.add(eventTurnId);
+				}
 				this.syncBusyState();
 				// Stop is a barrier for the current task, not a one-time snapshot of
 				// active turns. Codex may start a delegated child after the user clicks
 				// Stop; interrupt that late turn immediately as well.
 				if (this.stopRequested && eventThreadId && eventTurnId) {
 					void this.client.request("turn/interrupt", { threadId: eventThreadId, turnId: eventTurnId }).catch((error) => {
+						this.interrupting = false;
 						this.state.addLog(MAIN, "system", `Unable to stop late Codex turn: ${error instanceof Error ? error.message : String(error)}`);
 					});
 					break;
@@ -326,6 +344,7 @@ export class CodexOfficeSession {
 			case "turn/completed": {
 				const eventThreadId = this.messageThreadId(params);
 				const eventTurnId = String((params.turn as JsonObject | undefined)?.id ?? "");
+				this.startedTurns.delete(eventTurnId || this.activeTurns.get(eventThreadId) || "");
 				if (eventThreadId) this.activeTurns.delete(eventThreadId);
 				this.rememberFinishedTurn(eventTurnId);
 				this.syncBusyState();
@@ -514,7 +533,7 @@ export class CodexOfficeSession {
 	private handleServerRequest(message: AppServerMessage): void {
 		if (message.id === undefined || !message.method) return;
 		if (this.approvals.has(message.id)) return;
-		if (!["item/commandExecution/requestApproval", "item/fileChange/requestApproval"].includes(message.method)) {
+		if (!interactiveMethods.has(message.method)) {
 			this.client.respondError(message.id, -32601, "Unsupported Agent Live client request");
 			return;
 		}
@@ -522,16 +541,23 @@ export class CodexOfficeSession {
 		const timer = setTimeout(() => {
 			if (!this.approvals.delete(message.id!)) return;
 			this.approvalTimers.delete(message.id!);
-			this.client.respond(message.id!, { decision: "decline" });
+			this.client.respond(message.id!, requestAnswer(message, false));
 			if (!this.approvals.size) this.state.setState(MAIN, this.state.sessionBusy() ? "thinking" : "idle", "Approval expired");
 		}, APPROVAL_TIMEOUT_MS);
 		timer.unref?.();
 		this.approvalTimers.set(message.id, timer);
-		this.state.setState(MAIN, "waiting", "等待你的确认");
+		if (message.params?.isBlocking !== false) this.state.setState(MAIN, "waiting", "等待你的确认");
 	}
 
 	private approvalView(message: AppServerMessage): PendingApproval {
 		const params = message.params ?? {};
+		const base = { id: message.id!, method: message.method! };
+		if (message.method === "item/tool/requestUserInput") return { ...base, title: "Questions from Codex", detail: "", questions: params.questions as InputQuestion[] };
+		if (message.method === "item/permissions/requestApproval") return { ...base, title: "Allow requested permissions?", detail: `${params.reason ?? ""}\n${JSON.stringify(params.permissions, null, 2)}` };
+		if (message.method === "mcpServer/elicitation/request") return {
+			...base, title: String(params.serverName ?? "MCP"), detail: String(params.message ?? ""),
+			...(params.mode === "url" ? { url: String(params.url) } : { schema: params.requestedSchema }),
+		};
 		const isCommand = message.method!.includes("commandExecution");
 		const detail = String(isCommand ? params.command ?? params.reason ?? "执行命令" : params.reason ?? "修改文件");
 		return {

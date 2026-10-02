@@ -8,6 +8,10 @@ export function installCodexControls(token) {
 	const approvalTitle = document.getElementById("approvalTitle");
 	const approvalDetail = document.getElementById("approvalDetail");
 	let currentApproval = null;
+	let renderedApprovalId = null;
+	const approvalInputs = document.createElement("div");
+	approvalInputs.className = "approval-inputs";
+	approvalDetail.after(approvalInputs);
 	let busy = false;
 	let disconnected = false;
 	let stopping = false;
@@ -72,9 +76,21 @@ export function installCodexControls(token) {
 	approval.addEventListener("click", (event) => {
 		const decision = event.target.closest("[data-approval]")?.dataset.approval;
 		if (!decision || !currentApproval) return;
-		void post("approval", { id: currentApproval.id, allow: decision === "allow" })
+		let answer;
+		try {
+			if (decision === "allow" && currentApproval.questions) {
+				answer = Object.fromEntries([...approvalInputs.querySelectorAll("input")].map((field) => [field.name, field.value]));
+			} else if (decision === "allow" && currentApproval.schema) {
+				answer = JSON.parse(approvalInputs.querySelector("textarea").value);
+			}
+		} catch {
+			approvalDetail.textContent = t("client.invalidForm");
+			return;
+		}
+		void post("approval", { id: currentApproval.id, allow: decision === "allow", input: answer })
 			.then(() => {
 				currentApproval = null;
+				renderedApprovalId = null;
 				approval.hidden = true;
 				clearTimeout(refreshTimer);
 				void refresh();
@@ -98,7 +114,56 @@ export function installCodexControls(token) {
 			approval.hidden = !currentApproval;
 			if (currentApproval) {
 				approvalTitle.textContent = window.AgentLiveI18n?.text(currentApproval.title) ?? currentApproval.title;
+				if (currentApproval.questions) approvalTitle.textContent = t("client.questions");
+				if (currentApproval.method === "item/permissions/requestApproval") approvalTitle.textContent = t("client.permissions");
+				approval.querySelector('[data-approval="allow"]').textContent = t(currentApproval.questions || currentApproval.schema ? "client.submitAnswers" : "approval.allow");
 				approvalDetail.textContent = window.AgentLiveI18n?.text(currentApproval.detail) ?? currentApproval.detail;
+				if (renderedApprovalId !== currentApproval.id) {
+					renderedApprovalId = currentApproval.id;
+					approvalInputs.replaceChildren();
+					for (const question of currentApproval.questions ?? []) {
+						const label = document.createElement("label");
+						label.textContent = question.question;
+						const field = document.createElement("input");
+						field.name = question.id;
+						field.type = question.isSecret ? "password" : "text";
+						field.autocomplete = "off";
+						label.append(field);
+						for (const option of question.options ?? []) {
+							const choice = document.createElement("button");
+							choice.type = "button";
+							choice.className = "btn";
+							choice.textContent = option.label;
+							choice.title = option.description ?? "";
+							choice.addEventListener("click", () => { field.value = option.label; });
+							label.append(choice);
+						}
+						approvalInputs.append(label);
+					}
+					if (currentApproval.schema) {
+						const schema = document.createElement("pre");
+						schema.textContent = JSON.stringify(currentApproval.schema, null, 2);
+						const field = document.createElement("textarea");
+						field.placeholder = t("client.formJson");
+						field.setAttribute("aria-label", t("client.formJson"));
+						approvalInputs.append(schema, field);
+					}
+					if (currentApproval.url) {
+						let url;
+						try { url = new URL(currentApproval.url); } catch { /* Invalid links must not disable Stop. */ }
+						if (url && ["https:", "http:"].includes(url.protocol)) {
+							const link = document.createElement("a");
+							link.href = url.href;
+							link.textContent = url.href;
+							link.target = "_blank";
+							link.rel = "noopener noreferrer";
+							approvalInputs.append(link);
+						}
+					}
+				}
+			} else {
+				renderedApprovalId = null;
+				approvalInputs.replaceChildren();
 			}
 				busy = Boolean(status.busy);
 				stopping = busy && Boolean(status.interrupting);

@@ -1,6 +1,11 @@
 {
 	"locale": "en",
 	"strings": {
+		"client.invalidForm": "Enter a valid JSON object for the requested form.",
+		"client.formJson": "Form response (JSON)",
+		"client.questions": "Questions from Codex",
+		"client.permissions": "Allow requested permissions?",
+		"client.submitAnswers": "Submit",
 		"connection.connecting": "Connecting…",
 		"connection.connected": "Connected",
 		"connection.reconnecting": "Reconnecting…",

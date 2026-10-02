@@ -1,6 +1,6 @@
 # Agent Live for DeepSeek Harness
 
-Native, session-scoped Agent Live view for DeepSeek Harness `0.1.5-rc.1`.
+Native, session-scoped Agent Live view for DeepSeek Harness `0.2.0-rc.2`.
 
 The package registers an `Agent Live` entry in DSH's `conversation.view` slot.
 It observes DSH's public Session, Conversation, model-selection and subagent

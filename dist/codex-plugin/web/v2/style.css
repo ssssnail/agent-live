@@ -136,5 +136,17 @@
 	color: var(--dim);
 	overflow: hidden;
 	text-overflow: ellipsis;
-	white-space: nowrap;
+	white-space: pre-wrap;
+	max-height: 160px;
+	overflow: auto;
 }
+
+.approval-inputs { max-height: 260px; overflow: auto; }
+.approval-inputs label { display: block; margin: 8px 0; }
+.approval-inputs input, .approval-inputs textarea {
+	display: block; width: 100%; box-sizing: border-box;
+	background: var(--bg); color: var(--ink); border: 1px solid var(--accent);
+	font: inherit; padding: 6px; margin: 4px 0;
+}
+.approval-inputs pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.approval-inputs a { color: var(--accent); overflow-wrap: anywhere; }

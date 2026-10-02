@@ -11,6 +11,7 @@ const isFile = (file: string) => stat(file).then(value => value.isFile(), () => 
 const pkg = await json(path.join(pluginRoot, "package.json"));
 const patch = await readFile(path.join(pluginRoot, "cordis.patch.yml"), "utf8");
 const client = await readFile(path.join(pluginRoot, "src/client.tsx"), "utf8");
+const observation = await readFile(path.join(pluginRoot, "src/observation.ts"), "utf8");
 const buildScript = await readFile(path.join(pluginRoot, "build.mjs"), "utf8");
 const creator = await readFile(path.join(pluginRoot, "src/creator.ts"), "utf8");
 const renderer = await readFile(path.join(pluginRoot, "../web/app.js"), "utf8");
@@ -47,7 +48,9 @@ assert.match(frameHtml, /id="language"/, "DSH view must expose the shared langua
 assert.match(officeRenderer, /const UI = content\.style\.tokens\.css/, "room signs must use the shared shell palette");
 assert.match(officeRenderer, /slot\.id === "company"[\s\S]*UI\.accent[\s\S]*slot\.id === "slogan"[\s\S]*UI\.dim/, "room signs must preserve the shared UI hierarchy");
 assert.match(renderer, /displayAgentName\(view, isLead\)/, "renderer must resolve fallback teammate names after Agent Profile overrides");
-assert.match(client, /name: `Teammate \$\{index \+ 1\}`/, "DSH fallback child names must remain host-neutral");
+assert.match(observation, /name: `Teammate \$\{index \+ 1\}`/, "DSH fallback child names must remain host-neutral");
+assert.match(client, /useSessionStatus\(/, "DSH 0.2 live status comes from the host status hook");
+assert.doesNotMatch(client, /subagentsByParent/, "removed DSH catalog field must not return");
 assert.match(renderer, /if \(actor\.action\) hot\.add[\s\S]*retarget\(actor\)/, "snapshot agents without an action must leave the entrance");
 assert.match(renderer, /goTo\(actor, Office\.TARGETS\.entry\);[\s\S]*if \(!actor\.path\.length\) \{[\s\S]*actors\.delete\(actor\.id\)/, "an agent already at the entrance must be removed immediately");
 assert.match(creator, /CreatorModeRegistry/);

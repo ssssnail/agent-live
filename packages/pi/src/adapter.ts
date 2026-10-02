@@ -350,7 +350,9 @@ export default function (pi: ExtensionAPI) {
 		}
 
 		state.endAction(MAIN, toolCallId, ok);
-		state.setState(MAIN, "thinking", ok ? "继续推进" : "处理报错");
+		// Pi 1.0 codemode emits nested tool events as well as the outer call.
+		// Completing one call must not make other in-flight calls look finished.
+		state.setState(MAIN, activeToolCalls.size ? "working" : "thinking", ok ? "继续推进" : "处理报错");
 	});
 
 	pi.on("agent_end", async () => {

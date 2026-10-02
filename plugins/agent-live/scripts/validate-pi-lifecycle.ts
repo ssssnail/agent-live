@@ -44,6 +44,14 @@ try {
 	await handlers.get("session_start")?.({}, ctx);
 	await commands.get("agent-live")?.handler("status", ctx);
 	const firstUrl = currentUrl();
+	await handlers.get("tool_execution_start")?.({ toolCallId: "outer", toolName: "codemode", args: {} }, ctx);
+	await handlers.get("tool_execution_start")?.({ toolCallId: "outer/1", parentToolCallId: "outer", toolName: "read", args: {} }, ctx);
+	await handlers.get("tool_execution_end")?.({ toolCallId: "outer/1", parentToolCallId: "outer", isError: false }, ctx);
+	const nested = await (await fetch(authenticatedEndpoint(firstUrl, "/api/state"))).json();
+	assert.equal(nested.agents[0].state, "working", "nested completion must not settle the outer Pi tool");
+	await handlers.get("tool_execution_end")?.({ toolCallId: "outer", isError: false }, ctx);
+	const settled = await (await fetch(authenticatedEndpoint(firstUrl, "/api/state"))).json();
+	assert.equal(settled.agents[0].state, "thinking");
 	await commands.get("agent-live")?.handler("custom", ctx);
 	await handlers.get("message_end")?.({ message: { role: "assistant", content: [], usage: { totalTokens: 900, cost: { total: 1 } } } }, ctx);
 	await new Promise<void>((resolve, reject) => {
